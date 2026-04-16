@@ -92,8 +92,8 @@
         </div>
       </header>
 
-      <main class="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)] items-start">
-        <aside class="panel p-3 md:p-4">
+      <main class="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)] items-start overflow-hidden">
+        <aside class="panel p-3 md:p-4 min-w-0">
           <div class="mb-3 flex items-center justify-between">
             <div>
               <p class="text-xs font-semibold uppercase tracking-[0.22em] text-ocean/60">Knowledge Map</p>
@@ -121,8 +121,8 @@
           </div>
         </aside>
 
-        <section class="grid gap-4 content-start">
-          <section class="panel overflow-hidden p-4 md:p-5">
+          <section class="grid gap-4 content-start min-w-0">
+          <section class="panel overflow-hidden p-4 md:p-5 min-w-0">
             <div class="mb-4 flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
               <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Domain Brief</p>
@@ -164,11 +164,11 @@
 
           <section
             v-if="activeView === 'study'"
-            class="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_360px] items-start"
+            class="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_360px] items-start min-w-0"
           >
-            <div class="panel p-4 md:p-5">
+            <div class="panel p-4 md:p-5 min-w-0">
               <div class="mb-4 flex items-start justify-between gap-4">
-                <div>
+                <div class="min-w-0">
                   <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Study Card</p>
                   <h3 class="font-display text-2xl font-semibold">{{ activeProcess.name }}</h3>
                   <p class="mt-2 text-sm leading-7 text-ink/75">{{ activeProcess.goal }}</p>
@@ -315,7 +315,7 @@
 
           <section
             v-else-if="activeView === 'formula'"
-            class="panel p-4 md:p-5"
+            class="panel p-4 md:p-5 min-w-0"
           >
             <div class="mb-4">
               <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Formula Board</p>
@@ -355,7 +355,7 @@
 
           <section
             v-else-if="activeView === 'compare'"
-            class="panel p-4 md:p-5"
+            class="panel p-4 md:p-5 min-w-0"
           >
             <div class="mb-4">
               <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Concept Compare</p>
@@ -391,7 +391,7 @@
 
           <section
             v-else
-            class="panel p-4 md:p-5"
+            class="panel p-4 md:p-5 min-w-0"
           >
             <div class="mb-4">
               <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Practice Mode</p>
@@ -399,7 +399,7 @@
               <p class="mt-2 text-sm leading-7 text-ink/75">这里先把结构留好，后面你把外部学习结果整理成 JSON 后，直接挂进对应知识域的 <code>quiz</code>
                 字段即可。</p>
             </div>
-            <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] min-w-0">
               <div class="space-y-4">
                 <article
                   v-for="question in activeDomain.quiz"

@@ -18,6 +18,7 @@ body {
   margin: 0;
   min-width: 320px;
   background: var(--page-bg);
+  overflow-x: hidden;
 }
 
 code {
@@ -169,11 +170,17 @@ code {
 }
 
 .process-strip {
-  display: grid;
+  display: flex;
+  flex-wrap: nowrap;
   align-items: start;
   gap: 0.9rem;
   overflow-x: auto;
   padding-bottom: 0.25rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.process-strip > * {
+  flex: 0 0 auto;
 }
 
 .process-node {
@@ -309,7 +316,12 @@ code {
 
 @media (min-width: 768px) {
   .process-strip {
+    display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  .process-strip > * {
+    flex: unset;
   }
 }
 
@@ -337,5 +349,13 @@ code {
   .mode-chip {
     min-width: calc(50% - 0.375rem);
     flex: 1 1 140px;
+  }
+
+  .domain-card {
+    min-width: 180px;
+  }
+
+  .process-node {
+    min-width: 180px;
   }
 }
