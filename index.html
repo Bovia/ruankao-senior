@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+  <title>高项学习器</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink: "#16313f",
+            ocean: "#0f4c5c",
+            lagoon: "#1c7c7d",
+            mint: "#65c3ba",
+            mist: "#eef7f6",
+            sand: "#f7fbfa",
+            coral: "#f18f6b"
+          },
+          boxShadow: {
+            soft: "0 18px 45px rgba(12, 55, 72, 0.10)",
+            glow: "0 12px 30px rgba(31, 122, 140, 0.18)"
+          },
+          fontFamily: {
+            display: ['"Avenir Next"', '"PingFang SC"', '"Hiragino Sans GB"', '"Microsoft YaHei"', "sans-serif"],
+            body: ['"PingFang SC"', '"Hiragino Sans GB"', '"Microsoft YaHei"', '"Source Han Sans SC"', "sans-serif"]
+          }
+        }
+      }
+    };
+  </script>
+  <link
+    rel="stylesheet"
+    href="./styles.css"
+  />
+</head>
+
+<body class="font-body text-ink">
+  <div
+    id="app"
+    v-cloak
+    class="min-h-screen"
+  >
+    <div class="app-shell mx-auto max-w-[1600px] px-4 py-4 md:px-6 lg:px-8 lg:py-6">
+      <header class="hero-panel mb-4 overflow-hidden rounded-[28px] p-5 shadow-soft md:mb-6 md:p-7">
+        <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div class="max-w-3xl">
+            <p class="mb-2 text-sm font-semibold uppercase tracking-[0.28em] text-white/70">信息系统项目管理师 · 过程可视化学习器</p>
+            <h1 class="font-display text-3xl font-semibold text-white md:text-5xl">把十大知识域串成一张会发光的记忆地图</h1>
+            <p class="mt-3 max-w-2xl text-sm leading-7 text-white/80 md:text-base">
+              当前聚焦
+              <span class="font-semibold text-white">{{ activeDomain.name }}</span>
+              ，默认从过程切入，再切到公式、概念对比和练习入口。后续补题库时，只需要继续往
+              <code>knowledgeData</code> 里加数据，不需要改页面骨架。
+            </p>
+          </div>
+          <div class="grid gap-3 sm:grid-cols-3 lg:w-[420px]">
+            <div class="metric-card">
+              <div class="metric-label">知识域</div>
+              <div class="metric-value">{{ domains.length }}</div>
+              <div class="metric-note">首版全部可切换</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">当前过程</div>
+              <div class="metric-value">{{ activeProcess.name }}</div>
+              <div class="metric-note">学习卡联动</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">模式</div>
+              <div class="metric-value">{{ activeViewLabel }}</div>
+              <div class="metric-note">顶部一键切换</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-5 flex flex-wrap gap-3">
+          <button
+            v-for="view in views"
+            :key="view.id"
+            @click="activeView = view.id"
+            class="mode-chip"
+            :class="{ 'mode-chip-active': activeView === view.id }"
+          >
+            <span>{{ view.label }}</span>
+            <span class="text-xs opacity-70">{{ view.desc }}</span>
+          </button>
+        </div>
+      </header>
+
+      <main class="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)] items-start">
+        <aside class="panel p-3 md:p-4">
+          <div class="mb-3 flex items-center justify-between">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-[0.22em] text-ocean/60">Knowledge Map</p>
+              <h2 class="font-display text-xl font-semibold">十大知识域</h2>
+            </div>
+            <div class="rounded-full bg-mist px-3 py-1 text-xs font-medium text-ocean">
+              {{ learnedCount }}/{{ activeDomain.processes.length }} 已点亮</div>
+          </div>
+
+          <div class="domain-nav flex gap-3 overflow-x-auto lg:flex-col lg:overflow-visible">
+            <button
+              v-for="domain in domains"
+              :key="domain.id"
+              @click="selectDomain(domain.id)"
+              class="domain-card"
+              :class="{ 'domain-card-active': activeDomainId === domain.id }"
+              :style="{ '--domain-accent': domain.themeColor }"
+            >
+              <div class="mb-2 flex items-center justify-between gap-3">
+                <span class="domain-name">{{ domain.name }}</span>
+                <span class="domain-badge">{{ domain.processes.length }}</span>
+              </div>
+              <p class="line-clamp-2 text-sm leading-6 text-ink/70">{{ domain.summary }}</p>
+            </button>
+          </div>
+        </aside>
+
+        <section class="grid gap-4 content-start">
+          <section class="panel overflow-hidden p-4 md:p-5">
+            <div class="mb-4 flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Domain Brief</p>
+                <h2 class="font-display text-2xl font-semibold">{{ activeDomain.name }}</h2>
+                <p class="mt-2 max-w-3xl text-sm leading-7 text-ink/75">{{ activeDomain.summary }}</p>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  class="density-toggle"
+                  :class="{ 'density-toggle-active': densityMode === 'core' }"
+                  @click="densityMode = 'core'"
+                >
+                  只看核心
+                </button>
+                <button
+                  class="density-toggle"
+                  :class="{ 'density-toggle-active': densityMode === 'full' }"
+                  @click="densityMode = 'full'"
+                >
+                  展开全部
+                </button>
+              </div>
+            </div>
+
+            <div class="process-strip">
+              <button
+                v-for="(process, index) in activeDomain.processes"
+                :key="process.id"
+                @click="selectProcess(process.id)"
+                class="process-node"
+                :class="processNodeClass(process.id)"
+              >
+                <span class="process-step">P{{ index + 1 }}</span>
+                <span class="process-stage">{{ process.stageOrder }}</span>
+                <span class="process-title">{{ process.name }}</span>
+              </button>
+            </div>
+          </section>
+
+          <section
+            v-if="activeView === 'study'"
+            class="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_360px] items-start"
+          >
+            <div class="panel p-4 md:p-5">
+              <div class="mb-4 flex items-start justify-between gap-4">
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Study Card</p>
+                  <h3 class="font-display text-2xl font-semibold">{{ activeProcess.name }}</h3>
+                  <p class="mt-2 text-sm leading-7 text-ink/75">{{ activeProcess.goal }}</p>
+                </div>
+                <div
+                  class="rounded-2xl px-3 py-2 text-sm font-semibold text-white shadow-glow"
+                  :style="{ background: domainGradient(activeDomain.themeColor) }"
+                >
+                  {{ activeProcess.stageOrder }}
+                </div>
+              </div>
+
+              <div class="grid gap-4 md:grid-cols-3 items-start">
+                <article class="study-block border-sky-200/80 bg-sky-50/80">
+                  <div class="study-block-title">输入 Inputs</div>
+                  <ul class="study-list">
+                    <li
+                      v-for="item in visibleList(activeProcess.inputs)"
+                      :key="`in-${item}`"
+                    >{{ item }}</li>
+                  </ul>
+                </article>
+                <article class="study-block border-teal-200/80 bg-teal-50/80">
+                  <div class="study-block-title">工具 Tools</div>
+                  <ul class="study-list">
+                    <li
+                      v-for="item in visibleList(activeProcess.tools)"
+                      :key="`tool-${item}`"
+                    >{{ item }}</li>
+                  </ul>
+                </article>
+                <article class="study-block border-emerald-200/80 bg-emerald-50/80">
+                  <div class="study-block-title">输出 Outputs</div>
+                  <ul class="study-list">
+                    <li
+                      v-for="item in visibleList(activeProcess.outputs)"
+                      :key="`out-${item}`"
+                    >{{ item }}</li>
+                  </ul>
+                </article>
+              </div>
+
+              <div class="mt-4 grid gap-4 lg:grid-cols-2 items-start">
+                <article class="panel-subtle">
+                  <p class="eyebrow">口诀 / 快记</p>
+                  <p class="mt-2 text-base font-semibold text-ink">{{ activeProcess.mnemonic }}</p>
+                </article>
+                <article class="panel-subtle">
+                  <p class="eyebrow">常见考法</p>
+                  <ul class="mt-2 space-y-2 text-sm leading-7 text-ink/80">
+                    <li
+                      v-for="item in visibleList(activeProcess.examAngles)"
+                      :key="`exam-${item}`"
+                    >• {{ item }}</li>
+                  </ul>
+                </article>
+              </div>
+
+              <article class="panel-subtle mt-4">
+                <p class="eyebrow">易混点 / 踩坑提醒</p>
+                <ul class="mt-2 space-y-2 text-sm leading-7 text-ink/80">
+                  <li
+                    v-for="item in visibleList(activeProcess.pitfalls)"
+                    :key="`pit-${item}`"
+                  >• {{ item }}</li>
+                </ul>
+              </article>
+            </div>
+
+            <div class="grid gap-4">
+              <section class="panel p-4 md:p-5">
+                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Memory Pins</p>
+                <div class="mt-3 space-y-3">
+                  <article class="memory-pin">
+                    <div class="memory-pin-label">一眼记住</div>
+                    <div class="memory-pin-text">{{ activeProcess.mnemonic }}</div>
+                  </article>
+                  <article class="memory-pin">
+                    <div class="memory-pin-label">关键输出</div>
+                    <div class="memory-pin-text">{{ activeProcess.outputs[0] || '待补充' }}</div>
+                  </article>
+                  <article class="memory-pin">
+                    <div class="memory-pin-label">高频提醒</div>
+                    <div class="memory-pin-text">{{ activeProcess.pitfalls[0] || '待补充' }}</div>
+                  </article>
+                </div>
+              </section>
+
+              <section
+                v-if="activeDomain.id === 'cost'"
+                class="panel p-4 md:p-5"
+              >
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">EVM Calculator</p>
+                    <h3 class="font-display text-xl font-semibold">成本管理计算器</h3>
+                  </div>
+                  <span class="rounded-full bg-coral/15 px-3 py-1 text-xs font-semibold text-coral">首版重点</span>
+                </div>
+
+                <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                  <label
+                    v-for="field in calculatorFields"
+                    :key="field.key"
+                    class="input-block"
+                  >
+                    <span>{{ field.label }}</span>
+                    <input
+                      v-model="calculatorInput[field.key]"
+                      type="number"
+                      inputmode="decimal"
+                      class="calc-input"
+                      :placeholder="field.placeholder"
+                    />
+                  </label>
+                </div>
+
+                <p
+                  v-if="calculatorMessage"
+                  class="mt-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800"
+                >
+                  {{ calculatorMessage }}
+                </p>
+
+                <div class="mt-4 grid gap-3">
+                  <article
+                    v-for="metric in calculatorResults"
+                    :key="metric.key"
+                    class="result-card"
+                  >
+                    <div class="flex items-start justify-between gap-3">
+                      <div>
+                        <div class="text-sm font-semibold text-ink">{{ metric.label }}</div>
+                        <div class="mt-1 text-2xl font-semibold text-ocean">{{ metric.display }}</div>
+                      </div>
+                      <div class="result-judge">{{ metric.judgement }}</div>
+                    </div>
+                    <p class="mt-2 text-sm leading-6 text-ink/75">{{ metric.meaning }}</p>
+                  </article>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <section
+            v-else-if="activeView === 'formula'"
+            class="panel p-4 md:p-5"
+          >
+            <div class="mb-4">
+              <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Formula Board</p>
+              <h3 class="font-display text-2xl font-semibold">{{ activeDomain.name }}公式看板</h3>
+              <p class="mt-2 text-sm leading-7 text-ink/75">按当前知识域筛选展示。成本管理内含完整 EVM 高频公式，其它知识域保留本域高频速记公式。</p>
+            </div>
+            <div
+              v-if="activeDomain.formulas.length"
+              class="grid gap-4 lg:grid-cols-2 items-start"
+            >
+              <article
+                v-for="formula in activeDomain.formulas"
+                :key="formula.name"
+                class="formula-card"
+              >
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <h4 class="text-lg font-semibold text-ink">{{ formula.name }}</h4>
+                    <p class="mt-2 font-mono text-base text-ocean">{{ formula.expression }}</p>
+                  </div>
+                  <span class="rounded-full bg-ocean/10 px-3 py-1 text-xs font-semibold text-ocean">高频</span>
+                </div>
+                <p class="mt-3 text-sm leading-7 text-ink/80"><strong>变量解释：</strong>{{ formula.variables }}</p>
+                <p class="mt-2 text-sm leading-7 text-ink/80"><strong>何时使用：</strong>{{ formula.usage }}</p>
+                <p class="mt-2 text-sm leading-7 text-coral"><strong>易错点：</strong>{{ formula.pitfall }}</p>
+              </article>
+            </div>
+            <article
+              v-else
+              class="panel-subtle"
+            >
+              <p class="eyebrow">待补充</p>
+              <p class="mt-2 text-sm leading-7 text-ink/80">当前知识域已接入公式看板结构，但首版还没有补到重点公式。后续只要往
+                <code>knowledgeData.{{ activeDomain.id }}.formulas</code> 里继续加条目就能自动显示。</p>
+            </article>
+          </section>
+
+          <section
+            v-else-if="activeView === 'compare'"
+            class="panel p-4 md:p-5"
+          >
+            <div class="mb-4">
+              <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Concept Compare</p>
+              <h3 class="font-display text-2xl font-semibold">高频混淆概念对比</h3>
+              <p class="mt-2 text-sm leading-7 text-ink/75">先展示当前知识域，再补充全局高频混淆项，尽量把“看起来像但考点不同”的地方拆开。</p>
+            </div>
+            <div class="grid gap-4 xl:grid-cols-2 items-start">
+              <article
+                v-for="item in compareCards"
+                :key="item.name"
+                class="compare-card"
+              >
+                <div class="mb-4 flex items-center justify-between gap-3">
+                  <h4 class="font-display text-xl font-semibold">{{ item.name }}</h4>
+                  <span class="rounded-full bg-lagoon/10 px-3 py-1 text-xs font-semibold text-lagoon">易混</span>
+                </div>
+                <div class="space-y-3">
+                  <div
+                    v-for="part in item.sides"
+                    :key="part.title"
+                    class="compare-side"
+                  >
+                    <div class="compare-title">{{ part.title }}</div>
+                    <p class="text-sm leading-7 text-ink/80">{{ part.detail }}</p>
+                  </div>
+                </div>
+                <div class="mt-4 rounded-2xl bg-mist px-4 py-3 text-sm leading-7 text-ocean">
+                  <strong>记忆法：</strong>{{ item.memory }}
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section
+            v-else
+            class="panel p-4 md:p-5"
+          >
+            <div class="mb-4">
+              <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Practice Mode</p>
+              <h3 class="font-display text-2xl font-semibold">练习入口</h3>
+              <p class="mt-2 text-sm leading-7 text-ink/75">这里先把结构留好，后面你把外部学习结果整理成 JSON 后，直接挂进对应知识域的 <code>quiz</code>
+                字段即可。</p>
+            </div>
+            <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+              <div class="space-y-4">
+                <article
+                  v-for="question in activeDomain.quiz"
+                  :key="question.question"
+                  class="quiz-card"
+                >
+                  <div class="mb-2 flex items-center justify-between gap-3">
+                    <div class="text-sm font-semibold text-ocean">{{ question.type }}</div>
+                    <div class="rounded-full bg-mint/20 px-3 py-1 text-xs font-semibold text-lagoon">
+                      {{ question.relatedProcess }}</div>
+                  </div>
+                  <h4 class="text-base font-semibold leading-7 text-ink">{{ question.question }}</h4>
+                  <ul class="mt-3 space-y-2 text-sm leading-6 text-ink/80">
+                    <li
+                      v-for="option in question.options"
+                      :key="option"
+                    >• {{ option }}</li>
+                  </ul>
+                  <div class="mt-4 rounded-2xl bg-sand px-4 py-3 text-sm leading-7 text-ink/80">
+                    <strong>答案：</strong>{{ question.answer }}<br />
+                    <strong>解析：</strong>{{ question.analysis }}
+                  </div>
+                </article>
+              </div>
+              <aside class="panel-subtle h-fit">
+                <p class="eyebrow">后续扩展建议</p>
+                <ul class="mt-3 space-y-2 text-sm leading-7 text-ink/80">
+                  <li>• 保持题目挂在对应知识域下，便于“边学边练”。</li>
+                  <li>• 预留 <code>single</code> / <code>blank</code> 两种模式状态。</li>
+                  <li>• 错题可后续加 <code>tag</code>、<code>source</code>、<code>lastWrongAt</code>。</li>
+                </ul>
+              </aside>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="./data/knowledge.js"></script>
+  <script src="./data/integration.js"></script>
+  <script src="./data/scope.js"></script>
+  <script src="./data/schedule.js"></script>
+  <script src="./data/cost.js"></script>
+  <script src="./data/quality.js"></script>
+  <script src="./data/resource.js"></script>
+  <script src="./data/communications.js"></script>
+  <script src="./data/risk.js"></script>
+  <script src="./data/procurement.js"></script>
+  <script src="./data/stakeholder.js"></script>
+  <script src="./data/performanceDomains.js"></script>
+  <script src="./app.js"></script>
+</body>
+
+</html>
