@@ -101,6 +101,9 @@ createApp({
         return true;
       });
     },
+    currentProcessIndex() {
+      return this.activeDomain.processes.findIndex((p) => p.id === this.activeProcessId);
+    },
     calculatorValues() {
       const parse = (value) => {
         if (value === "" || value === null || value === undefined) {
@@ -216,6 +219,13 @@ createApp({
     }
   },
   methods: {
+    goProcess(delta) {
+      const idx = this.currentProcessIndex + delta;
+      const processes = this.activeDomain.processes;
+      if (idx >= 0 && idx < processes.length) {
+        this.selectProcess(processes[idx].id);
+      }
+    },
     selectDomain(domainId) {
       this.activeDomainId = domainId;
       const nextProcess = this.activeDomain.processes[0];

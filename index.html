@@ -46,20 +46,24 @@
     v-cloak
     class="min-h-screen"
   >
-    <div class="app-shell mx-auto max-w-[1600px] px-4 py-4 md:px-6 lg:px-8 lg:py-6">
-      <header class="hero-panel mb-4 overflow-hidden rounded-[28px] p-5 shadow-soft md:mb-6 md:p-7">
+    <div class="app-shell mx-auto max-w-[1600px] px-3 py-3 pb-20 md:px-6 md:py-4 md:pb-4 lg:px-8 lg:py-6">
+      <header class="hero-panel mb-4 overflow-hidden rounded-[28px] p-4 shadow-soft md:mb-6 md:p-7">
         <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div class="max-w-3xl">
-            <p class="mb-2 text-sm font-semibold uppercase tracking-[0.28em] text-white/70">信息系统项目管理师 · 过程可视化学习器</p>
-            <h1 class="font-display text-3xl font-semibold text-white md:text-5xl">把十大知识域串成一张会发光的记忆地图</h1>
-            <p class="mt-3 max-w-2xl text-sm leading-7 text-white/80 md:text-base">
+            <p class="mb-1 text-xs font-semibold uppercase tracking-[0.28em] text-white/70 md:mb-2 md:text-sm">信息系统项目管理师 · 过程可视化学习器</p>
+            <h1 class="font-display text-2xl font-semibold text-white md:text-5xl">把十大知识域串成一张会发光的记忆地图</h1>
+            <p class="mt-2 hidden max-w-2xl text-sm leading-7 text-white/80 md:mt-3 md:block md:text-base">
               当前聚焦
               <span class="font-semibold text-white">{{ activeDomain.name }}</span>
               ，默认从过程切入，再切到公式、概念对比和练习入口。后续补题库时，只需要继续往
               <code>knowledgeData</code> 里加数据，不需要改页面骨架。
             </p>
+            <p class="mt-1.5 text-xs leading-5 text-white/70 md:hidden">
+              当前 <span class="font-semibold text-white">{{ activeDomain.name }}</span>
+              · {{ activeProcess.name }}
+            </p>
           </div>
-          <div class="grid gap-3 sm:grid-cols-3 lg:w-[420px]">
+          <div class="hidden gap-3 sm:grid sm:grid-cols-3 lg:w-[420px]">
             <div class="metric-card">
               <div class="metric-label">知识域</div>
               <div class="metric-value">{{ domains.length }}</div>
@@ -78,10 +82,10 @@
           </div>
         </div>
 
-        <div class="mt-5 flex flex-wrap gap-3">
+        <div class="mt-4 hidden flex-wrap gap-3 md:flex">
           <button
             v-for="view in views"
-            :key="view.id"
+            :key="'header-'+view.id"
             @click="activeView = view.id"
             class="mode-chip"
             :class="{ 'mode-chip-active': activeView === view.id }"
@@ -96,14 +100,25 @@
         <aside class="panel p-3 md:p-4 min-w-0">
           <div class="mb-3 flex items-center justify-between">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.22em] text-ocean/60">Knowledge Map</p>
-              <h2 class="font-display text-xl font-semibold">十大知识域</h2>
+              <p class="hidden text-xs font-semibold uppercase tracking-[0.22em] text-ocean/60 md:block">Knowledge Map</p>
+              <h2 class="font-display text-base font-semibold md:text-xl">知识域</h2>
             </div>
             <div class="rounded-full bg-mist px-3 py-1 text-xs font-medium text-ocean">
               {{ learnedCount }}/{{ activeDomain.processes.length }} 已点亮</div>
           </div>
 
-          <div class="domain-nav flex gap-3 overflow-x-auto lg:flex-col lg:overflow-visible">
+          <div class="domain-pills flex gap-2 overflow-x-auto pb-1 lg:hidden">
+            <button
+              v-for="domain in domains"
+              :key="'pill-'+domain.id"
+              @click="selectDomain(domain.id)"
+              class="domain-pill"
+              :class="{ 'domain-pill-active': activeDomainId === domain.id }"
+              :style="{ '--domain-accent': domain.themeColor }"
+            >{{ domain.name }}</button>
+          </div>
+
+          <div class="domain-nav hidden gap-3 lg:flex lg:flex-col lg:overflow-visible">
             <button
               v-for="domain in domains"
               :key="domain.id"
@@ -170,15 +185,37 @@
               <div class="mb-4 flex items-start justify-between gap-4">
                 <div class="min-w-0">
                   <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Study Card</p>
-                  <h3 class="font-display text-2xl font-semibold">{{ activeProcess.name }}</h3>
-                  <p class="mt-2 text-sm leading-7 text-ink/75">{{ activeProcess.goal }}</p>
+                  <h3 class="font-display text-xl font-semibold md:text-2xl">{{ activeProcess.name }}</h3>
+                  <p class="mt-1 text-sm leading-7 text-ink/75 md:mt-2">{{ activeProcess.goal }}</p>
                 </div>
                 <div
-                  class="rounded-2xl px-3 py-2 text-sm font-semibold text-white shadow-glow"
+                  class="shrink-0 rounded-2xl px-3 py-2 text-sm font-semibold text-white shadow-glow"
                   :style="{ background: domainGradient(activeDomain.themeColor) }"
                 >
                   {{ activeProcess.stageOrder }}
                 </div>
+              </div>
+
+              <div class="process-nav mb-4 flex items-center gap-2">
+                <button
+                  class="process-nav-btn"
+                  :disabled="currentProcessIndex <= 0"
+                  @click="goProcess(-1)"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                  <span class="hidden sm:inline">上一个</span>
+                </button>
+                <div class="flex-1 text-center text-xs font-semibold text-ocean/60">
+                  {{ currentProcessIndex + 1 }} / {{ activeDomain.processes.length }}
+                </div>
+                <button
+                  class="process-nav-btn"
+                  :disabled="currentProcessIndex >= activeDomain.processes.length - 1"
+                  @click="goProcess(1)"
+                >
+                  <span class="hidden sm:inline">下一个</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
               </div>
 
               <div class="grid gap-4 md:grid-cols-3 items-start">
@@ -436,6 +473,22 @@
           </section>
         </section>
       </main>
+
+      <nav class="mobile-tab-bar md:hidden">
+        <button
+          v-for="view in views"
+          :key="'tab-'+view.id"
+          @click="activeView = view.id"
+          class="mobile-tab"
+          :class="{ 'mobile-tab-active': activeView === view.id }"
+        >
+          <svg v-if="view.id==='study'" class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          <svg v-else-if="view.id==='formula'" class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>
+          <svg v-else-if="view.id==='compare'" class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          <svg v-else class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <span class="mobile-tab-label">{{ view.label }}</span>
+        </button>
+      </nav>
     </div>
   </div>
 
