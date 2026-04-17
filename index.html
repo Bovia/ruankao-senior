@@ -3,7 +3,10 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
   <title>高项学习器</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -31,16 +34,24 @@
       }
     };
   </script>
-  <link rel="stylesheet" href="./styles.css" />
+  <link
+    rel="stylesheet"
+    href="./styles.css"
+  />
 </head>
 
 <body class="font-body text-ink">
-  <div id="app" v-cloak class="min-h-screen">
+  <div
+    id="app"
+    v-cloak
+    class="min-h-screen"
+  >
     <div class="app-shell mx-auto max-w-[1600px] px-3 py-3 pb-20 md:px-6 md:py-4 md:pb-4 lg:px-8 lg:py-6">
       <header class="hero-panel mb-4 overflow-hidden rounded-[28px] p-4 shadow-soft md:mb-6 md:p-7">
         <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div class="max-w-3xl">
-            <p class="mb-1 text-xs font-semibold uppercase tracking-[0.28em] text-white/70 md:mb-2 md:text-sm">信息系统项目管理师 · 过程可视化学习器</p>
+            <p class="mb-1 text-xs font-semibold uppercase tracking-[0.28em] text-white/70 md:mb-2 md:text-sm">信息系统项目管理师
+              · 过程可视化学习器</p>
             <h1 class="font-display text-2xl font-semibold text-white md:text-5xl">把十大知识域串成一张会发光的记忆地图</h1>
             <p class="mt-2 hidden max-w-2xl text-sm leading-7 text-white/80 md:mt-3 md:block md:text-base">
               当前聚焦
@@ -64,35 +75,95 @@
               <div class="metric-value">{{ activeProcess.name }}</div>
               <div class="metric-note">学习卡联动</div>
             </div>
-            <div class="countdown-card" :class="{ 'countdown-urgent': countdown.days <= 7 }">
+            <div
+              class="countdown-card"
+              :class="{ 'countdown-urgent': countdown.days <= 7 }"
+            >
               <div class="metric-label">距离考试</div>
-              <div class="countdown-numbers" v-if="!countdown.expired">
+              <div
+                class="countdown-numbers"
+                v-if="!countdown.expired"
+              >
                 <span class="countdown-unit"><strong>{{ countdown.days }}</strong>天</span>
                 <span class="countdown-unit"><strong>{{ countdown.hours }}</strong>时</span>
                 <span class="countdown-unit"><strong>{{ countdown.minutes }}</strong>分</span>
                 <span class="countdown-unit"><strong>{{ countdown.seconds }}</strong>秒</span>
               </div>
-              <div v-else class="metric-value">考试进行中</div>
+              <div
+                v-else
+                class="metric-value"
+              >考试进行中</div>
               <div class="metric-note">5月24日 · 冲刺</div>
             </div>
           </div>
         </div>
 
         <div class="mt-4 hidden flex-wrap items-center gap-3 md:flex">
-          <button v-for="view in views" :key="'header-'+view.id" @click="activeView = view.id" class="mode-chip" :class="{ 'mode-chip-active': activeView === view.id }">
+          <button
+            v-for="view in views"
+            :key="'header-'+view.id"
+            @click="activeView = view.id"
+            class="mode-chip"
+            :class="{ 'mode-chip-active': activeView === view.id }"
+          >
             <span>{{ view.label }}</span>
             <span class="text-xs opacity-70">{{ view.desc }}</span>
           </button>
-          <div class="search-wrapper" ref="searchWrapper" style="margin-left:auto;">
+          <div
+            class="search-wrapper"
+            ref="searchWrapper"
+            style="margin-left:auto;"
+          >
             <div class="search-box">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input v-model="searchQuery" @focus="onSearchFocus" type="text" class="search-input" placeholder="搜索过程、工具、输入输出…" />
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle
+                  cx="11"
+                  cy="11"
+                  r="8"
+                />
+                <line
+                  x1="21"
+                  y1="21"
+                  x2="16.65"
+                  y2="16.65"
+                /></svg>
+              <input
+                v-model="searchQuery"
+                @focus="onSearchFocus"
+                type="text"
+                class="search-input"
+                placeholder="搜索过程、工具、输入输出…"
+              />
             </div>
             <Teleport to="body">
-              <div v-if="searchFocused && searchQuery.trim()" class="search-dropdown" :style="searchDropdownStyle">
-                <div v-if="searchResults.length === 0" class="search-empty">没有匹配的过程</div>
-                <button v-for="r in searchResults" :key="r.id" class="search-result-item" @mousedown.prevent="selectSearchResult(r)">
-                  <span class="search-result-domain" :style="{ background: r.domainColor + '18', color: r.domainColor }">{{ r.domainName }}</span>
+              <div
+                v-if="searchFocused && searchQuery.trim()"
+                class="search-dropdown"
+                :style="searchDropdownStyle"
+              >
+                <div
+                  v-if="searchResults.length === 0"
+                  class="search-empty"
+                >没有匹配的过程</div>
+                <button
+                  v-for="r in searchResults"
+                  :key="r.id"
+                  class="search-result-item"
+                  @mousedown.prevent="selectSearchResult(r)"
+                >
+                  <span
+                    class="search-result-domain"
+                    :style="{ background: r.domainColor + '18', color: r.domainColor }"
+                  >{{ r.domainName }}</span>
                   <span class="search-result-stage">{{ r.stageOrder }}</span>
                   <span class="search-result-name">{{ r.name }}</span>
                 </button>
@@ -102,20 +173,42 @@
         </div>
       </header>
 
-      <main class="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)] items-start overflow-hidden">
-        <aside class="panel p-3 md:p-4 min-w-0">
+      <main
+        class="grid gap-4 items-start overflow-hidden"
+        :class="activeView === 'processGroup' ? 'lg:grid-cols-1' : 'lg:grid-cols-[280px_minmax(0,1fr)]'"
+      >
+        <aside
+          v-if="activeView !== 'processGroup'"
+          class="panel p-3 md:p-4 min-w-0"
+        >
           <div class="mb-3 flex items-center justify-between">
             <div>
-              <p class="hidden text-xs font-semibold uppercase tracking-[0.22em] text-ocean/60 md:block">Knowledge Map</p>
+              <p class="hidden text-xs font-semibold uppercase tracking-[0.22em] text-ocean/60 md:block">Knowledge Map
+              </p>
               <h2 class="font-display text-base font-semibold md:text-xl">知识域</h2>
             </div>
-            <div class="rounded-full bg-mist px-3 py-1 text-xs font-medium text-ocean">{{ learnedCount }}/{{ activeDomain.processes.length }} 已点亮</div>
+            <div class="rounded-full bg-mist px-3 py-1 text-xs font-medium text-ocean">
+              {{ learnedCount }}/{{ activeDomain.processes.length }} 已点亮</div>
           </div>
           <div class="domain-pills flex gap-2 overflow-x-auto pb-1 lg:hidden">
-            <button v-for="domain in domains" :key="'pill-'+domain.id" @click="selectDomain(domain.id)" class="domain-pill" :class="{ 'domain-pill-active': activeDomainId === domain.id }" :style="{ '--domain-accent': domain.themeColor }">{{ domain.name }}</button>
+            <button
+              v-for="domain in domains"
+              :key="'pill-'+domain.id"
+              @click="selectDomain(domain.id)"
+              class="domain-pill"
+              :class="{ 'domain-pill-active': activeDomainId === domain.id }"
+              :style="{ '--domain-accent': domain.themeColor }"
+            >{{ domain.name }}</button>
           </div>
           <div class="domain-nav hidden gap-3 lg:flex lg:flex-col lg:overflow-visible">
-            <button v-for="domain in domains" :key="domain.id" @click="selectDomain(domain.id)" class="domain-card" :class="{ 'domain-card-active': activeDomainId === domain.id }" :style="{ '--domain-accent': domain.themeColor }">
+            <button
+              v-for="domain in domains"
+              :key="domain.id"
+              @click="selectDomain(domain.id)"
+              class="domain-card"
+              :class="{ 'domain-card-active': activeDomainId === domain.id }"
+              :style="{ '--domain-accent': domain.themeColor }"
+            >
               <div class="mb-2 flex items-center justify-between gap-3">
                 <span class="domain-name">{{ domain.name }}</span>
                 <span class="domain-badge">{{ domain.processes.length }}</span>
@@ -126,7 +219,11 @@
         </aside>
 
         <section class="grid gap-4 content-start min-w-0">
-          <section class="panel overflow-hidden p-4 md:p-5 min-w-0">
+          <!-- 学习卡视图：完整 Domain Brief + 过程条 -->
+          <section
+            v-if="activeView === 'study'"
+            class="panel overflow-hidden p-4 md:p-5 min-w-0"
+          >
             <div class="mb-4 flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
               <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Domain Brief</p>
@@ -134,21 +231,58 @@
                 <p class="mt-2 max-w-3xl text-sm leading-7 text-ink/75">{{ activeDomain.summary }}</p>
               </div>
               <div class="flex flex-wrap gap-2">
-                <button class="density-toggle" :class="{ 'density-toggle-active': densityMode === 'core' }" @click="densityMode = 'core'">只看核心</button>
-                <button class="density-toggle" :class="{ 'density-toggle-active': densityMode === 'full' }" @click="densityMode = 'full'">展开全部</button>
+                <button
+                  class="density-toggle"
+                  :class="{ 'density-toggle-active': densityMode === 'core' }"
+                  @click="densityMode = 'core'"
+                >只看核心</button>
+                <button
+                  class="density-toggle"
+                  :class="{ 'density-toggle-active': densityMode === 'full' }"
+                  @click="densityMode = 'full'"
+                >展开全部</button>
               </div>
             </div>
             <div class="process-strip">
-              <button v-for="(process, index) in activeDomain.processes" :key="process.id" @click="selectProcess(process.id)" class="process-node" :class="processNodeClass(process.id)">
+              <button
+                v-for="(process, index) in activeDomain.processes"
+                :key="process.id"
+                @click="selectProcess(process.id)"
+                class="process-node"
+                :class="processNodeClass(process.id)"
+              >
                 <span class="process-step">P{{ index + 1 }}</span>
                 <span class="process-stage">{{ process.stageOrder }}</span>
                 <span class="process-title">{{ process.name }}</span>
               </button>
             </div>
           </section>
+          <!-- 非学习卡视图（排除过程组）：压缩版 Domain Brief -->
+          <div
+            v-else-if="activeView !== 'processGroup'"
+            class="domain-brief-mini panel overflow-hidden px-4 py-3 min-w-0"
+          >
+            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Domain Brief</p>
+            <div class="flex items-start gap-3 flex-wrap">
+              <h2 class="font-display text-lg font-semibold shrink-0">{{ activeDomain.name }}</h2>
+              <p class="text-sm text-ink/60 leading-6 flex-1 min-w-0">{{ activeDomain.summary }}</p>
+            </div>
+            <div class="mt-2 flex flex-wrap gap-1.5">
+              <span
+                v-for="(process, index) in activeDomain.processes"
+                :key="'mini-'+process.id"
+                class="domain-brief-process-tag"
+              >
+                P{{ index + 1 }} {{ process.name }}
+              </span>
+            </div>
+          </div>
 
           <!-- 过程组总览 -->
-          <section v-if="activeView === 'processGroup'" class="panel p-4 md:p-6 min-w-0 process-group-view">
+          <section
+            v-if="activeView === 'processGroup'"
+            class="panel p-4 md:p-6 min-w-0 process-group-view"
+          >
             <div class="mb-4 flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
               <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Process Groups Overview</p>
@@ -157,12 +291,28 @@
               </div>
             </div>
             <div class="pg-filter-bar">
-              <button class="pg-filter-chip" :class="{ 'pg-filter-chip-active': pgFilterDomain === 'all' }" @click="pgFilterDomain = 'all'">全部 <span class="pg-filter-count">{{ totalProcessCount }}</span></button>
-              <button v-for="domain in domains" :key="'pgf-'+domain.id" class="pg-filter-chip" :class="{ 'pg-filter-chip-active': pgFilterDomain === domain.id }" :style="{ '--filter-color': domain.themeColor }" @click="pgFilterDomain = domain.id">{{ domain.name }} <span class="pg-filter-count">{{ domain.processes.length }}</span></button>
+              <button
+                class="pg-filter-chip"
+                :class="{ 'pg-filter-chip-active': pgFilterDomain === 'all' }"
+                @click="pgFilterDomain = 'all'"
+              >全部 <span class="pg-filter-count">{{ totalProcessCount }}</span></button>
+              <button
+                v-for="domain in domains"
+                :key="'pgf-'+domain.id"
+                class="pg-filter-chip"
+                :class="{ 'pg-filter-chip-active': pgFilterDomain === domain.id }"
+                :style="{ '--filter-color': domain.themeColor }"
+                @click="pgFilterDomain = domain.id"
+              >{{ domain.name }} <span class="pg-filter-count">{{ domain.processes.length }}</span></button>
             </div>
             <div class="pg-timeline">
               <div class="pg-timeline-line"></div>
-              <div v-for="(group, gIdx) in filteredProcessGroups" :key="group.name" class="pg-group" :style="{ '--pg-color': group.color, '--pg-delay': gIdx * 0.1 + 's' }">
+              <div
+                v-for="(group, gIdx) in filteredProcessGroups"
+                :key="group.name"
+                class="pg-group"
+                :style="{ '--pg-color': group.color, '--pg-delay': gIdx * 0.1 + 's' }"
+              >
                 <div class="pg-group-header">
                   <div class="pg-group-dot"></div>
                   <div class="pg-group-info">
@@ -175,10 +325,30 @@
                   </div>
                 </div>
                 <div class="pg-processes">
-                  <button v-for="(proc, pIdx) in group.processes" :key="proc.id" class="pg-process-card" :style="{ '--card-delay': (gIdx * 0.1 + pIdx * 0.05) + 's', '--domain-color': proc.domainColor }" @click="navigateToProcess(proc.domainId, proc.id)">
-                    <span class="pg-process-domain" :style="{ background: proc.domainColor + '18', color: proc.domainColor }">{{ proc.domainName }}</span>
+                  <button
+                    v-for="(proc, pIdx) in group.processes"
+                    :key="proc.id"
+                    class="pg-process-card"
+                    :style="{ '--card-delay': (gIdx * 0.1 + pIdx * 0.05) + 's', '--domain-color': proc.domainColor }"
+                    @click="navigateToProcess(proc.domainId, proc.id)"
+                  >
+                    <span
+                      class="pg-process-domain"
+                      :style="{ background: proc.domainColor + '18', color: proc.domainColor }"
+                    >{{ proc.domainName }}</span>
                     <span class="pg-process-name">{{ proc.name }}</span>
-                    <svg class="pg-process-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                    <svg
+                      class="pg-process-arrow"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <polyline points="9 18 15 12 9 6" /></svg>
                   </button>
                 </div>
               </div>
@@ -186,22 +356,41 @@
           </section>
 
           <!-- B: 关键词母题 -->
-          <section v-else-if="activeView === 'keyword'" class="panel p-4 md:p-6 min-w-0">
+          <section
+            v-else-if="activeView === 'keyword'"
+            class="panel p-4 md:p-6 min-w-0"
+          >
             <div class="mb-5 flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
               <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Pattern Recognition</p>
                 <h3 class="font-display text-2xl font-semibold">{{ activeDomain.name }} · 关键词母题</h3>
                 <p class="mt-2 text-sm leading-7 text-ink/75">看到题目中的"密码词"，秒选答案。点击卡片翻转查看。</p>
               </div>
-              <button class="density-toggle density-toggle-active" @click="shuffleKeywords">打乱顺序</button>
+              <button
+                class="density-toggle density-toggle-active"
+                @click="shuffleKeywords"
+              >打乱顺序</button>
             </div>
-            <div v-if="domainKeywords.length" class="kw-grid">
-              <div v-for="(kw, idx) in domainKeywords" :key="'kw-'+idx" class="kw-card" :class="{ 'kw-card-flipped': flippedKeywords[idx] }" @click="flipKeyword(idx)">
+            <div
+              v-if="domainKeywords.length"
+              class="kw-grid"
+            >
+              <div
+                v-for="(kw, idx) in domainKeywords"
+                :key="'kw-'+idx"
+                class="kw-card"
+                :class="{ 'kw-card-flipped': flippedKeywords[idx] }"
+                @click="flipKeyword(idx)"
+              >
                 <div class="kw-card-inner">
                   <div class="kw-card-front">
                     <div class="kw-front-label">看到这些词</div>
                     <div class="kw-keywords">
-                      <span v-for="word in kw.keywords" :key="word" class="kw-tag">{{ word }}</span>
+                      <span
+                        v-for="word in kw.keywords"
+                        :key="word"
+                        class="kw-tag"
+                      >{{ word }}</span>
                     </div>
                     <div class="kw-hint">点击翻转 →</div>
                   </div>
@@ -209,48 +398,77 @@
                     <div class="kw-back-label">立刻选</div>
                     <div class="kw-answer">{{ kw.answer }}</div>
                     <p class="kw-why">{{ kw.why }}</p>
-                    <div v-if="kw.trap" class="kw-trap"><strong>易混：</strong>{{ kw.trap }}</div>
+                    <div
+                      v-if="kw.trap"
+                      class="kw-trap"
+                    ><strong>易混：</strong>{{ kw.trap }}</div>
                   </div>
                 </div>
               </div>
             </div>
-            <div v-else class="panel-subtle">
+            <div
+              v-else
+              class="panel-subtle"
+            >
               <p class="eyebrow">待补充</p>
               <p class="mt-2 text-sm leading-7 text-ink/80">当前知识域暂无关键词数据，后续补充到 <code>keywordMap</code> 即可自动显示。</p>
             </div>
           </section>
 
           <!-- A: 场景演练 -->
-          <section v-else-if="activeView === 'scenario'" class="panel p-4 md:p-6 min-w-0">
+          <section
+            v-else-if="activeView === 'scenario'"
+            class="panel p-4 md:p-6 min-w-0"
+          >
             <div class="mb-5">
               <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Action Flows</p>
               <h3 class="font-display text-2xl font-semibold">{{ activeDomain.name }} · 场景化动作流</h3>
               <p class="mt-2 text-sm leading-7 text-ink/75">高项案例分析题常问"你是PM该怎么办"，训练你的第一反应。</p>
             </div>
-            <div v-if="domainActionFlows.length" class="grid gap-5 xl:grid-cols-2 items-start">
-              <article v-for="(flow, fi) in domainActionFlows" :key="'flow-'+fi" class="scenario-card">
+            <div
+              v-if="domainActionFlows.length"
+              class="grid gap-5 xl:grid-cols-2 items-start"
+            >
+              <article
+                v-for="(flow, fi) in domainActionFlows"
+                :key="'flow-'+fi"
+                class="scenario-card"
+              >
                 <div class="scenario-header">
                   <span class="scenario-badge">场景 {{ fi + 1 }}</span>
                   <h4 class="scenario-title">{{ flow.scenario }}</h4>
                 </div>
                 <div class="scenario-steps">
-                  <div v-for="(step, si) in flow.steps" :key="'step-'+si" class="scenario-step">
+                  <div
+                    v-for="(step, si) in flow.steps"
+                    :key="'step-'+si"
+                    class="scenario-step"
+                  >
                     <span class="scenario-step-num">{{ si + 1 }}</span>
                     <span class="scenario-step-text">{{ step }}</span>
                   </div>
                 </div>
                 <div class="scenario-rule"><strong>黄金法则：</strong>{{ flow.keyRule }}</div>
-                <div v-if="flow.examTip" class="scenario-tip"><strong>考试提示：</strong>{{ flow.examTip }}</div>
+                <div
+                  v-if="flow.examTip"
+                  class="scenario-tip"
+                ><strong>考试提示：</strong>{{ flow.examTip }}</div>
               </article>
             </div>
-            <div v-else class="panel-subtle">
+            <div
+              v-else
+              class="panel-subtle"
+            >
               <p class="eyebrow">待补充</p>
               <p class="mt-2 text-sm leading-7 text-ink/80">当前知识域暂无场景数据，后续补充到 <code>actionFlows</code> 即可自动显示。</p>
             </div>
           </section>
 
           <!-- 学习卡 -->
-          <section v-else-if="activeView === 'study'" class="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_360px] items-start min-w-0">
+          <section
+            v-else-if="activeView === 'study'"
+            class="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_360px] items-start min-w-0"
+          >
             <div class="panel p-4 md:p-5 min-w-0">
               <div class="mb-4 flex items-start justify-between gap-4">
                 <div class="min-w-0">
@@ -258,75 +476,229 @@
                   <h3 class="font-display text-xl font-semibold md:text-2xl">{{ activeProcess.name }}</h3>
                   <p class="mt-1 text-sm leading-7 text-ink/75 md:mt-2">{{ activeProcess.goal }}</p>
                 </div>
-                <div class="shrink-0 rounded-2xl px-3 py-2 text-sm font-semibold text-white shadow-glow" :style="{ background: domainGradient(activeDomain.themeColor) }">{{ activeProcess.stageOrder }}</div>
+                <div
+                  class="shrink-0 rounded-2xl px-3 py-2 text-sm font-semibold text-white shadow-glow"
+                  :style="{ background: domainGradient(activeDomain.themeColor) }"
+                >{{ activeProcess.stageOrder }}</div>
               </div>
 
               <div class="mb-4 flex items-center gap-2">
-                <button class="blind-toggle" :class="{ 'blind-toggle-active': blindFillMode }" @click="toggleBlindFill">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path v-if="blindFillMode" d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line v-if="blindFillMode" x1="1" y1="1" x2="23" y2="23"/><path v-if="!blindFillMode" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle v-if="!blindFillMode" cx="12" cy="12" r="3"/></svg>
+                <button
+                  class="blind-toggle"
+                  :class="{ 'blind-toggle-active': blindFillMode }"
+                  @click="toggleBlindFill"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path
+                      v-if="blindFillMode"
+                      d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
+                    />
+                    <line
+                      v-if="blindFillMode"
+                      x1="1"
+                      y1="1"
+                      x2="23"
+                      y2="23"
+                    />
+                    <path
+                      v-if="!blindFillMode"
+                      d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                    />
+                    <circle
+                      v-if="!blindFillMode"
+                      cx="12"
+                      cy="12"
+                      r="3"
+                    /></svg>
                   {{ blindFillMode ? '退出盲填' : '盲填模式' }}
                 </button>
-                <span v-if="blindFillMode" class="text-xs text-coral font-semibold">主动回忆中 · 点击「?」揭示答案</span>
+                <span
+                  v-if="blindFillMode"
+                  class="text-xs text-coral font-semibold"
+                >主动回忆中 · 点击「?」揭示答案</span>
               </div>
 
               <div class="process-nav mb-4 flex items-center gap-2">
-                <button class="process-nav-btn" :disabled="currentProcessIndex <= 0" @click="goProcess(-1)">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                <button
+                  class="process-nav-btn"
+                  :disabled="currentProcessIndex <= 0"
+                  @click="goProcess(-1)"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="15 18 9 12 15 6" /></svg>
                   <span class="hidden sm:inline">上一个</span>
                 </button>
-                <div class="flex-1 text-center text-xs font-semibold text-ocean/60">{{ currentProcessIndex + 1 }} / {{ activeDomain.processes.length }}</div>
-                <button class="process-nav-btn" :disabled="currentProcessIndex >= activeDomain.processes.length - 1" @click="goProcess(1)">
+                <div class="flex-1 text-center text-xs font-semibold text-ocean/60">{{ currentProcessIndex + 1 }} /
+                  {{ activeDomain.processes.length }}</div>
+                <button
+                  class="process-nav-btn"
+                  :disabled="currentProcessIndex >= activeDomain.processes.length - 1"
+                  @click="goProcess(1)"
+                >
                   <span class="hidden sm:inline">下一个</span>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6" /></svg>
                 </button>
               </div>
 
               <div class="grid gap-4 md:grid-cols-3 items-start">
                 <article class="study-block border-sky-200/80 bg-sky-50/80">
                   <div class="study-block-title">输入 Inputs</div>
-                  <ul class="study-list"><li v-for="item in visibleList(activeProcess.inputs)" :key="`in-${item}`">{{ item }}</li></ul>
+                  <ul class="study-list">
+                    <li
+                      v-for="item in visibleList(activeProcess.inputs)"
+                      :key="`in-${item}`"
+                    >{{ item }}</li>
+                  </ul>
                 </article>
-                <article class="study-block border-teal-200/80 bg-teal-50/80" :class="{ 'blind-block': isBlindHidden('tools') }">
+                <article
+                  class="study-block border-teal-200/80 bg-teal-50/80"
+                  :class="{ 'blind-block': isBlindHidden('tools') }"
+                >
                   <div class="study-block-title">工具 Tools</div>
-                  <div v-if="isBlindHidden('tools')" class="blind-mask" @click="revealField('tools')"><span class="blind-mask-icon">?</span><span class="blind-mask-text">点击揭示</span></div>
-                  <ul v-else class="study-list"><li v-for="item in visibleList(activeProcess.tools)" :key="`tool-${item}`">{{ item }}</li></ul>
+                  <div
+                    v-if="isBlindHidden('tools')"
+                    class="blind-mask"
+                    @click="revealField('tools')"
+                  ><span class="blind-mask-icon">?</span><span class="blind-mask-text">点击揭示</span></div>
+                  <ul
+                    v-else
+                    class="study-list"
+                  >
+                    <li
+                      v-for="item in visibleList(activeProcess.tools)"
+                      :key="`tool-${item}`"
+                    >{{ item }}</li>
+                  </ul>
                 </article>
-                <article class="study-block border-emerald-200/80 bg-emerald-50/80" :class="{ 'blind-block': isBlindHidden('outputs') }">
+                <article
+                  class="study-block border-emerald-200/80 bg-emerald-50/80"
+                  :class="{ 'blind-block': isBlindHidden('outputs') }"
+                >
                   <div class="study-block-title">输出 Outputs</div>
-                  <div v-if="isBlindHidden('outputs')" class="blind-mask" @click="revealField('outputs')"><span class="blind-mask-icon">?</span><span class="blind-mask-text">点击揭示</span></div>
-                  <ul v-else class="study-list"><li v-for="item in visibleList(activeProcess.outputs)" :key="`out-${item}`">{{ item }}</li></ul>
-                </article>
-              </div>
-
-              <div class="mt-4 grid gap-4 lg:grid-cols-2 items-start">
-                <article class="panel-subtle" :class="{ 'blind-block': isBlindHidden('mnemonic') }">
-                  <p class="eyebrow">口诀 / 快记</p>
-                  <div v-if="isBlindHidden('mnemonic')" class="blind-mask blind-mask-sm" @click="revealField('mnemonic')"><span class="blind-mask-icon">?</span><span class="blind-mask-text">点击揭示</span></div>
-                  <p v-else class="mt-2 text-base font-semibold text-ink">{{ activeProcess.mnemonic }}</p>
-                </article>
-                <article class="panel-subtle">
-                  <p class="eyebrow">常见考法</p>
-                  <ul class="mt-2 space-y-2 text-sm leading-7 text-ink/80">
-                    <li v-for="item in visibleList(activeProcess.examAngles)" :key="`exam-${item}`">• {{ item }}</li>
+                  <div
+                    v-if="isBlindHidden('outputs')"
+                    class="blind-mask"
+                    @click="revealField('outputs')"
+                  ><span class="blind-mask-icon">?</span><span class="blind-mask-text">点击揭示</span></div>
+                  <ul
+                    v-else
+                    class="study-list"
+                  >
+                    <li
+                      v-for="item in visibleList(activeProcess.outputs)"
+                      :key="`out-${item}`"
+                    >{{ item }}</li>
                   </ul>
                 </article>
               </div>
 
-              <article class="panel-subtle mt-4" :class="{ 'blind-block': isBlindHidden('pitfalls') }">
+              <div class="mt-4 grid gap-4 lg:grid-cols-2 items-start">
+                <article
+                  class="panel-subtle"
+                  :class="{ 'blind-block': isBlindHidden('mnemonic') }"
+                >
+                  <p class="eyebrow">口诀 / 快记</p>
+                  <div
+                    v-if="isBlindHidden('mnemonic')"
+                    class="blind-mask blind-mask-sm"
+                    @click="revealField('mnemonic')"
+                  ><span class="blind-mask-icon">?</span><span class="blind-mask-text">点击揭示</span></div>
+                  <p
+                    v-else
+                    class="mt-2 text-base font-semibold text-ink"
+                  >{{ activeProcess.mnemonic }}</p>
+                </article>
+                <article class="panel-subtle">
+                  <p class="eyebrow">常见考法</p>
+                  <ul class="mt-2 space-y-2 text-sm leading-7 text-ink/80">
+                    <li
+                      v-for="item in visibleList(activeProcess.examAngles)"
+                      :key="`exam-${item}`"
+                    >• {{ item }}</li>
+                  </ul>
+                </article>
+              </div>
+
+              <article
+                class="panel-subtle mt-4"
+                :class="{ 'blind-block': isBlindHidden('pitfalls') }"
+              >
                 <p class="eyebrow">易混点 / 踩坑提醒</p>
-                <div v-if="isBlindHidden('pitfalls')" class="blind-mask blind-mask-sm" @click="revealField('pitfalls')"><span class="blind-mask-icon">?</span><span class="blind-mask-text">点击揭示</span></div>
-                <ul v-else class="mt-2 space-y-2 text-sm leading-7 text-ink/80">
-                  <li v-for="item in visibleList(activeProcess.pitfalls)" :key="`pit-${item}`">• {{ item }}</li>
+                <div
+                  v-if="isBlindHidden('pitfalls')"
+                  class="blind-mask blind-mask-sm"
+                  @click="revealField('pitfalls')"
+                ><span class="blind-mask-icon">?</span><span class="blind-mask-text">点击揭示</span></div>
+                <ul
+                  v-else
+                  class="mt-2 space-y-2 text-sm leading-7 text-ink/80"
+                >
+                  <li
+                    v-for="item in visibleList(activeProcess.pitfalls)"
+                    :key="`pit-${item}`"
+                  >• {{ item }}</li>
                 </ul>
               </article>
 
-              <article v-if="domainLogicalLinks.length" class="panel-subtle mt-4">
+              <article
+                v-if="domainLogicalLinks.length"
+                class="panel-subtle mt-4"
+              >
                 <p class="eyebrow">ITTO 逻辑链 · 因果关系</p>
                 <div class="mt-3 space-y-3">
-                  <div v-for="(link, li) in domainLogicalLinks" :key="'link-'+li" class="logic-link-item">
+                  <div
+                    v-for="(link, li) in domainLogicalLinks"
+                    :key="'link-'+li"
+                    class="logic-link-item"
+                  >
                     <div class="logic-link-flow">
                       <span class="logic-link-from">{{ link.from }}</span>
-                      <svg class="logic-link-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                      <svg
+                        class="logic-link-arrow"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <line
+                          x1="5"
+                          y1="12"
+                          x2="19"
+                          y2="12"
+                        />
+                        <polyline points="12 5 19 12 12 19" /></svg>
                       <span class="logic-link-to">{{ link.to }}</span>
                     </div>
                     <p class="logic-link-why">{{ link.why }}</p>
@@ -339,12 +711,24 @@
               <section class="panel p-4 md:p-5">
                 <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Memory Pins</p>
                 <div class="mt-3 space-y-3">
-                  <article class="memory-pin"><div class="memory-pin-label">一眼记住</div><div class="memory-pin-text">{{ activeProcess.mnemonic }}</div></article>
-                  <article class="memory-pin"><div class="memory-pin-label">关键输出</div><div class="memory-pin-text">{{ activeProcess.outputs[0] || '待补充' }}</div></article>
-                  <article class="memory-pin"><div class="memory-pin-label">高频提醒</div><div class="memory-pin-text">{{ activeProcess.pitfalls[0] || '待补充' }}</div></article>
+                  <article class="memory-pin">
+                    <div class="memory-pin-label">一眼记住</div>
+                    <div class="memory-pin-text">{{ activeProcess.mnemonic }}</div>
+                  </article>
+                  <article class="memory-pin">
+                    <div class="memory-pin-label">关键输出</div>
+                    <div class="memory-pin-text">{{ activeProcess.outputs[0] || '待补充' }}</div>
+                  </article>
+                  <article class="memory-pin">
+                    <div class="memory-pin-label">高频提醒</div>
+                    <div class="memory-pin-text">{{ activeProcess.pitfalls[0] || '待补充' }}</div>
+                  </article>
                 </div>
               </section>
-              <section v-if="activeDomain.id === 'cost'" class="panel p-4 md:p-5">
+              <section
+                v-if="activeDomain.id === 'cost'"
+                class="panel p-4 md:p-5"
+              >
                 <div class="flex items-start justify-between gap-3">
                   <div>
                     <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">EVM Calculator</p>
@@ -353,16 +737,36 @@
                   <span class="rounded-full bg-coral/15 px-3 py-1 text-xs font-semibold text-coral">首版重点</span>
                 </div>
                 <div class="mt-4 grid gap-3 sm:grid-cols-2">
-                  <label v-for="field in calculatorFields" :key="field.key" class="input-block">
+                  <label
+                    v-for="field in calculatorFields"
+                    :key="field.key"
+                    class="input-block"
+                  >
                     <span>{{ field.label }}</span>
-                    <input v-model="calculatorInput[field.key]" type="number" inputmode="decimal" class="calc-input" :placeholder="field.placeholder" />
+                    <input
+                      v-model="calculatorInput[field.key]"
+                      type="number"
+                      inputmode="decimal"
+                      class="calc-input"
+                      :placeholder="field.placeholder"
+                    />
                   </label>
                 </div>
-                <p v-if="calculatorMessage" class="mt-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">{{ calculatorMessage }}</p>
+                <p
+                  v-if="calculatorMessage"
+                  class="mt-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800"
+                >{{ calculatorMessage }}</p>
                 <div class="mt-4 grid gap-3">
-                  <article v-for="metric in calculatorResults" :key="metric.key" class="result-card">
+                  <article
+                    v-for="metric in calculatorResults"
+                    :key="metric.key"
+                    class="result-card"
+                  >
                     <div class="flex items-start justify-between gap-3">
-                      <div><div class="text-sm font-semibold text-ink">{{ metric.label }}</div><div class="mt-1 text-2xl font-semibold text-ocean">{{ metric.display }}</div></div>
+                      <div>
+                        <div class="text-sm font-semibold text-ink">{{ metric.label }}</div>
+                        <div class="mt-1 text-2xl font-semibold text-ocean">{{ metric.display }}</div>
+                      </div>
                       <div class="result-judge">{{ metric.judgement }}</div>
                     </div>
                     <p class="mt-2 text-sm leading-6 text-ink/75">{{ metric.meaning }}</p>
@@ -373,16 +777,29 @@
           </section>
 
           <!-- 公式看板 -->
-          <section v-else-if="activeView === 'formula'" class="panel p-4 md:p-5 min-w-0">
+          <section
+            v-else-if="activeView === 'formula'"
+            class="panel p-4 md:p-5 min-w-0"
+          >
             <div class="mb-4">
               <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Formula Board</p>
               <h3 class="font-display text-2xl font-semibold">{{ activeDomain.name }}公式看板</h3>
               <p class="mt-2 text-sm leading-7 text-ink/75">按当前知识域筛选展示。</p>
             </div>
-            <div v-if="activeDomain.formulas.length" class="grid gap-4 lg:grid-cols-2 items-start">
-              <article v-for="formula in activeDomain.formulas" :key="formula.name" class="formula-card">
+            <div
+              v-if="activeDomain.formulas.length"
+              class="grid gap-4 lg:grid-cols-2 items-start"
+            >
+              <article
+                v-for="formula in activeDomain.formulas"
+                :key="formula.name"
+                class="formula-card"
+              >
                 <div class="flex items-start justify-between gap-3">
-                  <div><h4 class="text-lg font-semibold text-ink">{{ formula.name }}</h4><p class="mt-2 font-mono text-base text-ocean">{{ formula.expression }}</p></div>
+                  <div>
+                    <h4 class="text-lg font-semibold text-ink">{{ formula.name }}</h4>
+                    <p class="mt-2 font-mono text-base text-ocean">{{ formula.expression }}</p>
+                  </div>
                   <span class="rounded-full bg-ocean/10 px-3 py-1 text-xs font-semibold text-ocean">高频</span>
                 </div>
                 <p class="mt-3 text-sm leading-7 text-ink/80"><strong>变量解释：</strong>{{ formula.variables }}</p>
@@ -390,59 +807,96 @@
                 <p class="mt-2 text-sm leading-7 text-coral"><strong>易错点：</strong>{{ formula.pitfall }}</p>
               </article>
             </div>
-            <article v-else class="panel-subtle">
+            <article
+              v-else
+              class="panel-subtle"
+            >
               <p class="eyebrow">待补充</p>
               <p class="mt-2 text-sm leading-7 text-ink/80">当前知识域已接入公式看板结构，后续往 <code>formulas</code> 加条目即可。</p>
             </article>
           </section>
 
           <!-- 概念对比 -->
-          <section v-else-if="activeView === 'compare'" class="panel p-4 md:p-5 min-w-0">
+          <section
+            v-else-if="activeView === 'compare'"
+            class="panel p-4 md:p-5 min-w-0"
+          >
             <div class="mb-4">
               <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Concept Compare</p>
               <h3 class="font-display text-2xl font-semibold">高频混淆概念对比</h3>
               <p class="mt-2 text-sm leading-7 text-ink/75">先展示当前知识域，再补充全局高频混淆项。</p>
             </div>
             <div class="grid gap-4 xl:grid-cols-2 items-start">
-              <article v-for="item in compareCards" :key="item.name" class="compare-card">
+              <article
+                v-for="item in compareCards"
+                :key="item.name"
+                class="compare-card"
+              >
                 <div class="mb-4 flex items-center justify-between gap-3">
                   <h4 class="font-display text-xl font-semibold">{{ item.name }}</h4>
                   <span class="rounded-full bg-lagoon/10 px-3 py-1 text-xs font-semibold text-lagoon">易混</span>
                 </div>
                 <div class="space-y-3">
-                  <div v-for="part in item.sides" :key="part.title" class="compare-side">
+                  <div
+                    v-for="part in item.sides"
+                    :key="part.title"
+                    class="compare-side"
+                  >
                     <div class="compare-title">{{ part.title }}</div>
                     <p class="text-sm leading-7 text-ink/80">{{ part.detail }}</p>
                   </div>
                 </div>
-                <div class="mt-4 rounded-2xl bg-mist px-4 py-3 text-sm leading-7 text-ocean"><strong>记忆法：</strong>{{ item.memory }}</div>
+                <div class="mt-4 rounded-2xl bg-mist px-4 py-3 text-sm leading-7 text-ocean">
+                  <strong>记忆法：</strong>{{ item.memory }}</div>
               </article>
             </div>
           </section>
 
           <!-- 练习场 (题库 + 连连看) -->
-          <section v-else class="panel p-4 md:p-5 min-w-0">
+          <section
+            v-else
+            class="panel p-4 md:p-5 min-w-0"
+          >
             <div class="mb-4 flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
               <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Practice Mode</p>
                 <h3 class="font-display text-2xl font-semibold">{{ activeDomain.name }} · 练习场</h3>
               </div>
               <div class="flex gap-2">
-                <button class="density-toggle" :class="{ 'density-toggle-active': quizSubMode === 'quiz' }" @click="quizSubMode = 'quiz'">题库</button>
-                <button class="density-toggle" :class="{ 'density-toggle-active': quizSubMode === 'matcher' }" @click="startMatcher">连连看</button>
+                <button
+                  class="density-toggle"
+                  :class="{ 'density-toggle-active': quizSubMode === 'quiz' }"
+                  @click="quizSubMode = 'quiz'"
+                >题库</button>
+                <button
+                  class="density-toggle"
+                  :class="{ 'density-toggle-active': quizSubMode === 'matcher' }"
+                  @click="startMatcher"
+                >连连看</button>
               </div>
             </div>
             <div v-if="quizSubMode === 'quiz'">
               <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] min-w-0">
                 <div class="space-y-4">
-                  <article v-for="question in activeDomain.quiz" :key="question.question" class="quiz-card">
+                  <article
+                    v-for="question in activeDomain.quiz"
+                    :key="question.question"
+                    class="quiz-card"
+                  >
                     <div class="mb-2 flex items-center justify-between gap-3">
                       <div class="text-sm font-semibold text-ocean">{{ question.type }}</div>
-                      <div class="rounded-full bg-mint/20 px-3 py-1 text-xs font-semibold text-lagoon">{{ question.relatedProcess }}</div>
+                      <div class="rounded-full bg-mint/20 px-3 py-1 text-xs font-semibold text-lagoon">
+                        {{ question.relatedProcess }}</div>
                     </div>
                     <h4 class="text-base font-semibold leading-7 text-ink">{{ question.question }}</h4>
-                    <ul class="mt-3 space-y-2 text-sm leading-6 text-ink/80"><li v-for="option in question.options" :key="option">• {{ option }}</li></ul>
-                    <div class="mt-4 rounded-2xl bg-sand px-4 py-3 text-sm leading-7 text-ink/80"><strong>答案：</strong>{{ question.answer }}<br /><strong>解析：</strong>{{ question.analysis }}</div>
+                    <ul class="mt-3 space-y-2 text-sm leading-6 text-ink/80">
+                      <li
+                        v-for="option in question.options"
+                        :key="option"
+                      >• {{ option }}</li>
+                    </ul>
+                    <div class="mt-4 rounded-2xl bg-sand px-4 py-3 text-sm leading-7 text-ink/80">
+                      <strong>答案：</strong>{{ question.answer }}<br /><strong>解析：</strong>{{ question.analysis }}</div>
                   </article>
                 </div>
                 <aside class="panel-subtle h-fit">
@@ -455,21 +909,43 @@
               </div>
             </div>
             <div v-else>
-              <p class="mb-4 text-sm leading-7 text-ink/75">把左边的<strong>关键输出</strong>和右边的<strong>过程名称</strong>正确配对。先点左边，再点右边。</p>
-              <div v-if="matcherPairs.length" class="matcher-board">
+              <p class="mb-4 text-sm leading-7 text-ink/75">
+                把左边的<strong>关键输出</strong>和右边的<strong>过程名称</strong>正确配对。先点左边，再点右边。</p>
+              <div
+                v-if="matcherPairs.length"
+                class="matcher-board"
+              >
                 <div class="matcher-col">
                   <div class="matcher-col-label">关键输出</div>
-                  <button v-for="(item, i) in matcherLeftItems" :key="'ml-'+i" class="matcher-item" :class="{ 'matcher-item-selected': matcherLeftSel === i && !matcherWrong, 'matcher-item-matched': matcherMatchedIds.includes(item.id), 'matcher-item-wrong': matcherLeftSel === i && matcherWrong }" @click="selectMatcherLeft(i)">{{ item.output }}</button>
+                  <button
+                    v-for="(item, i) in matcherLeftItems"
+                    :key="'ml-'+i"
+                    class="matcher-item"
+                    :class="{ 'matcher-item-selected': matcherLeftSel === i && !matcherWrong, 'matcher-item-matched': matcherMatchedIds.includes(item.id), 'matcher-item-wrong': matcherLeftSel === i && matcherWrong }"
+                    @click="selectMatcherLeft(i)"
+                  >{{ item.output }}</button>
                 </div>
                 <div class="matcher-col">
                   <div class="matcher-col-label">所属过程</div>
-                  <button v-for="(item, i) in matcherRightItems" :key="'mr-'+i" class="matcher-item" :class="{ 'matcher-item-selected': matcherRightSel === i && !matcherWrong, 'matcher-item-matched': matcherMatchedIds.includes(item.id), 'matcher-item-wrong': matcherRightSel === i && matcherWrong }" @click="selectMatcherRight(i)">{{ item.process }}</button>
+                  <button
+                    v-for="(item, i) in matcherRightItems"
+                    :key="'mr-'+i"
+                    class="matcher-item"
+                    :class="{ 'matcher-item-selected': matcherRightSel === i && !matcherWrong, 'matcher-item-matched': matcherMatchedIds.includes(item.id), 'matcher-item-wrong': matcherRightSel === i && matcherWrong }"
+                    @click="selectMatcherRight(i)"
+                  >{{ item.process }}</button>
                 </div>
               </div>
               <div class="mt-4 flex items-center gap-4">
                 <div class="text-sm font-semibold text-ocean">得分：{{ matcherScore }} / {{ matcherPairs.length }}</div>
-                <div v-if="matcherFinished" class="rounded-full bg-emerald-100 px-4 py-1.5 text-sm font-semibold text-emerald-700">全部配对完成!</div>
-                <button class="process-nav-btn ml-auto" @click="startMatcher">重新开始</button>
+                <div
+                  v-if="matcherFinished"
+                  class="rounded-full bg-emerald-100 px-4 py-1.5 text-sm font-semibold text-emerald-700"
+                >全部配对完成!</div>
+                <button
+                  class="process-nav-btn ml-auto"
+                  @click="startMatcher"
+                >重新开始</button>
               </div>
             </div>
           </section>
@@ -477,14 +953,167 @@
       </main>
 
       <nav class="mobile-tab-bar md:hidden">
-        <button v-for="view in views" :key="'tab-'+view.id" @click="activeView = view.id" class="mobile-tab" :class="{ 'mobile-tab-active': activeView === view.id }">
-          <svg v-if="view.id==='processGroup'" class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          <svg v-else-if="view.id==='study'" class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-          <svg v-else-if="view.id==='keyword'" class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-          <svg v-else-if="view.id==='scenario'" class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-          <svg v-else-if="view.id==='formula'" class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>
-          <svg v-else-if="view.id==='compare'" class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-          <svg v-else class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <button
+          v-for="view in views"
+          :key="'tab-'+view.id"
+          @click="activeView = view.id"
+          class="mobile-tab"
+          :class="{ 'mobile-tab-active': activeView === view.id }"
+        >
+          <svg
+            v-if="view.id==='processGroup'"
+            class="mobile-tab-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+            />
+            <polyline points="12 6 12 12 16 14" /></svg>
+          <svg
+            v-else-if="view.id==='study'"
+            class="mobile-tab-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>
+          <svg
+            v-else-if="view.id==='keyword'"
+            class="mobile-tab-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+            <line
+              x1="7"
+              y1="7"
+              x2="7.01"
+              y2="7"
+            /></svg>
+          <svg
+            v-else-if="view.id==='scenario'"
+            class="mobile-tab-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
+          <svg
+            v-else-if="view.id==='formula'"
+            class="mobile-tab-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line
+              x1="12"
+              y1="2"
+              x2="12"
+              y2="6"
+            />
+            <line
+              x1="12"
+              y1="18"
+              x2="12"
+              y2="22"
+            />
+            <line
+              x1="4.93"
+              y1="4.93"
+              x2="7.76"
+              y2="7.76"
+            />
+            <line
+              x1="16.24"
+              y1="16.24"
+              x2="19.07"
+              y2="19.07"
+            />
+            <line
+              x1="2"
+              y1="12"
+              x2="6"
+              y2="12"
+            />
+            <line
+              x1="18"
+              y1="12"
+              x2="22"
+              y2="12"
+            />
+            <line
+              x1="4.93"
+              y1="19.07"
+              x2="7.76"
+              y2="16.24"
+            />
+            <line
+              x1="16.24"
+              y1="7.76"
+              x2="19.07"
+              y2="4.93"
+            /></svg>
+          <svg
+            v-else-if="view.id==='compare'"
+            class="mobile-tab-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line
+              x1="18"
+              y1="20"
+              x2="18"
+              y2="10"
+            />
+            <line
+              x1="12"
+              y1="20"
+              x2="12"
+              y2="4"
+            />
+            <line
+              x1="6"
+              y1="20"
+              x2="6"
+              y2="14"
+            /></svg>
+          <svg
+            v-else
+            class="mobile-tab-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="9 11 12 14 22 4" />
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
           <span class="mobile-tab-label">{{ view.label }}</span>
         </button>
       </nav>

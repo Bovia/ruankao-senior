@@ -169,6 +169,23 @@ code {
   color: white;
 }
 
+.domain-brief-mini {
+  border-left: 3px solid var(--ocean);
+}
+
+.domain-brief-process-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  background: var(--mist);
+  color: var(--ink);
+  font-size: 0.72rem;
+  font-weight: 500;
+  opacity: 0.7;
+}
+
 .process-strip {
   display: flex;
   flex-wrap: nowrap;
