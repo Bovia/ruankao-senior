@@ -444,10 +444,23 @@ createApp({
       if (this.activeView === "processGroup") {
         this.pgFilterDomain = domainId;
       }
+      // 切换知识域时重置所有视图相关状态
+      this.flippedKeywords = {};
+      this.blindFillRevealed = {};
+      this.quizSubMode = "quiz";
+      this.matcherPairs = [];
+      this.matcherLeftItems = [];
+      this.matcherRightItems = [];
+      this.matcherLeftSel = null;
+      this.matcherRightSel = null;
+      this.matcherMatchedIds = [];
+      this.matcherWrong = false;
     },
     selectProcess(processId) {
       this.activeProcessId = processId;
       this.markLearned(processId);
+      // 切换过程时重置盲填已揭示状态
+      this.blindFillRevealed = {};
     },
     processNodeClass(processId) {
       return {
