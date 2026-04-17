@@ -178,7 +178,61 @@
           </section>
 
           <section
-            v-if="activeView === 'study'"
+            v-if="activeView === 'processGroup'"
+            class="panel p-4 md:p-6 min-w-0 process-group-view"
+          >
+            <div class="mb-5">
+              <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Process Groups Overview</p>
+              <h3 class="font-display text-2xl font-semibold">五大过程组 · {{ totalProcessCount }} 个子过程</h3>
+              <p class="mt-2 text-sm leading-7 text-ink/75">从启动到收尾，完整项目管理过程闭环。点击任意子过程，直接跳转到对应学习卡。</p>
+            </div>
+
+            <div class="pg-timeline">
+              <div class="pg-timeline-line"></div>
+
+              <div
+                v-for="(group, gIdx) in processGroups"
+                :key="group.name"
+                class="pg-group"
+                :style="{
+                  '--pg-color': group.color,
+                  '--pg-delay': gIdx * 0.15 + 's'
+                }"
+              >
+                <div class="pg-group-header">
+                  <div class="pg-group-dot"></div>
+                  <div class="pg-group-info">
+                    <div class="pg-group-icon">{{ group.icon }}</div>
+                    <div>
+                      <h4 class="pg-group-name">{{ group.name }}</h4>
+                      <p class="pg-group-desc">{{ group.desc }}</p>
+                    </div>
+                    <span class="pg-group-count">{{ group.processes.length }}</span>
+                  </div>
+                </div>
+
+                <div class="pg-processes">
+                  <button
+                    v-for="(proc, pIdx) in group.processes"
+                    :key="proc.id"
+                    class="pg-process-card"
+                    :style="{
+                      '--card-delay': (gIdx * 0.15 + pIdx * 0.06) + 's',
+                      '--domain-color': proc.domainColor
+                    }"
+                    @click="navigateToProcess(proc.domainId, proc.id)"
+                  >
+                    <span class="pg-process-domain" :style="{ background: proc.domainColor + '18', color: proc.domainColor }">{{ proc.domainName }}</span>
+                    <span class="pg-process-name">{{ proc.name }}</span>
+                    <svg class="pg-process-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section
+            v-else-if="activeView === 'study'"
             class="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_360px] items-start min-w-0"
           >
             <div class="panel p-4 md:p-5 min-w-0">
@@ -482,7 +536,8 @@
           class="mobile-tab"
           :class="{ 'mobile-tab-active': activeView === view.id }"
         >
-          <svg v-if="view.id==='study'" class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          <svg v-if="view.id==='processGroup'" class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <svg v-else-if="view.id==='study'" class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
           <svg v-else-if="view.id==='formula'" class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>
           <svg v-else-if="view.id==='compare'" class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
           <svg v-else class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>

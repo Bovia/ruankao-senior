@@ -314,6 +314,182 @@ code {
   padding: 0.9rem 1rem;
 }
 
+/* ── Process Group Overview ── */
+.process-group-view {
+  overflow: visible;
+}
+
+.pg-timeline {
+  position: relative;
+  padding-left: 1.5rem;
+}
+
+.pg-timeline-line {
+  position: absolute;
+  left: 0.7rem;
+  top: 2rem;
+  bottom: 2rem;
+  width: 3px;
+  background: linear-gradient(180deg, #f59e0b 0%, #3b82f6 25%, #10b981 50%, #8b5cf6 75%, #ef4444 100%);
+  border-radius: 999px;
+  opacity: 0;
+  animation: pgLineGrow 0.8s 0.2s ease-out forwards;
+}
+
+@keyframes pgLineGrow {
+  from { opacity: 0; transform: scaleY(0); transform-origin: top; }
+  to { opacity: 1; transform: scaleY(1); transform-origin: top; }
+}
+
+.pg-group {
+  position: relative;
+  margin-bottom: 2rem;
+  opacity: 0;
+  animation: pgGroupFade 0.5s var(--pg-delay, 0s) ease-out forwards;
+}
+
+@keyframes pgGroupFade {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.pg-group:last-child {
+  margin-bottom: 0;
+}
+
+.pg-group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.pg-group-dot {
+  position: absolute;
+  left: -1.5rem;
+  top: 0.55rem;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: var(--pg-color);
+  box-shadow: 0 0 0 4px white, 0 0 12px color-mix(in srgb, var(--pg-color) 40%, transparent);
+  z-index: 2;
+  animation: pgDotPulse 2s ease-in-out infinite;
+}
+
+@keyframes pgDotPulse {
+  0%, 100% { box-shadow: 0 0 0 4px white, 0 0 12px color-mix(in srgb, var(--pg-color) 40%, transparent); }
+  50% { box-shadow: 0 0 0 4px white, 0 0 20px color-mix(in srgb, var(--pg-color) 60%, transparent); }
+}
+
+.pg-group-info {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1;
+}
+
+.pg-group-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.pg-group-name {
+  font-family: "Avenir Next", "PingFang SC", sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--pg-color);
+  margin: 0;
+}
+
+.pg-group-desc {
+  font-size: 0.78rem;
+  color: rgba(22, 49, 63, 0.55);
+  margin: 0.1rem 0 0;
+}
+
+.pg-group-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pg-color) 12%, white);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--pg-color);
+  margin-left: auto;
+}
+
+.pg-processes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 0.6rem;
+}
+
+.pg-process-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 16px;
+  border: 1px solid rgba(15, 76, 92, 0.07);
+  background: linear-gradient(180deg, #ffffff, #f8fcfb);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  opacity: 0;
+  animation: pgCardSlide 0.4s var(--card-delay, 0s) ease-out forwards;
+}
+
+@keyframes pgCardSlide {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.pg-process-card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--domain-color, #0f4c5c) 35%, white);
+  box-shadow: 0 8px 24px rgba(12, 55, 72, 0.1);
+}
+
+.pg-process-card:active {
+  transform: scale(0.97);
+}
+
+.pg-process-domain {
+  display: inline-block;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.pg-process-name {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #16313f;
+  line-height: 1.45;
+}
+
+.pg-process-arrow {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(22, 49, 63, 0.25);
+  transition: all 0.2s ease;
+}
+
+.pg-process-card:hover .pg-process-arrow {
+  color: var(--domain-color, #0f4c5c);
+  transform: translateY(-50%) translateX(3px);
+}
+
 /* ── Mobile bottom tab bar ── */
 .mobile-tab-bar {
   position: fixed;
@@ -436,6 +612,32 @@ code {
 }
 
 @media (max-width: 767px) {
+  .pg-timeline {
+    padding-left: 1.2rem;
+  }
+
+  .pg-timeline-line {
+    left: 0.5rem;
+  }
+
+  .pg-group-dot {
+    left: -1.2rem;
+    width: 0.85rem;
+    height: 0.85rem;
+  }
+
+  .pg-processes {
+    grid-template-columns: 1fr;
+  }
+
+  .pg-group-icon {
+    font-size: 1.2rem;
+  }
+
+  .pg-group-name {
+    font-size: 1rem;
+  }
+
   .hero-panel {
     border-radius: 20px;
   }

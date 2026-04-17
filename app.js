@@ -9,6 +9,7 @@ createApp({
     return {
       knowledgeData: window.knowledgeData || {},
       views: [
+        { id: "processGroup", label: "过程组", desc: "五大过程组总览" },
         { id: "study", label: "学习卡", desc: "过程 + 记忆卡" },
         { id: "formula", label: "公式看板", desc: "按知识域筛选" },
         { id: "compare", label: "概念对比", desc: "高频易混项" },
@@ -103,6 +104,38 @@ createApp({
     },
     currentProcessIndex() {
       return this.activeDomain.processes.findIndex((p) => p.id === this.activeProcessId);
+    },
+    processGroups() {
+      const groupOrder = ["启动", "规划", "执行", "监控", "收尾"];
+      const groupMeta = {
+        "启动": { icon: "🚀", color: "#f59e0b", desc: "正式授权项目启动" },
+        "规划": { icon: "📐", color: "#3b82f6", desc: "制定行动路线图" },
+        "执行": { icon: "⚡", color: "#10b981", desc: "完成项目工作" },
+        "监控": { icon: "📊", color: "#8b5cf6", desc: "跟踪偏差纠偏" },
+        "收尾": { icon: "🏁", color: "#ef4444", desc: "正式结束项目" }
+      };
+      const groups = {};
+      groupOrder.forEach((name) => {
+        groups[name] = { name, ...groupMeta[name], processes: [] };
+      });
+      this.domains.forEach((domain) => {
+        if (!domain.processes) return;
+        domain.processes.forEach((process) => {
+          const stage = process.stageOrder;
+          if (groups[stage]) {
+            groups[stage].processes.push({
+              ...process,
+              domainId: domain.id,
+              domainName: domain.name,
+              domainColor: domain.themeColor
+            });
+          }
+        });
+      });
+      return groupOrder.map((name) => groups[name]);
+    },
+    totalProcessCount() {
+      return this.processGroups.reduce((sum, g) => sum + g.processes.length, 0);
     },
     calculatorValues() {
       const parse = (value) => {
@@ -219,6 +252,16 @@ createApp({
     }
   },
   methods: {
+    navigateToProcess(domainId, processId) {
+      this.activeDomainId = domainId;
+      this.activeProcessId = processId;
+      this.activeView = "study";
+      this.markLearned(processId);
+      this.$nextTick(() => {
+        const el = document.querySelector('.study-block');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    },
     goProcess(delta) {
       const idx = this.currentProcessIndex + delta;
       const processes = this.activeDomain.processes;
