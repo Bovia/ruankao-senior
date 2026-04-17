@@ -11,9 +11,11 @@ createApp({
       views: [
         { id: "processGroup", label: "过程组", desc: "五大过程组总览" },
         { id: "study", label: "学习卡", desc: "过程 + 记忆卡" },
+        { id: "keyword", label: "关键词", desc: "题目密码词速查" },
+        { id: "scenario", label: "场景演练", desc: "案例分析动作流" },
         { id: "formula", label: "公式看板", desc: "按知识域筛选" },
         { id: "compare", label: "概念对比", desc: "高频易混项" },
-        { id: "quiz", label: "练习模式", desc: "题库入口预留" }
+        { id: "quiz", label: "练习场", desc: "题库 + 连连看" }
       ],
       activeDomainId: firstDomain.id || "",
       activeProcessId: firstProcess.id || "",
@@ -27,6 +29,17 @@ createApp({
       searchFocused: false,
       searchWrapperRect: null,
       pgFilterDomain: "all",
+      blindFillMode: false,
+      blindFillRevealed: {},
+      flippedKeywords: {},
+      quizSubMode: "quiz",
+      matcherPairs: [],
+      matcherLeftItems: [],
+      matcherRightItems: [],
+      matcherLeftSel: null,
+      matcherRightSel: null,
+      matcherMatchedIds: [],
+      matcherWrong: false,
       calculatorInput: {
         EV: "",
         PV: "",
@@ -107,6 +120,21 @@ createApp({
         seen.add(item.name);
         return true;
       });
+    },
+    domainKeywords() {
+      return this.activeDomain.keywordMap || [];
+    },
+    domainActionFlows() {
+      return this.activeDomain.actionFlows || [];
+    },
+    domainLogicalLinks() {
+      return this.activeDomain.logicalLinks || [];
+    },
+    matcherFinished() {
+      return this.matcherPairs.length > 0 && this.matcherMatchedIds.length === this.matcherPairs.length;
+    },
+    matcherScore() {
+      return this.matcherMatchedIds.length;
     },
     countdown() {
       const diff = this.examDate - this.nowTimestamp;
@@ -331,6 +359,63 @@ createApp({
       this.searchQuery = "";
       this.searchFocused = false;
       this.navigateToProcess(result.domainId, result.id);
+    },
+    toggleBlindFill() {
+      this.blindFillMode = !this.blindFillMode;
+      this.blindFillRevealed = {};
+    },
+    revealField(key) {
+      this.blindFillRevealed = { ...this.blindFillRevealed, [key]: true };
+    },
+    isBlindHidden(key) {
+      return this.blindFillMode && !this.blindFillRevealed[key];
+    },
+    flipKeyword(idx) {
+      this.flippedKeywords = { ...this.flippedKeywords, [idx]: !this.flippedKeywords[idx] };
+    },
+    shuffleKeywords() {
+      this.flippedKeywords = {};
+    },
+    startMatcher() {
+      const procs = this.activeDomain.processes.filter((p) => p.outputs && p.outputs.length > 0);
+      const pool = [...procs].sort(() => Math.random() - 0.5).slice(0, Math.min(5, procs.length));
+      const pairs = pool.map((p, i) => ({ id: i, process: p.name, output: p.outputs[0] }));
+      this.matcherPairs = pairs;
+      this.matcherLeftItems = [...pairs].sort(() => Math.random() - 0.5);
+      this.matcherRightItems = [...pairs].sort(() => Math.random() - 0.5);
+      this.matcherLeftSel = null;
+      this.matcherRightSel = null;
+      this.matcherMatchedIds = [];
+      this.matcherWrong = false;
+      this.quizSubMode = "matcher";
+    },
+    selectMatcherLeft(idx) {
+      if (this.matcherMatchedIds.includes(this.matcherLeftItems[idx].id)) return;
+      this.matcherLeftSel = idx;
+      this.matcherWrong = false;
+      if (this.matcherRightSel !== null) this.checkMatcherPair();
+    },
+    selectMatcherRight(idx) {
+      if (this.matcherMatchedIds.includes(this.matcherRightItems[idx].id)) return;
+      this.matcherRightSel = idx;
+      this.matcherWrong = false;
+      if (this.matcherLeftSel !== null) this.checkMatcherPair();
+    },
+    checkMatcherPair() {
+      const leftId = this.matcherLeftItems[this.matcherLeftSel].id;
+      const rightId = this.matcherRightItems[this.matcherRightSel].id;
+      if (leftId === rightId) {
+        this.matcherMatchedIds = [...this.matcherMatchedIds, leftId];
+        this.matcherLeftSel = null;
+        this.matcherRightSel = null;
+      } else {
+        this.matcherWrong = true;
+        setTimeout(() => {
+          this.matcherLeftSel = null;
+          this.matcherRightSel = null;
+          this.matcherWrong = false;
+        }, 600);
+      }
     },
     navigateToProcess(domainId, processId) {
       this.activeDomainId = domainId;
