@@ -74,15 +74,21 @@
               <div class="metric-value">{{ activeProcess.name }}</div>
               <div class="metric-note">学习卡联动</div>
             </div>
-            <div class="metric-card">
-              <div class="metric-label">模式</div>
-              <div class="metric-value">{{ activeViewLabel }}</div>
-              <div class="metric-note">顶部一键切换</div>
+            <div class="countdown-card" :class="{ 'countdown-urgent': countdown.days <= 7 }">
+              <div class="metric-label">距离考试</div>
+              <div class="countdown-numbers" v-if="!countdown.expired">
+                <span class="countdown-unit"><strong>{{ countdown.days }}</strong>天</span>
+                <span class="countdown-unit"><strong>{{ countdown.hours }}</strong>时</span>
+                <span class="countdown-unit"><strong>{{ countdown.minutes }}</strong>分</span>
+                <span class="countdown-unit"><strong>{{ countdown.seconds }}</strong>秒</span>
+              </div>
+              <div v-else class="metric-value">考试进行中</div>
+              <div class="metric-note">5月24日 · 冲刺</div>
             </div>
           </div>
         </div>
 
-        <div class="mt-4 hidden flex-wrap gap-3 md:flex">
+        <div class="mt-4 hidden flex-wrap items-center gap-3 md:flex">
           <button
             v-for="view in views"
             :key="'header-'+view.id"
@@ -93,6 +99,37 @@
             <span>{{ view.label }}</span>
             <span class="text-xs opacity-70">{{ view.desc }}</span>
           </button>
+          <div class="search-wrapper" ref="searchWrapper" style="margin-left:auto;">
+            <div class="search-box">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input
+                v-model="searchQuery"
+                @focus="onSearchFocus"
+                type="text"
+                class="search-input"
+                placeholder="搜索过程、工具、输入输出…"
+              />
+            </div>
+            <Teleport to="body">
+              <div
+                v-if="searchFocused && searchQuery.trim()"
+                class="search-dropdown"
+                :style="searchDropdownStyle"
+              >
+                <div v-if="searchResults.length === 0" class="search-empty">没有匹配的过程</div>
+                <button
+                  v-for="r in searchResults"
+                  :key="r.id"
+                  class="search-result-item"
+                  @mousedown.prevent="selectSearchResult(r)"
+                >
+                  <span class="search-result-domain" :style="{ background: r.domainColor + '18', color: r.domainColor }">{{ r.domainName }}</span>
+                  <span class="search-result-stage">{{ r.stageOrder }}</span>
+                  <span class="search-result-name">{{ r.name }}</span>
+                </button>
+              </div>
+            </Teleport>
+          </div>
         </div>
       </header>
 
@@ -181,22 +218,40 @@
             v-if="activeView === 'processGroup'"
             class="panel p-4 md:p-6 min-w-0 process-group-view"
           >
-            <div class="mb-5">
-              <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Process Groups Overview</p>
-              <h3 class="font-display text-2xl font-semibold">五大过程组 · {{ totalProcessCount }} 个子过程</h3>
-              <p class="mt-2 text-sm leading-7 text-ink/75">从启动到收尾，完整项目管理过程闭环。点击任意子过程，直接跳转到对应学习卡。</p>
+            <div class="mb-4 flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Process Groups Overview</p>
+                <h3 class="font-display text-2xl font-semibold">五大过程组 · {{ filteredProcessCount }} 个子过程</h3>
+                <p class="mt-2 text-sm leading-7 text-ink/75">从启动到收尾，完整项目管理过程闭环。点击任意子过程，直接跳转到对应学习卡。</p>
+              </div>
+            </div>
+
+            <div class="pg-filter-bar">
+              <button
+                class="pg-filter-chip"
+                :class="{ 'pg-filter-chip-active': pgFilterDomain === 'all' }"
+                @click="pgFilterDomain = 'all'"
+              >全部 <span class="pg-filter-count">{{ totalProcessCount }}</span></button>
+              <button
+                v-for="domain in domains"
+                :key="'pgf-'+domain.id"
+                class="pg-filter-chip"
+                :class="{ 'pg-filter-chip-active': pgFilterDomain === domain.id }"
+                :style="{ '--filter-color': domain.themeColor }"
+                @click="pgFilterDomain = domain.id"
+              >{{ domain.name }} <span class="pg-filter-count">{{ domain.processes.length }}</span></button>
             </div>
 
             <div class="pg-timeline">
               <div class="pg-timeline-line"></div>
 
               <div
-                v-for="(group, gIdx) in processGroups"
+                v-for="(group, gIdx) in filteredProcessGroups"
                 :key="group.name"
                 class="pg-group"
                 :style="{
                   '--pg-color': group.color,
-                  '--pg-delay': gIdx * 0.15 + 's'
+                  '--pg-delay': gIdx * 0.1 + 's'
                 }"
               >
                 <div class="pg-group-header">
@@ -217,7 +272,7 @@
                     :key="proc.id"
                     class="pg-process-card"
                     :style="{
-                      '--card-delay': (gIdx * 0.15 + pIdx * 0.06) + 's',
+                      '--card-delay': (gIdx * 0.1 + pIdx * 0.05) + 's',
                       '--domain-color': proc.domainColor
                     }"
                     @click="navigateToProcess(proc.domainId, proc.id)"

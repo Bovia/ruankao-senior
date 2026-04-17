@@ -21,6 +21,12 @@ createApp({
       quizMode: "single",
       densityMode: "core",
       learnedProcessIds: firstProcess.id ? [firstProcess.id] : [],
+      examDate: new Date("2026-05-24T09:00:00"),
+      nowTimestamp: Date.now(),
+      searchQuery: "",
+      searchFocused: false,
+      searchWrapperRect: null,
+      pgFilterDomain: "all",
       calculatorInput: {
         EV: "",
         PV: "",
@@ -102,8 +108,57 @@ createApp({
         return true;
       });
     },
+    countdown() {
+      const diff = this.examDate - this.nowTimestamp;
+      if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0, expired: true };
+      const days = Math.floor(diff / 86400000);
+      const hours = Math.floor((diff % 86400000) / 3600000);
+      const minutes = Math.floor((diff % 3600000) / 60000);
+      const seconds = Math.floor((diff % 60000) / 1000);
+      return { days, hours, minutes, seconds, expired: false };
+    },
+    searchResults() {
+      const q = this.searchQuery.trim().toLowerCase();
+      if (!q) return [];
+      const results = [];
+      this.domains.forEach((domain) => {
+        if (!domain.processes) return;
+        domain.processes.forEach((proc) => {
+          const haystack = [proc.name, proc.goal, proc.stageOrder, ...(proc.inputs || []), ...(proc.tools || []), ...(proc.outputs || []), proc.mnemonic || ""].join(" ").toLowerCase();
+          if (haystack.includes(q)) {
+            results.push({
+              ...proc,
+              domainId: domain.id,
+              domainName: domain.name,
+              domainColor: domain.themeColor
+            });
+          }
+        });
+      });
+      return results.slice(0, 12);
+    },
     currentProcessIndex() {
       return this.activeDomain.processes.findIndex((p) => p.id === this.activeProcessId);
+    },
+    filteredProcessGroups() {
+      if (this.pgFilterDomain === "all") return this.processGroups;
+      return this.processGroups.map((group) => ({
+        ...group,
+        processes: group.processes.filter((p) => p.domainId === this.pgFilterDomain)
+      })).filter((group) => group.processes.length > 0);
+    },
+    filteredProcessCount() {
+      return this.filteredProcessGroups.reduce((sum, g) => sum + g.processes.length, 0);
+    },
+    searchDropdownStyle() {
+      const r = this.searchWrapperRect;
+      if (!r) return { position: "fixed", top: "80px", right: "24px" };
+      return {
+        position: "fixed",
+        top: (r.bottom + 8) + "px",
+        right: (window.innerWidth - r.right) + "px",
+        width: "380px"
+      };
     },
     processGroups() {
       const groupOrder = ["启动", "规划", "执行", "监控", "收尾"];
@@ -251,7 +306,32 @@ createApp({
       }));
     }
   },
+  mounted() {
+    this._countdownTimer = setInterval(() => { this.nowTimestamp = Date.now(); }, 1000);
+    document.addEventListener("click", this.handleGlobalClick);
+  },
+  beforeUnmount() {
+    clearInterval(this._countdownTimer);
+    document.removeEventListener("click", this.handleGlobalClick);
+  },
   methods: {
+    handleGlobalClick(e) {
+      if (!e.target.closest(".search-wrapper") && !e.target.closest(".search-dropdown")) {
+        this.searchFocused = false;
+      }
+    },
+    onSearchFocus() {
+      this.searchFocused = true;
+      this.$nextTick(() => {
+        const el = this.$refs.searchWrapper;
+        if (el) this.searchWrapperRect = el.getBoundingClientRect();
+      });
+    },
+    selectSearchResult(result) {
+      this.searchQuery = "";
+      this.searchFocused = false;
+      this.navigateToProcess(result.domainId, result.id);
+    },
     navigateToProcess(domainId, processId) {
       this.activeDomainId = domainId;
       this.activeProcessId = processId;
@@ -275,6 +355,9 @@ createApp({
       this.activeProcessId = nextProcess ? nextProcess.id : "";
       if (nextProcess) {
         this.markLearned(nextProcess.id);
+      }
+      if (this.activeView === "processGroup") {
+        this.pgFilterDomain = domainId;
       }
     },
     selectProcess(processId) {
