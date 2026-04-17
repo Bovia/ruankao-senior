@@ -1,6 +1,9 @@
 window.knowledgeData.procurement = {
   "id": "procurement",
   "name": "采购管理",
+  "module": "pm",
+  "category": "十大知识域",
+  "cardType": "itto",
   "themeColor": "#3b7a57",
   "summary": "采购管理3个过程。高项高频：三大合同类型（总价/成本补偿/工料）的风险分配、自制或外购分析、采购谈判要点、索赔管理流程、FPIF中PTA计算。",
   "processes": [

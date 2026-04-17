@@ -1,6 +1,9 @@
 window.knowledgeData.integration = {
   "id": "integration",
   "name": "整合管理",
+  "module": "pm",
+  "category": "十大知识域",
+  "cardType": "itto",
   "themeColor": "#1c7c7d",
   "summary": "整合管理是唯一贯穿五大过程组的知识域（7 个过程），像总控台把章程、计划、执行、知识、监控、变更和收尾串成闭环。高项常考变更控制流程、项目经理权限来源、经验教训归档。",
   "processes": [

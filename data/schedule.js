@@ -1,6 +1,9 @@
 window.knowledgeData.schedule = {
   "id": "schedule",
   "name": "进度管理",
+  "module": "pm",
+  "category": "十大知识域",
+  "cardType": "itto",
   "themeColor": "#2684a8",
   "summary": "进度管理6个过程从定义活动到控制进度，高项高频：关键路径法计算（正推/逆推/浮动时间）、PERT三点估算、赶工与快速跟进的区别、资源平衡与资源平滑。",
   "processes": [

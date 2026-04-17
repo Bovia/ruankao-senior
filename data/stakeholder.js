@@ -1,6 +1,9 @@
 window.knowledgeData.stakeholder = {
   "id": "stakeholder",
   "name": "干系人管理",
+  "module": "pm",
+  "category": "十大知识域",
+  "cardType": "itto",
   "themeColor": "#1d5f72",
   "summary": "干系人管理4个过程贯穿启动到监控。高项高频：权力/利益方格、参与度评估矩阵（5种状态）、凸显模型、干系人管理与沟通管理的交叉区分。",
   "processes": [

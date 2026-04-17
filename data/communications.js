@@ -1,6 +1,9 @@
 window.knowledgeData.communications = {
   "id": "communications",
   "name": "沟通管理",
+  "module": "pm",
+  "category": "十大知识域",
+  "cardType": "itto",
   "themeColor": "#3a86a8",
   "summary": "沟通管理3个过程。高项高频：沟通渠道数公式、推式/拉式/交互式沟通方式、沟通模型（编码→传输→解码→确认→反馈）、管理沟通与监督沟通的区别。",
   "processes": [

@@ -1,6 +1,9 @@
 window.knowledgeData.performanceDomains = {
   "id": "performanceDomains",
   "name": "八大绩效域",
+  "module": "pm",
+  "category": "绩效域",
+  "cardType": "itto",
   "themeColor": "#6366f1",
   "summary": "PMBOK第7版的八大项目绩效域体现了基于原则和价值交付的项目管理思维，是高项教程第4版的重要新增内容。绩效域关注的是'交付什么结果'而非'走什么流程'。",
   "processes": [

@@ -1,6 +1,9 @@
 window.knowledgeData.cost = {
   "id": "cost",
   "name": "成本管理",
+  "module": "pm",
+  "category": "十大知识域",
+  "cardType": "itto",
   "themeColor": "#0f766e",
   "summary": "成本管理4个过程，高项必考EVM挣值体系全套公式（CV/SV/CPI/SPI/EAC/ETC/VAC/TCPI）。重点理解三种EAC公式的适用场景、储备层级关系、S曲线含义。",
   "processes": [

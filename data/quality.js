@@ -1,6 +1,9 @@
 window.knowledgeData.quality = {
   "id": "quality",
   "name": "质量管理",
+  "module": "pm",
+  "category": "十大知识域",
+  "cardType": "itto",
   "themeColor": "#2b6777",
   "summary": "质量管理3个过程：规划定标准、管理质量保过程、控制质量验成果。高项高频：质量成本(COQ)分类、七种基本质量工具、质量审计归属、预防与检查的区别。",
   "processes": [

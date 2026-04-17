@@ -1,6 +1,9 @@
 window.knowledgeData.resource = {
   "id": "resource",
   "name": "资源管理",
+  "module": "pm",
+  "category": "十大知识域",
+  "cardType": "itto",
   "themeColor": "#287271",
   "summary": "资源管理6个过程覆盖人力和实物资源全生命周期。高项高频：RACI矩阵、塔克曼团队发展阶段、冲突解决五种策略、激励理论（马斯洛/赫茨伯格/X-Y理论）、资源优化。",
   "processes": [

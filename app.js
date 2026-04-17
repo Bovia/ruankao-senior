@@ -2,12 +2,38 @@ const { createApp } = Vue;
 
 createApp({
   data() {
-    const domains = Object.values(window.knowledgeData || {});
-    const firstDomain = domains[0] || { processes: [] };
-    const firstProcess = firstDomain.processes[0] || {};
+    const modules = [
+      { id: "pm", name: "项目管理", desc: "十大知识域 · 绩效域 · 基础", color: "#16a34a", icon: "📐" },
+      { id: "it", name: "IT 技术", desc: "新一代信息技术 · 信息化", color: "#7c3aed", icon: "💡" },
+      { id: "law", name: "法规标准", desc: "法律法规 · 标准 · 职业道德", color: "#dc2626", icon: "⚖️" },
+      { id: "essay", name: "论文专区", desc: "模板 · 素材 · 评分 · 技巧", color: "#9333ea", icon: "✍️" }
+    ];
+    const essayTabs = [
+      { id: "basics", label: "考试基本规则" },
+      { id: "structure", label: "五段式结构" },
+      { id: "scoring", label: "评分与易错" },
+      { id: "domainPoints", label: "知识域要点" },
+      { id: "projects", label: "项目素材库" },
+      { id: "phrases", label: "金句表" },
+      { id: "pastTopics", label: "历年真题" },
+      { id: "myEssay", label: "我的论文" }
+    ];
+    const allDomains = Object.values(window.knowledgeData || {});
+    const pmDomains = allDomains.filter((d) => (d.module || "pm") === "pm");
+    const firstDomain = pmDomains[0] || allDomains[0] || { processes: [] };
+    const firstProcess = (firstDomain.processes || [])[0] || {};
 
     return {
       knowledgeData: window.knowledgeData || {},
+      essayData: window.essayData || { name: "论文专区", summary: "", examBasics: {}, structure: { sections: [] }, scoringCriteria: [], commonMistakes: [], domainPoints: [], projectTemplates: [], phrases: {}, pastTopics: [], writingTips: [] },
+      myEssayData: window.myEssayData || { projectOverview: { title: "", content: "" }, wordRequirements: { sections: [] }, groups: [], topics: { knowledge: [], performance: [] }, conclusionTemplate: { outline: [] } },
+      modules,
+      essayTabs,
+      activeModule: "pm",
+      activeEssayTab: "basics",
+      myEssayGroupId: "knowledge",
+      myEssayTopicId: "integration",
+      myEssayCopied: "",
       views: [
         { id: "processGroup", label: "过程组", desc: "五大过程组总览" },
         { id: "study", label: "学习卡", desc: "过程 + 记忆卡" },
@@ -58,8 +84,32 @@ createApp({
     domains() {
       return Object.values(this.knowledgeData);
     },
+    visibleDomains() {
+      return this.domains.filter((d) => (d.module || "pm") === this.activeModule);
+    },
+    activeModuleMeta() {
+      return this.modules.find((m) => m.id === this.activeModule) || this.modules[0];
+    },
+    heroTitle() {
+      const titleMap = {
+        pm: "把十大知识域串成一张会发光的记忆地图",
+        it: "从云计算到元宇宙：IT 技术一张图记住",
+        law: "合同、招投标、数据三法，考点逐条刻进脑子",
+        essay: "2500 字论文，给你一套可直接抄的打法"
+      };
+      return titleMap[this.activeModule] || "信息系统项目管理师 · 一站式学习器";
+    },
+    domainGroups() {
+      const map = new Map();
+      this.visibleDomains.forEach((d) => {
+        const cat = d.category || "其他";
+        if (!map.has(cat)) map.set(cat, { category: cat, domains: [] });
+        map.get(cat).domains.push(d);
+      });
+      return Array.from(map.values());
+    },
     activeDomain() {
-      return this.knowledgeData[this.activeDomainId] || this.domains[0] || { processes: [], formulas: [], comparisons: [], quiz: [] };
+      return this.knowledgeData[this.activeDomainId] || this.visibleDomains[0] || this.domains[0] || { processes: [], formulas: [], comparisons: [], quiz: [] };
     },
     activeProcess() {
       return this.activeDomain.processes.find((item) => item.id === this.activeProcessId) || this.activeDomain.processes[0] || {
@@ -73,6 +123,84 @@ createApp({
         examAngles: [],
         stageOrder: ""
       };
+    },
+    activeCardType() {
+      return this.activeDomain.cardType || "itto";
+    },
+    activeProcessSubtitle() {
+      const p = this.activeProcess;
+      if (this.activeCardType === "concept") return p.definition || p.goal || "";
+      if (this.activeCardType === "law") return p.scope || p.goal || "";
+      return p.goal || "";
+    },
+    activeProcessStageBadge() {
+      const p = this.activeProcess;
+      if (this.activeCardType === "law" && p.effectiveDate) return p.effectiveDate;
+      return p.stageOrder || "";
+    },
+    activeProcessColumns() {
+      const p = this.activeProcess;
+      const t = this.activeCardType;
+      if (t === "law") {
+        return [
+          { label: "核心条款", sub: "Core Provisions", field: "coreProvisions", items: p.coreProvisions || [], color: "amber", renderAs: "text" },
+          { label: "关键数字", sub: "Key Numbers", field: "keyNumbers", items: p.keyNumbers || [], color: "orange", renderAs: "kv" },
+          { label: "禁止行为", sub: "Prohibitions", field: "prohibitions", items: p.prohibitions || [], color: "rose", renderAs: "text" }
+        ];
+      }
+      if (t === "concept") {
+        return [
+          { label: "核心要点", sub: "Essentials", field: "essentials", items: p.essentials || [], color: "sky", renderAs: "text" },
+          { label: "分类 · 组成", sub: "Structure", field: "structure", items: p.structure || [], color: "violet", renderAs: "text" },
+          { label: "应用 · 场景", sub: "Applications", field: "applications", items: p.applications || [], color: "emerald", renderAs: "text" }
+        ];
+      }
+      return [
+        { label: "输入", sub: "Inputs", field: "inputs", items: p.inputs || [], color: "sky", renderAs: "text" },
+        { label: "工具", sub: "Tools", field: "tools", items: p.tools || [], color: "teal", renderAs: "text" },
+        { label: "输出", sub: "Outputs", field: "outputs", items: p.outputs || [], color: "emerald", renderAs: "text" }
+      ];
+    },
+    processGroupTitle() {
+      if (this.activeModule === "it") {
+        return {
+          eyebrow: "IT Tech Map",
+          heading: "新一代信息技术 · 技术分类",
+          desc: "按基础设施 / 数据智能 / 安全可信 / 连接感知 / 人机交互 归类，点击卡片切到对应学习卡。"
+        };
+      }
+      if (this.activeModule === "law") {
+        return {
+          eyebrow: "Regulation Map",
+          heading: "法律法规 · 分类总览",
+          desc: "按合同 · 采购 · 数据三法 · 知识产权 · 标准与伦理 归类，点击任意法条直达学习卡。"
+        };
+      }
+      return {
+        eyebrow: "Process Groups Overview",
+        heading: "五大过程组",
+        desc: "从启动到收尾，完整项目管理过程闭环。点击任意子过程，直接跳转到对应学习卡。"
+      };
+    },
+    activeProcessKeyHighlightLabel() {
+      if (this.activeCardType === "concept") return "高频要点";
+      if (this.activeCardType === "law") return "最关键数字";
+      return "关键输出";
+    },
+    activeProcessKeyHighlight() {
+      const cols = this.activeProcessColumns;
+      if (!cols.length) return "";
+      const last = cols[cols.length - 1];
+      const first = cols[0];
+      const pick = (col) => {
+        if (!col.items || !col.items.length) return "";
+        if (col.renderAs === "kv") {
+          const kv = col.items[0];
+          return kv.label ? `${kv.label}：${kv.value}` : kv.value;
+        }
+        return col.items[0];
+      };
+      return pick(last) || pick(first) || "待补充";
     },
     activeViewLabel() {
       const match = this.views.find((item) => item.id === this.activeView);
@@ -149,10 +277,29 @@ createApp({
       const q = this.searchQuery.trim().toLowerCase();
       if (!q) return [];
       const results = [];
-      this.domains.forEach((domain) => {
+      const scope = this.activeModule === "essay" ? this.domains : this.visibleDomains;
+      scope.forEach((domain) => {
         if (!domain.processes) return;
         domain.processes.forEach((proc) => {
-          const haystack = [proc.name, proc.goal, proc.stageOrder, ...(proc.inputs || []), ...(proc.tools || []), ...(proc.outputs || []), proc.mnemonic || ""].join(" ").toLowerCase();
+          const kvText = (proc.keyNumbers || []).map((n) => `${n.label || ""} ${n.value || ""}`).join(" ");
+          const haystack = [
+            proc.name,
+            proc.goal,
+            proc.definition,
+            proc.scope,
+            proc.stageOrder,
+            proc.effectiveDate,
+            ...(proc.inputs || []),
+            ...(proc.tools || []),
+            ...(proc.outputs || []),
+            ...(proc.essentials || []),
+            ...(proc.structure || []),
+            ...(proc.applications || []),
+            ...(proc.coreProvisions || []),
+            ...(proc.prohibitions || []),
+            kvText,
+            proc.mnemonic || ""
+          ].join(" ").toLowerCase();
           if (haystack.includes(q)) {
             results.push({
               ...proc,
@@ -189,36 +336,74 @@ createApp({
       };
     },
     processGroups() {
-      const groupOrder = ["启动", "规划", "执行", "监控", "收尾"];
-      const groupMeta = {
-        "启动": { icon: "🚀", color: "#f59e0b", desc: "正式授权项目启动" },
-        "规划": { icon: "📐", color: "#3b82f6", desc: "制定行动路线图" },
-        "执行": { icon: "⚡", color: "#10b981", desc: "完成项目工作" },
-        "监控": { icon: "📊", color: "#8b5cf6", desc: "跟踪偏差纠偏" },
-        "收尾": { icon: "🏁", color: "#ef4444", desc: "正式结束项目" }
+      if (this.activeModule === "pm") {
+        const groupOrder = ["启动", "规划", "执行", "监控", "收尾"];
+        const groupMeta = {
+          "启动": { icon: "🚀", color: "#f59e0b", desc: "正式授权项目启动" },
+          "规划": { icon: "📐", color: "#3b82f6", desc: "制定行动路线图" },
+          "执行": { icon: "⚡", color: "#10b981", desc: "完成项目工作" },
+          "监控": { icon: "📊", color: "#8b5cf6", desc: "跟踪偏差纠偏" },
+          "收尾": { icon: "🏁", color: "#ef4444", desc: "正式结束项目" }
+        };
+        const groups = {};
+        groupOrder.forEach((name) => {
+          groups[name] = { name, ...groupMeta[name], processes: [] };
+        });
+        this.visibleDomains.forEach((domain) => {
+          if (!domain.processes) return;
+          domain.processes.forEach((process) => {
+            const stage = process.stageOrder;
+            if (groups[stage]) {
+              groups[stage].processes.push({
+                ...process,
+                domainId: domain.id,
+                domainName: domain.name,
+                domainColor: domain.themeColor
+              });
+            }
+          });
+        });
+        return groupOrder.map((name) => groups[name]);
+      }
+      const moduleMeta = {
+        it: { icon: "💡", color: "#7c3aed", descFallback: "信息技术分类" },
+        law: { icon: "⚖️", color: "#b45309", descFallback: "法律分类" }
       };
-      const groups = {};
-      groupOrder.forEach((name) => {
-        groups[name] = { name, ...groupMeta[name], processes: [] };
-      });
-      this.domains.forEach((domain) => {
+      const meta = moduleMeta[this.activeModule] || { icon: "🧩", color: "#6366f1", descFallback: "分类" };
+      const orderMap = new Map();
+      this.visibleDomains.forEach((domain) => {
         if (!domain.processes) return;
         domain.processes.forEach((process) => {
-          const stage = process.stageOrder;
-          if (groups[stage]) {
-            groups[stage].processes.push({
-              ...process,
-              domainId: domain.id,
-              domainName: domain.name,
-              domainColor: domain.themeColor
-            });
+          const stage = process.stageOrder || "其他";
+          if (!orderMap.has(stage)) {
+            orderMap.set(stage, { name: stage, icon: meta.icon, color: meta.color, desc: meta.descFallback, processes: [] });
           }
+          orderMap.get(stage).processes.push({
+            ...process,
+            domainId: domain.id,
+            domainName: domain.name,
+            domainColor: domain.themeColor
+          });
         });
       });
-      return groupOrder.map((name) => groups[name]);
+      return Array.from(orderMap.values());
     },
     totalProcessCount() {
       return this.processGroups.reduce((sum, g) => sum + g.processes.length, 0);
+    },
+    myEssayTopics() {
+      const map = this.myEssayData.topics || {};
+      return map[this.myEssayGroupId] || [];
+    },
+    activeMyEssayTopic() {
+      const list = this.myEssayTopics;
+      if (!list.length) {
+        return { name: "", transition: "", subProcesses: [], conclusionHook: "" };
+      }
+      return list.find((t) => t.id === this.myEssayTopicId) || list[0];
+    },
+    activeMyEssayGroup() {
+      return (this.myEssayData.groups || []).find((g) => g.id === this.myEssayGroupId) || (this.myEssayData.groups || [])[0] || { name: "", color: "#1c7c7d" };
     },
     calculatorValues() {
       const parse = (value) => {
@@ -343,6 +528,84 @@ createApp({
     document.removeEventListener("click", this.handleGlobalClick);
   },
   methods: {
+    selectModule(moduleId) {
+      this.activeModule = moduleId;
+      if (moduleId === "essay") {
+        return;
+      }
+      const firstDomain = this.visibleDomains[0];
+      if (firstDomain) {
+        this.activeDomainId = firstDomain.id;
+        const firstProc = (firstDomain.processes || [])[0];
+        this.activeProcessId = firstProc ? firstProc.id : "";
+        if (firstProc) {
+          this.markLearned(firstProc.id);
+        }
+      }
+      this.flippedKeywords = {};
+      this.blindFillRevealed = {};
+      this.quizSubMode = "quiz";
+      this.matcherPairs = [];
+      this.matcherLeftItems = [];
+      this.matcherRightItems = [];
+      this.matcherLeftSel = null;
+      this.matcherRightSel = null;
+      this.matcherMatchedIds = [];
+      this.matcherWrong = false;
+      this.pgFilterDomain = "all";
+    },
+    essayBasicLabel(key) {
+      const map = {
+        wordCount: "字数",
+        duration: "时长",
+        topicCount: "选题数",
+        passLine: "及格线",
+        scoring: "评分权重",
+        strategy: "选题策略"
+      };
+      return map[key] || key;
+    },
+    selectMyEssayGroup(groupId) {
+      this.myEssayGroupId = groupId;
+      const list = (this.myEssayData.topics || {})[groupId] || [];
+      this.myEssayTopicId = list.length ? list[0].id : "";
+      this.myEssayCopied = "";
+    },
+    selectMyEssayTopic(topicId) {
+      this.myEssayTopicId = topicId;
+      this.myEssayCopied = "";
+    },
+    copyMyEssayText(text, tag) {
+      if (!text) return;
+      const fallback = () => {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand("copy"); } catch (e) {}
+        document.body.removeChild(ta);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).catch(fallback);
+      } else {
+        fallback();
+      }
+      this.myEssayCopied = tag || "copied";
+      setTimeout(() => {
+        if (this.myEssayCopied === (tag || "copied")) this.myEssayCopied = "";
+      }, 1500);
+    },
+    phraseLabel(key) {
+      const map = {
+        opening: "开篇句",
+        transition: "过渡句",
+        concluding: "收尾句",
+        quantifyLines: "量化效果句"
+      };
+      return map[key] || key;
+    },
     handleGlobalClick(e) {
       if (!e.target.closest(".search-wrapper") && !e.target.closest(".search-dropdown")) {
         this.searchFocused = false;
@@ -377,9 +640,21 @@ createApp({
       this.flippedKeywords = {};
     },
     startMatcher() {
-      const procs = this.activeDomain.processes.filter((p) => p.outputs && p.outputs.length > 0);
+      const ct = this.activeDomain.cardType || "itto";
+      const firstItemText = (p) => {
+        if (ct === "law") {
+          const kv = (p.keyNumbers || [])[0];
+          if (kv) return kv.label ? `${kv.label}：${kv.value}` : kv.value;
+          return (p.coreProvisions || [])[0] || (p.prohibitions || [])[0] || "";
+        }
+        if (ct === "concept") {
+          return (p.applications || [])[0] || (p.essentials || [])[0] || "";
+        }
+        return (p.outputs || [])[0] || "";
+      };
+      const procs = this.activeDomain.processes.filter((p) => !!firstItemText(p));
       const pool = [...procs].sort(() => Math.random() - 0.5).slice(0, Math.min(5, procs.length));
-      const pairs = pool.map((p, i) => ({ id: i, process: p.name, output: p.outputs[0] }));
+      const pairs = pool.map((p, i) => ({ id: i, process: p.name, output: firstItemText(p) }));
       this.matcherPairs = pairs;
       this.matcherLeftItems = [...pairs].sort(() => Math.random() - 0.5);
       this.matcherRightItems = [...pairs].sort(() => Math.random() - 0.5);

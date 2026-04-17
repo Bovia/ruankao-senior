@@ -1,6 +1,9 @@
 window.knowledgeData.risk = {
   "id": "risk",
   "name": "风险管理",
+  "module": "pm",
+  "category": "十大知识域",
+  "cardType": "itto",
   "themeColor": "#1f6f8b",
   "summary": "风险管理7个过程，高项必考知识域之一。高频考点：概率影响矩阵、EMV与决策树计算、威胁/机会应对策略（各4种）、定性vs定量分析、残余风险与次生风险、风险审计。",
   "processes": [

@@ -1,6 +1,9 @@
 window.knowledgeData.scope = {
   "id": "scope",
   "name": "范围管理",
+  "module": "pm",
+  "category": "十大知识域",
+  "cardType": "itto",
   "themeColor": "#2a9d8f",
   "summary": "范围管理核心是'做什么'和'确认做到了'，6个过程覆盖规划到监控。高项高频考点：WBS分解原则、确认范围与控制质量的区别、范围蔓延与镀金的辨析。",
   "processes": [

@@ -52,28 +52,37 @@
           <div class="max-w-3xl">
             <p class="mb-1 text-xs font-semibold uppercase tracking-[0.28em] text-white/70 md:mb-2 md:text-sm">信息系统项目管理师
               · 过程可视化学习器</p>
-            <h1 class="font-display text-2xl font-semibold text-white md:text-5xl">把十大知识域串成一张会发光的记忆地图</h1>
+            <h1 class="font-display text-2xl font-semibold text-white md:text-5xl">{{ heroTitle }}</h1>
             <p class="mt-2 hidden max-w-2xl text-sm leading-7 text-white/80 md:mt-3 md:block md:text-base">
-              当前聚焦
-              <span class="font-semibold text-white">{{ activeDomain.name }}</span>
-              ，默认从过程切入，再切到公式、概念对比和练习入口。后续补题库时，只需要继续往
-              <code>knowledgeData</code> 里加数据，不需要改页面骨架。
+              <template v-if="activeModule !== 'essay'">
+                当前聚焦
+                <span class="font-semibold text-white">{{ activeDomain.name }}</span>
+                ，默认从过程切入，再切到公式、概念对比和练习入口。切换顶部的学科模块可跳到 IT、法规或论文专区。
+              </template>
+              <template v-else>
+                摘要、五段式结构、评分档位、知识域写作要点、项目素材与金句表，全都给你备好了。挑一道题就可以开练。
+              </template>
             </p>
             <p class="mt-1.5 text-xs leading-5 text-white/70 md:hidden">
-              当前 <span class="font-semibold text-white">{{ activeDomain.name }}</span>
-              · {{ activeProcess.name }}
+              <template v-if="activeModule !== 'essay'">
+                当前 <span class="font-semibold text-white">{{ activeDomain.name }}</span>
+                · {{ activeProcess.name }}
+              </template>
+              <template v-else>
+                论文专区 · 五段式模板 + 素材库
+              </template>
             </p>
           </div>
           <div class="hidden gap-3 sm:grid sm:grid-cols-3 lg:w-[420px]">
             <div class="metric-card">
-              <div class="metric-label">知识域</div>
-              <div class="metric-value">{{ domains.length }}</div>
-              <div class="metric-note">首版全部可切换</div>
+              <div class="metric-label">{{ activeModule === 'essay' ? '论文区模块' : '知识域' }}</div>
+              <div class="metric-value">{{ activeModule === 'essay' ? essayData.structure.sections.length + '段' : visibleDomains.length }}</div>
+              <div class="metric-note">{{ activeModule === 'essay' ? '五段式结构' : '当前模块可切换' }}</div>
             </div>
             <div class="metric-card">
-              <div class="metric-label">当前过程</div>
-              <div class="metric-value">{{ activeProcess.name }}</div>
-              <div class="metric-note">学习卡联动</div>
+              <div class="metric-label">{{ activeModule === 'essay' ? '项目素材' : '当前过程' }}</div>
+              <div class="metric-value">{{ activeModule === 'essay' ? essayData.projectTemplates.length + '个' : activeProcess.name }}</div>
+              <div class="metric-note">{{ activeModule === 'essay' ? '考场即用' : '学习卡联动' }}</div>
             </div>
             <div
               class="countdown-card"
@@ -173,7 +182,26 @@
         </div>
       </header>
 
+      <!-- L1 学科模块切换 -->
+      <nav class="module-tabs mb-4 flex flex-wrap gap-2 md:mb-6">
+        <button
+          v-for="mod in modules"
+          :key="mod.id"
+          @click="selectModule(mod.id)"
+          class="module-tab"
+          :class="{ 'module-tab-active': activeModule === mod.id }"
+          :style="{ '--mod-accent': mod.color }"
+        >
+          <span class="module-tab-icon">{{ mod.icon }}</span>
+          <span class="module-tab-label">
+            <span class="module-tab-title">{{ mod.name }}</span>
+            <span class="module-tab-desc">{{ mod.desc }}</span>
+          </span>
+        </button>
+      </nav>
+
       <main
+        v-if="activeModule !== 'essay'"
         class="grid gap-4 items-start overflow-hidden"
         :class="activeView === 'processGroup' ? 'lg:grid-cols-1' : 'lg:grid-cols-[280px_minmax(0,1fr)]'"
       >
@@ -192,7 +220,7 @@
           </div>
           <div class="domain-pills flex gap-2 overflow-x-auto pb-1 lg:hidden">
             <button
-              v-for="domain in domains"
+              v-for="domain in visibleDomains"
               :key="'pill-'+domain.id"
               @click="selectDomain(domain.id)"
               class="domain-pill"
@@ -200,21 +228,33 @@
               :style="{ '--domain-accent': domain.themeColor }"
             >{{ domain.name }}</button>
           </div>
-          <div class="domain-nav hidden gap-3 lg:flex lg:flex-col lg:overflow-visible">
-            <button
-              v-for="domain in domains"
-              :key="domain.id"
-              @click="selectDomain(domain.id)"
-              class="domain-card"
-              :class="{ 'domain-card-active': activeDomainId === domain.id }"
-              :style="{ '--domain-accent': domain.themeColor }"
+          <div class="domain-nav hidden gap-4 lg:flex lg:flex-col lg:overflow-visible">
+            <div
+              v-for="group in domainGroups"
+              :key="'grp-'+group.category"
+              class="domain-group"
             >
-              <div class="mb-2 flex items-center justify-between gap-3">
-                <span class="domain-name">{{ domain.name }}</span>
-                <span class="domain-badge">{{ domain.processes.length }}</span>
+              <div class="domain-group-head">
+                <span class="domain-group-title">{{ group.category }}</span>
+                <span class="domain-group-count">{{ group.domains.length }}</span>
               </div>
-              <p class="line-clamp-2 text-sm leading-6 text-ink/70">{{ domain.summary }}</p>
-            </button>
+              <div class="flex flex-col gap-2">
+                <button
+                  v-for="domain in group.domains"
+                  :key="domain.id"
+                  @click="selectDomain(domain.id)"
+                  class="domain-card"
+                  :class="{ 'domain-card-active': activeDomainId === domain.id }"
+                  :style="{ '--domain-accent': domain.themeColor }"
+                >
+                  <div class="mb-2 flex items-center justify-between gap-3">
+                    <span class="domain-name">{{ domain.name }}</span>
+                    <span class="domain-badge">{{ domain.processes.length }}</span>
+                  </div>
+                  <p class="line-clamp-2 text-sm leading-6 text-ink/70">{{ domain.summary }}</p>
+                </button>
+              </div>
+            </div>
           </div>
         </aside>
 
@@ -285,9 +325,9 @@
           >
             <div class="mb-4 flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
               <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Process Groups Overview</p>
-                <h3 class="font-display text-2xl font-semibold">五大过程组 · {{ filteredProcessCount }} 个子过程</h3>
-                <p class="mt-2 text-sm leading-7 text-ink/75">从启动到收尾，完整项目管理过程闭环。点击任意子过程，直接跳转到对应学习卡。</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">{{ processGroupTitle.eyebrow }}</p>
+                <h3 class="font-display text-2xl font-semibold">{{ processGroupTitle.heading }} · {{ filteredProcessCount }} 个子项</h3>
+                <p class="mt-2 text-sm leading-7 text-ink/75">{{ processGroupTitle.desc }}</p>
               </div>
             </div>
             <div class="pg-filter-bar">
@@ -297,7 +337,7 @@
                 @click="pgFilterDomain = 'all'"
               >全部 <span class="pg-filter-count">{{ totalProcessCount }}</span></button>
               <button
-                v-for="domain in domains"
+                v-for="domain in visibleDomains"
                 :key="'pgf-'+domain.id"
                 class="pg-filter-chip"
                 :class="{ 'pg-filter-chip-active': pgFilterDomain === domain.id }"
@@ -474,12 +514,13 @@
                 <div class="min-w-0">
                   <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Study Card</p>
                   <h3 class="font-display text-xl font-semibold md:text-2xl">{{ activeProcess.name }}</h3>
-                  <p class="mt-1 text-sm leading-7 text-ink/75 md:mt-2">{{ activeProcess.goal }}</p>
+                  <p class="mt-1 text-sm leading-7 text-ink/75 md:mt-2">{{ activeProcessSubtitle }}</p>
                 </div>
                 <div
+                  v-if="activeProcessStageBadge"
                   class="shrink-0 rounded-2xl px-3 py-2 text-sm font-semibold text-white shadow-glow"
                   :style="{ background: domainGradient(activeDomain.themeColor) }"
-                >{{ activeProcess.stageOrder }}</div>
+                >{{ activeProcessStageBadge }}</div>
               </div>
 
               <div class="mb-4 flex items-center gap-2">
@@ -569,52 +610,40 @@
               </div>
 
               <div class="grid gap-4 md:grid-cols-3 items-start">
-                <article class="study-block border-sky-200/80 bg-sky-50/80">
-                  <div class="study-block-title">输入 Inputs</div>
-                  <ul class="study-list">
-                    <li
-                      v-for="item in visibleList(activeProcess.inputs)"
-                      :key="`in-${item}`"
-                    >{{ item }}</li>
-                  </ul>
-                </article>
                 <article
-                  class="study-block border-teal-200/80 bg-teal-50/80"
-                  :class="{ 'blind-block': isBlindHidden('tools') }"
+                  v-for="(col, ci) in activeProcessColumns"
+                  :key="`col-${col.field}`"
+                  class="study-block"
+                  :class="[`study-block-${col.color}`, { 'blind-block': ci > 0 && isBlindHidden(col.field) }]"
                 >
-                  <div class="study-block-title">工具 Tools</div>
+                  <div class="study-block-title">
+                    {{ col.label }}
+                    <span class="study-block-sub">{{ col.sub }}</span>
+                  </div>
                   <div
-                    v-if="isBlindHidden('tools')"
+                    v-if="ci > 0 && isBlindHidden(col.field)"
                     class="blind-mask"
-                    @click="revealField('tools')"
+                    @click="revealField(col.field)"
                   ><span class="blind-mask-icon">?</span><span class="blind-mask-text">点击揭示</span></div>
+                  <ul
+                    v-else-if="col.renderAs === 'kv'"
+                    class="study-list study-list-kv"
+                  >
+                    <li
+                      v-for="item in visibleList(col.items)"
+                      :key="`${col.field}-${item.label}`"
+                    >
+                      <span class="kv-label">{{ item.label }}</span>
+                      <span class="kv-value">{{ item.value }}</span>
+                    </li>
+                  </ul>
                   <ul
                     v-else
                     class="study-list"
                   >
                     <li
-                      v-for="item in visibleList(activeProcess.tools)"
-                      :key="`tool-${item}`"
-                    >{{ item }}</li>
-                  </ul>
-                </article>
-                <article
-                  class="study-block border-emerald-200/80 bg-emerald-50/80"
-                  :class="{ 'blind-block': isBlindHidden('outputs') }"
-                >
-                  <div class="study-block-title">输出 Outputs</div>
-                  <div
-                    v-if="isBlindHidden('outputs')"
-                    class="blind-mask"
-                    @click="revealField('outputs')"
-                  ><span class="blind-mask-icon">?</span><span class="blind-mask-text">点击揭示</span></div>
-                  <ul
-                    v-else
-                    class="study-list"
-                  >
-                    <li
-                      v-for="item in visibleList(activeProcess.outputs)"
-                      :key="`out-${item}`"
+                      v-for="item in visibleList(col.items)"
+                      :key="`${col.field}-${item}`"
                     >{{ item }}</li>
                   </ul>
                 </article>
@@ -716,8 +745,8 @@
                     <div class="memory-pin-text">{{ activeProcess.mnemonic }}</div>
                   </article>
                   <article class="memory-pin">
-                    <div class="memory-pin-label">关键输出</div>
-                    <div class="memory-pin-text">{{ activeProcess.outputs[0] || '待补充' }}</div>
+                    <div class="memory-pin-label">{{ activeProcessKeyHighlightLabel }}</div>
+                    <div class="memory-pin-text">{{ activeProcessKeyHighlight || '待补充' }}</div>
                   </article>
                   <article class="memory-pin">
                     <div class="memory-pin-label">高频提醒</div>
@@ -952,7 +981,368 @@
         </section>
       </main>
 
-      <nav class="mobile-tab-bar md:hidden">
+      <!-- 论文专区 -->
+      <main
+        v-else-if="activeModule === 'essay'"
+        class="essay-main grid gap-4 content-start min-w-0"
+      >
+        <section class="panel p-4 md:p-6 min-w-0">
+          <div class="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Essay Studio</p>
+              <h2 class="font-display text-2xl font-semibold">{{ essayData.name }}</h2>
+              <p class="mt-2 max-w-3xl text-sm leading-7 text-ink/75">{{ essayData.summary }}</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="tab in essayTabs"
+                :key="'esy-'+tab.id"
+                @click="activeEssayTab = tab.id"
+                class="density-toggle"
+                :class="{ 'density-toggle-active': activeEssayTab === tab.id }"
+              >{{ tab.label }}</button>
+            </div>
+          </div>
+
+          <!-- 考试基本信息 -->
+          <div
+            v-if="activeEssayTab === 'basics'"
+            class="essay-basics grid gap-3 md:grid-cols-2"
+          >
+            <div
+              v-for="(v, k) in essayData.examBasics"
+              :key="'bsc-'+k"
+              class="essay-basic-card"
+            >
+              <div class="essay-basic-key">{{ essayBasicLabel(k) }}</div>
+              <div class="essay-basic-val">{{ v }}</div>
+            </div>
+          </div>
+
+          <!-- 五段式结构 -->
+          <div
+            v-if="activeEssayTab === 'structure'"
+            class="essay-structure"
+          >
+            <p class="mb-4 text-sm text-ink/75">{{ essayData.structure.overview }}</p>
+            <div class="flex flex-col gap-3">
+              <details
+                v-for="(sec, i) in essayData.structure.sections"
+                :key="'sec-'+i"
+                class="essay-section"
+                :open="i === 0"
+              >
+                <summary class="essay-section-head">
+                  <span class="essay-section-num">第 {{ i+1 }} 段</span>
+                  <span class="essay-section-name">{{ sec.name }}</span>
+                  <span class="essay-section-role">{{ sec.role }}</span>
+                </summary>
+                <div class="essay-section-body">
+                  <div class="essay-block">
+                    <div class="essay-block-label">必须包含</div>
+                    <ul class="essay-list">
+                      <li v-for="(m, mi) in sec.mustHave" :key="'mh-'+i+'-'+mi">{{ m }}</li>
+                    </ul>
+                  </div>
+                  <div class="essay-block">
+                    <div class="essay-block-label">模板示例</div>
+                    <pre class="essay-template">{{ sec.template }}</pre>
+                  </div>
+                  <div class="essay-block">
+                    <div class="essay-block-label">易踩坑</div>
+                    <ul class="essay-list essay-list-warn">
+                      <li v-for="(p, pi) in sec.pitfalls" :key="'pf-'+i+'-'+pi">{{ p }}</li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </div>
+          </div>
+
+          <!-- 评分标准与易错点 -->
+          <div
+            v-if="activeEssayTab === 'scoring'"
+            class="grid gap-4 md:grid-cols-2"
+          >
+            <div>
+              <h3 class="essay-h3">评分档位参考</h3>
+              <div
+                v-for="(crit, ci) in essayData.scoringCriteria"
+                :key="'crt-'+ci"
+                class="essay-score-card"
+              >
+                <div class="essay-score-range">{{ crit.range }}</div>
+                <ul class="essay-list">
+                  <li v-for="(f, fi) in crit.features" :key="'crt-f-'+ci+'-'+fi">{{ f }}</li>
+                </ul>
+              </div>
+            </div>
+            <div>
+              <h3 class="essay-h3">高频扣分点与修正</h3>
+              <div
+                v-for="(mis, mi) in essayData.commonMistakes"
+                :key="'mis-'+mi"
+                class="essay-mistake-card"
+              >
+                <div class="essay-mistake-head">
+                  <span class="essay-mistake-tag">易错</span>
+                  <span>{{ mis.mistake }}</span>
+                </div>
+                <div class="essay-mistake-fix"><span class="essay-fix-tag">修正</span>{{ mis.fix }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 十大知识域论文要点 -->
+          <div
+            v-if="activeEssayTab === 'domainPoints'"
+            class="essay-domain-points"
+          >
+            <p class="mb-4 text-sm text-ink/75">按所选论文知识域，提炼该域的写作要点（过程 · 常见难题 · 专业解法 · 点题金句）。</p>
+            <div class="grid gap-3 md:grid-cols-2">
+              <div
+                v-for="(d, di) in essayData.domainPoints"
+                :key="'dp-'+di"
+                class="essay-domain-card"
+              >
+                <div class="essay-domain-head">{{ d.domain }}</div>
+                <div class="essay-domain-block"><span class="essay-domain-label">核心过程</span><div class="essay-tags">
+                  <span v-for="(p, pi) in d.corePhases" :key="'dp-p-'+di+'-'+pi" class="essay-tag">{{ p }}</span>
+                </div></div>
+                <div class="essay-domain-block"><span class="essay-domain-label">常见难题</span><ul class="essay-list">
+                  <li v-for="(p, pi) in d.typicalProblems" :key="'dp-pb-'+di+'-'+pi">{{ p }}</li>
+                </ul></div>
+                <div class="essay-domain-block"><span class="essay-domain-label">专业解法</span><ul class="essay-list">
+                  <li v-for="(p, pi) in d.typicalSolutions" :key="'dp-s-'+di+'-'+pi">{{ p }}</li>
+                </ul></div>
+                <div class="essay-domain-hook">{{ d.essayHook }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 项目素材库 -->
+          <div
+            v-if="activeEssayTab === 'projects'"
+            class="essay-projects"
+          >
+            <p class="mb-4 text-sm text-ink/75">4 个可套用的项目背景模板，考前选 1-2 个熟记为考场即用素材。</p>
+            <div class="grid gap-3 md:grid-cols-2">
+              <div
+                v-for="proj in essayData.projectTemplates"
+                :key="proj.id"
+                class="essay-project-card"
+              >
+                <div class="essay-project-head">
+                  <div class="essay-project-name">{{ proj.name }}</div>
+                  <span class="essay-project-industry">{{ proj.industry }}</span>
+                </div>
+                <div class="essay-project-scale">{{ proj.scale }}</div>
+                <p class="essay-project-bg">{{ proj.background }}</p>
+                <div class="essay-project-block"><span class="essay-domain-label">关键挑战</span>
+                  <ul class="essay-list">
+                    <li v-for="(c, ci) in proj.keyChallenges" :key="proj.id+'-c-'+ci">{{ c }}</li>
+                  </ul>
+                </div>
+                <div class="essay-project-block"><span class="essay-domain-label">适配论文主题</span>
+                  <div class="essay-tags">
+                    <span v-for="(d, di) in proj.suitableDomains" :key="proj.id+'-d-'+di" class="essay-tag">{{ d }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 金句与过渡句 -->
+          <div
+            v-if="activeEssayTab === 'phrases'"
+            class="grid gap-3 md:grid-cols-2"
+          >
+            <div
+              v-for="(group, key) in essayData.phrases"
+              :key="'ph-'+key"
+              class="essay-phrase-card"
+            >
+              <div class="essay-phrase-head">{{ phraseLabel(key) }}</div>
+              <ul class="essay-list">
+                <li v-for="(p, pi) in group" :key="'ph-'+key+'-'+pi">{{ p }}</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- 历年真题 + 考场建议 -->
+          <div
+            v-if="activeEssayTab === 'pastTopics'"
+            class="grid gap-4 md:grid-cols-2"
+          >
+            <div>
+              <h3 class="essay-h3">历年主题速查</h3>
+              <table class="essay-table">
+                <thead>
+                  <tr><th>年份</th><th>主题</th><th>对应知识域</th></tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(t, ti) in essayData.pastTopics" :key="'tp-'+ti">
+                    <td>{{ t.year }}</td>
+                    <td>{{ t.topic }}</td>
+                    <td>{{ t.domain }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <h3 class="essay-h3">考场写作技巧</h3>
+              <div
+                v-for="(tp, ti) in essayData.writingTips"
+                :key="'tip-'+ti"
+                class="essay-tip-card"
+              >
+                <div class="essay-tip-head">{{ tp.tip }}</div>
+                <div class="essay-tip-body">{{ tp.detail }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 我的论文（固定项目概况 + 主题切换的过渡段 / 子过程 / 结尾） -->
+          <div
+            v-if="activeEssayTab === 'myEssay'"
+            class="my-essay"
+          >
+            <!-- 字数与结构要求 -->
+            <div class="my-essay-requirements">
+              <div class="my-essay-req-head">
+                <span class="my-essay-req-tag">字数控制</span>
+                <div class="my-essay-req-body">
+                  <div><strong>建议范围：</strong>{{ myEssayData.wordRequirements.total }}</div>
+                  <div><strong>最低要求：</strong>{{ myEssayData.wordRequirements.minimum }}</div>
+                  <div class="text-coral text-xs"><strong>机考注意：</strong>{{ myEssayData.wordRequirements.notice }}</div>
+                </div>
+              </div>
+              <div class="my-essay-req-head">
+                <span class="my-essay-req-tag">基本结构</span>
+                <div class="my-essay-req-body">
+                  <div v-for="(sec, si) in myEssayData.wordRequirements.sections" :key="'myreq-'+si" class="my-essay-req-row">
+                    <span class="my-essay-req-name">{{ sec.name }}</span>
+                    <span class="my-essay-req-range">{{ sec.range }}</span>
+                    <span class="my-essay-req-desc">{{ sec.desc }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 一、项目概述（固定） -->
+            <section class="my-essay-section my-essay-section-fixed">
+              <header class="my-essay-section-head">
+                <div>
+                  <span class="my-essay-section-eyebrow">固定素材 · 所有论文通用</span>
+                  <h3 class="my-essay-section-title">{{ myEssayData.projectOverview.title }}</h3>
+                  <p class="my-essay-section-meta">{{ myEssayData.projectOverview.wordCount }}</p>
+                </div>
+                <button
+                  class="my-essay-copy-btn"
+                  @click="copyMyEssayText(myEssayData.projectOverview.content, 'overview')"
+                >{{ myEssayCopied === 'overview' ? '已复制' : '复制项目概述' }}</button>
+              </header>
+              <div class="my-essay-overview-text">{{ myEssayData.projectOverview.content }}</div>
+            </section>
+
+            <!-- 主题切换：十大知识域 / 八大绩效域 -->
+            <section class="my-essay-topic-switch">
+              <div class="my-essay-group-row">
+                <button
+                  v-for="grp in myEssayData.groups"
+                  :key="'myg-'+grp.id"
+                  class="my-essay-group-chip"
+                  :class="{ 'my-essay-group-chip-active': myEssayGroupId === grp.id }"
+                  :style="{ '--grp-color': grp.color }"
+                  @click="selectMyEssayGroup(grp.id)"
+                >
+                  <span class="my-essay-group-name">{{ grp.name }}</span>
+                  <span class="my-essay-group-desc">{{ grp.desc }}</span>
+                </button>
+              </div>
+              <div class="my-essay-topic-row">
+                <button
+                  v-for="topic in myEssayTopics"
+                  :key="'mytp-'+topic.id"
+                  class="my-essay-topic-chip"
+                  :class="{ 'my-essay-topic-chip-active': myEssayTopicId === topic.id }"
+                  :style="{ '--grp-color': activeMyEssayGroup.color }"
+                  @click="selectMyEssayTopic(topic.id)"
+                >
+                  <span>{{ topic.name }}</span>
+                  <span class="my-essay-topic-badge">{{ topic.badge }}</span>
+                </button>
+              </div>
+            </section>
+
+            <!-- 二、过渡段 -->
+            <section class="my-essay-section">
+              <header class="my-essay-section-head">
+                <div>
+                  <span class="my-essay-section-eyebrow">承上启下 · 250 字左右</span>
+                  <h3 class="my-essay-section-title">二、过渡段（{{ activeMyEssayTopic.name }}）</h3>
+                </div>
+                <button
+                  class="my-essay-copy-btn"
+                  @click="copyMyEssayText(activeMyEssayTopic.transition, 'transition')"
+                >{{ myEssayCopied === 'transition' ? '已复制' : '复制过渡段' }}</button>
+              </header>
+              <p class="my-essay-transition-text">{{ activeMyEssayTopic.transition }}</p>
+            </section>
+
+            <!-- 三、正文（子过程） -->
+            <section class="my-essay-section">
+              <header class="my-essay-section-head">
+                <div>
+                  <span class="my-essay-section-eyebrow">核心论述 · 1500-2000 字</span>
+                  <h3 class="my-essay-section-title">三、正文 · 子过程与项目实践</h3>
+                  <p class="my-essay-section-meta">每段首句为中心句；理论 + 工具 + 项目实践交替出现</p>
+                </div>
+              </header>
+              <div class="my-essay-process-list">
+                <article
+                  v-for="(proc, pi) in activeMyEssayTopic.subProcesses"
+                  :key="'mypr-'+pi"
+                  class="my-essay-process-card"
+                  :style="{ '--grp-color': activeMyEssayGroup.color }"
+                >
+                  <div class="my-essay-process-name">{{ proc.name }}</div>
+                  <p class="my-essay-process-practice">{{ proc.practice }}</p>
+                </article>
+              </div>
+            </section>
+
+            <!-- 四、结尾（结构定义，内容空） -->
+            <section class="my-essay-section my-essay-section-conclusion">
+              <header class="my-essay-section-head">
+                <div>
+                  <span class="my-essay-section-eyebrow">收尾升华 · 300-500 字</span>
+                  <h3 class="my-essay-section-title">{{ myEssayData.conclusionTemplate.title }}</h3>
+                  <p class="my-essay-section-meta">（内容先空着，结构已定义好；可参照下方提示自行撰写）</p>
+                </div>
+              </header>
+              <div class="my-essay-conclusion-hook" v-if="activeMyEssayTopic.conclusionHook">
+                <span class="my-essay-conclusion-hook-label">本主题结尾金句参考</span>
+                <span>{{ activeMyEssayTopic.conclusionHook }}</span>
+              </div>
+              <ol class="my-essay-conclusion-outline">
+                <li
+                  v-for="(item, oi) in myEssayData.conclusionTemplate.outline"
+                  :key="'mycc-'+oi"
+                >
+                  <div class="my-essay-conclusion-label">{{ item.label }}</div>
+                  <div class="my-essay-conclusion-hint">{{ item.hint }}</div>
+                  <div class="my-essay-conclusion-blank">（待填写）</div>
+                </li>
+              </ol>
+            </section>
+          </div>
+        </section>
+      </main>
+
+      <nav class="mobile-tab-bar md:hidden"
+        v-if="activeModule !== 'essay'"
+      >
         <button
           v-for="view in views"
           :key="'tab-'+view.id"
@@ -1133,6 +1523,12 @@
   <script src="./data/procurement.js"></script>
   <script src="./data/stakeholder.js"></script>
   <script src="./data/performanceDomains.js"></script>
+  <script src="./data/pm_overview.js"></script>
+  <script src="./data/it_newtech.js"></script>
+  <script src="./data/it_informatization.js"></script>
+  <script src="./data/law_regulations.js"></script>
+  <script src="./data/essay.js"></script>
+  <script src="./data/my_essay.js"></script>
   <script src="./app.js"></script>
 </body>
 
