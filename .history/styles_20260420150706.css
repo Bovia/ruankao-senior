@@ -1595,7 +1595,7 @@ code {
   -webkit-backdrop-filter: blur(16px);
   border-left: 3px solid #1c7c7d;
   box-shadow: 0 6px 24px rgba(12, 55, 72, 0.13);
-  padding: 5px 5px !important;
+  padding: 5px 16px !important;
 }
 
 .domain-aside-sticky h2 {
