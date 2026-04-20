@@ -132,7 +132,7 @@
       </header>
 
       <!-- 视图切换条 + 搜索（桌面端：移到 hero 下方） -->
-      <div class="view-chip-bar mb-4 hidden flex-wrap items-center gap-3 md:flex md:mb-6">
+      <div class=" view-chip-bar mb-4 hidden flex-wrap items-center gap-3 md:flex md:mb-6">
         <button
           v-for="view in visibleViews"
           :key="'header-'+view.id"
@@ -1508,20 +1508,10 @@
             >
               <!-- 上方向左的箭头 -->
               <polyline points="13 8 5 8 9 4" />
-              <line
-                x1="5"
-                y1="8"
-                x2="27"
-                y2="8"
-              />
+              <line x1="5" y1="8" x2="27" y2="8" />
               <!-- 下方向右的箭头 -->
               <polyline points="19 24 27 24 23 28" />
-              <line
-                x1="27"
-                y1="24"
-                x2="5"
-                y2="24"
-              />
+              <line x1="27" y1="24" x2="5" y2="24" />
             </svg>
           </span>
         </button>

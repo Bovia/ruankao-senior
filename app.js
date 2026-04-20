@@ -546,6 +546,10 @@ createApp({
   watch: {
     activeView() {
       if (window.innerWidth < 768) window.scrollTo({ top: 0, behavior: "smooth" });
+      this.$nextTick(() => this.updateDomainNavMaxHeight());
+    },
+    activeModule() {
+      this.$nextTick(() => this.updateDomainNavMaxHeight());
     },
     activeProcessId(newId) {
       setTimeout(() => {
@@ -563,12 +567,32 @@ createApp({
   mounted() {
     this._countdownTimer = setInterval(() => { this.nowTimestamp = Date.now(); }, 1000);
     document.addEventListener("click", this.handleGlobalClick);
+    this._onResizeForDomainNav = () => this.updateDomainNavMaxHeight();
+    window.addEventListener("resize", this._onResizeForDomainNav);
+    this.$nextTick(() => this.updateDomainNavMaxHeight());
   },
   beforeUnmount() {
     clearInterval(this._countdownTimer);
     document.removeEventListener("click", this.handleGlobalClick);
+    window.removeEventListener("resize", this._onResizeForDomainNav);
   },
   methods: {
+    updateDomainNavMaxHeight() {
+      const aside = document.querySelector(".domain-aside-sticky");
+      const nav = aside ? aside.querySelector(".domain-nav-scroll") : null;
+      if (!aside || !nav) return;
+
+      // 仅在桌面侧边栏生效，移动端不需要限制。
+      if (window.innerWidth < 1024) {
+        aside.style.removeProperty("--domain-nav-max-height");
+        return;
+      }
+
+      const navRect = nav.getBoundingClientRect();
+      const bottomGap = 16;
+      const available = Math.floor(window.innerHeight - navRect.top - bottomGap);
+      aside.style.setProperty("--domain-nav-max-height", `${Math.max(180, available)}px`);
+    },
     selectModuleFromFab(moduleId) {
       this.selectModule(moduleId);
       this.moduleSheetOpen = false;
@@ -795,6 +819,7 @@ createApp({
         if (btn) {
           bar.scrollTo({ left: btn.offsetLeft - 12, behavior: "smooth" });
         }
+        this.updateDomainNavMaxHeight();
       });
     },
     selectProcess(processId) {
