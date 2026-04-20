@@ -1171,6 +1171,56 @@ code {
   letter-spacing: 0.02em;
 }
 
+/* ── 移动端 知识域左右切换箭头 ── */
+.domain-nav-arrow {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 55;
+  width: 36px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.domain-nav-arrow--left {
+  left: 0;
+  border-radius: 0 12px 12px 0;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 3px 0 12px rgba(12, 55, 72, 0.10);
+}
+
+.domain-nav-arrow--right {
+  right: 0;
+  border-radius: 12px 0 0 12px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: -3px 0 12px rgba(12, 55, 72, 0.10);
+}
+
+.domain-nav-arrow svg {
+  width: 18px;
+  height: 18px;
+  color: #0f4c5c;
+}
+
+.domain-nav-arrow--disabled {
+  opacity: 0.2;
+  pointer-events: none;
+}
+
+.domain-nav-arrow:active:not(.domain-nav-arrow--disabled) {
+  transform: translateY(-50%) scale(0.92);
+}
+
 /* ── 移动端 学科模块切换 浮动按钮 + 弹层 ── */
 .module-fab-wrapper {
   position: fixed;

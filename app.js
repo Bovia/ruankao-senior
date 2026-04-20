@@ -203,6 +203,18 @@ createApp({
       };
       return pick(last) || pick(first) || "待补充";
     },
+    activeDomainIndex() {
+      return this.visibleDomains.findIndex((d) => d.id === this.activeDomainId);
+    },
+    canGoPrevDomain() {
+      return this.activeDomainIndex > 0;
+    },
+    canGoNextDomain() {
+      return this.activeDomainIndex < this.visibleDomains.length - 1;
+    },
+    showDomainNavArrows() {
+      return ["keyword", "scenario", "formula", "compare", "quiz"].includes(this.activeView);
+    },
     visibleViews() {
       const domains = this.visibleDomains;
       const has = (field) => domains.some((d) => {
@@ -730,6 +742,12 @@ createApp({
       if (idx >= 0 && idx < processes.length) {
         this.selectProcess(processes[idx].id);
       }
+    },
+    goDomain(delta) {
+      const domains = this.visibleDomains;
+      const idx = domains.findIndex((d) => d.id === this.activeDomainId);
+      const next = domains[idx + delta];
+      if (next) this.selectDomain(next.id);
     },
     selectDomain(domainId) {
       this.activeDomainId = domainId;

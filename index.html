@@ -47,7 +47,9 @@
     class="min-h-screen"
   >
     <div class="app-shell mx-auto max-w-[1600px] px-3 py-3 pb-20 md:px-6 md:py-4 md:pb-4 lg:px-8 lg:py-6">
-      <header class="hero-panel mb-4 overflow-hidden rounded-[28px] p-4 shadow-soft md:mb-6 md:p-7">
+      <header class="hero-panel mb-4 overflow-hidden rounded-[28px] p-4 shadow-soft md:mb-6 md:p-7"
+        :class="{ 'hidden md:block': activeModule !== 'essay' && activeView !== 'processGroup' }"
+      >
         <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div class="max-w-3xl">
             <p class="mb-1 text-xs font-semibold uppercase tracking-[0.28em] text-white/70 md:mb-2 md:text-sm">信息系统项目管理师
@@ -1340,6 +1342,34 @@
           </div>
         </section>
       </main>
+
+      <!-- 移动端：知识域左右切换箭头（concept/formula等视图） -->
+      <template v-if="showDomainNavArrows && activeModule !== 'essay'">
+        <button
+          type="button"
+          class="domain-nav-arrow domain-nav-arrow--left md:hidden"
+          :class="{ 'domain-nav-arrow--disabled': !canGoPrevDomain }"
+          @click="goDomain(-1)"
+          :disabled="!canGoPrevDomain"
+          :aria-label="'上一个知识域'"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="domain-nav-arrow domain-nav-arrow--right md:hidden"
+          :class="{ 'domain-nav-arrow--disabled': !canGoNextDomain }"
+          @click="goDomain(1)"
+          :disabled="!canGoNextDomain"
+          :aria-label="'下一个知识域'"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
+      </template>
 
       <!-- 移动端：学科模块切换 浮动按钮 + 弹层 -->
       <div
