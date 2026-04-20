@@ -107,98 +107,99 @@
           </div>
         </div>
 
-        <div class="mt-4 hidden flex-wrap items-center gap-3 md:flex">
+        <!-- L1 学科模块切换（桌面端：放进 hero 内） -->
+        <nav class="module-tabs mt-4 hidden flex-wrap gap-2 md:flex">
           <button
-            v-for="view in views"
-            :key="'header-'+view.id"
-            @click="activeView = view.id"
-            class="mode-chip"
-            :class="{ 'mode-chip-active': activeView === view.id }"
+            v-for="mod in modules"
+            :key="'hero-'+mod.id"
+            @click="selectModule(mod.id)"
+            class="module-tab"
+            :class="{ 'module-tab-active': activeModule === mod.id }"
+            :style="{ '--mod-accent': mod.color }"
           >
-            <span>{{ view.label }}</span>
-            <span class="text-xs opacity-70">{{ view.desc }}</span>
+            <span class="module-tab-icon">{{ mod.icon }}</span>
+            <span class="module-tab-label">
+              <span class="module-tab-title">{{ mod.name }}</span>
+              <span class="module-tab-desc">{{ mod.desc }}</span>
+            </span>
           </button>
-          <div
-            class="search-wrapper"
-            ref="searchWrapper"
-            style="margin-left:auto;"
-          >
-            <div class="search-box">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <circle
-                  cx="11"
-                  cy="11"
-                  r="8"
-                />
-                <line
-                  x1="21"
-                  y1="21"
-                  x2="16.65"
-                  y2="16.65"
-                /></svg>
-              <input
-                v-model="searchQuery"
-                @focus="onSearchFocus"
-                type="text"
-                class="search-input"
-                placeholder="搜索过程、工具、输入输出…"
-              />
-            </div>
-            <Teleport to="body">
-              <div
-                v-if="searchFocused && searchQuery.trim()"
-                class="search-dropdown"
-                :style="searchDropdownStyle"
-              >
-                <div
-                  v-if="searchResults.length === 0"
-                  class="search-empty"
-                >没有匹配的过程</div>
-                <button
-                  v-for="r in searchResults"
-                  :key="r.id"
-                  class="search-result-item"
-                  @mousedown.prevent="selectSearchResult(r)"
-                >
-                  <span
-                    class="search-result-domain"
-                    :style="{ background: r.domainColor + '18', color: r.domainColor }"
-                  >{{ r.domainName }}</span>
-                  <span class="search-result-stage">{{ r.stageOrder }}</span>
-                  <span class="search-result-name">{{ r.name }}</span>
-                </button>
-              </div>
-            </Teleport>
-          </div>
-        </div>
+        </nav>
       </header>
 
-      <!-- L1 学科模块切换 -->
-      <nav class="module-tabs mb-4 flex flex-wrap gap-2 md:mb-6">
+      <!-- 视图切换条 + 搜索（桌面端：移到 hero 下方） -->
+      <div class="view-chip-bar mb-4 hidden flex-wrap items-center gap-3 md:flex md:mb-6">
         <button
-          v-for="mod in modules"
-          :key="mod.id"
-          @click="selectModule(mod.id)"
-          class="module-tab"
-          :class="{ 'module-tab-active': activeModule === mod.id }"
-          :style="{ '--mod-accent': mod.color }"
+          v-for="view in visibleViews"
+            :key="'header-'+view.id"
+          @click="activeView = view.id"
+          class="mode-chip mode-chip-light"
+          :class="{ 'mode-chip-active': activeView === view.id }"
         >
-          <span class="module-tab-icon">{{ mod.icon }}</span>
-          <span class="module-tab-label">
-            <span class="module-tab-title">{{ mod.name }}</span>
-            <span class="module-tab-desc">{{ mod.desc }}</span>
-          </span>
+          <span>{{ view.label }}</span>
+          <span class="text-xs opacity-70">{{ view.desc }}</span>
         </button>
-      </nav>
+        <div
+          class="search-wrapper"
+          ref="searchWrapper"
+          style="margin-left:auto;"
+        >
+          <div class="search-box">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle
+                cx="11"
+                cy="11"
+                r="8"
+              />
+              <line
+                x1="21"
+                y1="21"
+                x2="16.65"
+                y2="16.65"
+              /></svg>
+            <input
+              v-model="searchQuery"
+              @focus="onSearchFocus"
+              type="text"
+              class="search-input"
+              placeholder="搜索过程、工具、输入输出…"
+            />
+          </div>
+          <Teleport to="body">
+            <div
+              v-if="searchFocused && searchQuery.trim()"
+              class="search-dropdown"
+              :style="searchDropdownStyle"
+            >
+              <div
+                v-if="searchResults.length === 0"
+                class="search-empty"
+              >没有匹配的过程</div>
+              <button
+                v-for="r in searchResults"
+                :key="r.id"
+                class="search-result-item"
+                @mousedown.prevent="selectSearchResult(r)"
+              >
+                <span
+                  class="search-result-domain"
+                  :style="{ background: r.domainColor + '18', color: r.domainColor }"
+                >{{ r.domainName }}</span>
+                <span class="search-result-stage">{{ r.stageOrder }}</span>
+                <span class="search-result-name">{{ r.name }}</span>
+              </button>
+            </div>
+          </Teleport>
+        </div>
+      </div>
 
       <main
         v-if="activeModule !== 'essay'"
@@ -300,7 +301,7 @@
           <!-- 非学习卡视图（排除过程组）：压缩版 Domain Brief -->
           <div
             v-else-if="activeView !== 'processGroup'"
-            class="domain-brief-mini panel overflow-hidden px-4 py-3 min-w-0"
+            class="domain-brief-mini panel overflow-hidden px-4 py-3 min-w-0 hidden md:block"
           >
             <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Domain Brief</p>
             <div class="flex items-start gap-3 flex-wrap">
@@ -1340,11 +1341,69 @@
         </section>
       </main>
 
+      <!-- 移动端：学科模块切换 浮动按钮 + 弹层 -->
+      <div
+        class="module-fab-wrapper md:hidden"
+        :class="{ 'module-fab-wrapper--no-tabbar': activeModule === 'essay' }"
+      >
+        <transition name="module-fab-fade">
+          <div
+            v-if="moduleSheetOpen"
+            class="module-fab-mask"
+            @click="moduleSheetOpen = false"
+          ></div>
+        </transition>
+        <transition name="module-fab-pop">
+          <div
+            v-if="moduleSheetOpen"
+            class="module-fab-sheet"
+            role="menu"
+          >
+            <div class="module-fab-sheet-title">选择学科模块</div>
+            <button
+              v-for="mod in modules"
+              :key="'fab-'+mod.id"
+              @click="selectModuleFromFab(mod.id)"
+              type="button"
+              class="module-tab module-fab-item"
+              :class="{ 'module-tab-active': activeModule === mod.id }"
+              :style="{ '--mod-accent': mod.color }"
+              role="menuitem"
+            >
+              <span class="module-tab-icon">{{ mod.icon }}</span>
+              <span class="module-tab-label">
+                <span class="module-tab-title">{{ mod.name }}</span>
+                <span class="module-tab-desc">{{ mod.desc }}</span>
+              </span>
+            </button>
+          </div>
+        </transition>
+        <button
+          type="button"
+          class="module-fab"
+          :class="{ 'module-fab--open': moduleSheetOpen }"
+          :style="{ '--mod-accent': activeModuleMeta.color }"
+          @click="moduleSheetOpen = !moduleSheetOpen"
+          :aria-expanded="moduleSheetOpen"
+          :aria-label="'切换学科模块（当前：' + activeModuleMeta.name + '）'"
+        >
+          <span class="module-fab-icon">{{ activeModuleMeta.icon }}</span>
+          <span
+            class="module-fab-caret"
+            :class="{ 'module-fab-caret--open': moduleSheetOpen }"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </span>
+        </button>
+      </div>
+
       <nav class="mobile-tab-bar md:hidden"
         v-if="activeModule !== 'essay'"
       >
         <button
-          v-for="view in views"
+          v-for="view in visibleViews"
           :key="'tab-'+view.id"
           @click="activeView = view.id"
           class="mobile-tab"

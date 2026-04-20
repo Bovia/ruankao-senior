@@ -35,12 +35,12 @@ createApp({
       myEssayTopicId: "integration",
       myEssayCopied: "",
       views: [
-        { id: "processGroup", label: "过程组", desc: "五大过程组总览" },
+        { id: "processGroup", label: "总览", desc: "总览" },
         { id: "study", label: "学习卡", desc: "过程 + 记忆卡" },
+        { id: "compare", label: "概念对比", desc: "高频易混项" },
+        { id: "formula", label: "公式看板", desc: "按知识域筛选" },
         { id: "keyword", label: "关键词", desc: "题目密码词速查" },
         { id: "scenario", label: "场景演练", desc: "案例分析动作流" },
-        { id: "formula", label: "公式看板", desc: "按知识域筛选" },
-        { id: "compare", label: "概念对比", desc: "高频易混项" },
         { id: "quiz", label: "练习场", desc: "题库 + 连连看" }
       ],
       activeDomainId: firstDomain.id || "",
@@ -54,6 +54,7 @@ createApp({
       searchQuery: "",
       searchFocused: false,
       searchWrapperRect: null,
+      moduleSheetOpen: false,
       pgFilterDomain: "all",
       blindFillMode: false,
       blindFillRevealed: {},
@@ -202,6 +203,18 @@ createApp({
       };
       return pick(last) || pick(first) || "待补充";
     },
+    visibleViews() {
+      const domains = this.visibleDomains;
+      const has = (field) => domains.some((d) => {
+        const val = d[field];
+        return Array.isArray(val) ? val.length > 0 : !!val;
+      });
+      return this.views.filter((v) => {
+        if (v.id === "formula") return has("formulas");
+        if (v.id === "scenario") return has("actionFlows");
+        return true;
+      });
+    },
     activeViewLabel() {
       const match = this.views.find((item) => item.id === this.activeView);
       return match ? match.label : "学习卡";
@@ -230,9 +243,9 @@ createApp({
         {
           name: "工作绩效数据 / 信息 / 报告",
           sides: [
-            { title: "数据", detail: "执行现场原始值。"},
-            { title: "信息", detail: "对数据分析加工后的可判断结果。"},
-            { title: "报告", detail: "面向沟通对象整理出的正式输出。"}
+            { title: "数据", detail: "执行现场原始值。" },
+            { title: "信息", detail: "对数据分析加工后的可判断结果。" },
+            { title: "报告", detail: "面向沟通对象整理出的正式输出。" }
           ],
           memory: "先收数，再成信，最后出报告。"
         }
@@ -528,11 +541,20 @@ createApp({
     document.removeEventListener("click", this.handleGlobalClick);
   },
   methods: {
+    selectModuleFromFab(moduleId) {
+      this.selectModule(moduleId);
+      this.moduleSheetOpen = false;
+    },
     selectModule(moduleId) {
       this.activeModule = moduleId;
       if (moduleId === "essay") {
         return;
       }
+      this.$nextTick(() => {
+        if (!this.visibleViews.find((v) => v.id === this.activeView)) {
+          this.activeView = "study";
+        }
+      });
       const firstDomain = this.visibleDomains[0];
       if (firstDomain) {
         this.activeDomainId = firstDomain.id;
@@ -584,7 +606,7 @@ createApp({
         ta.style.opacity = "0";
         document.body.appendChild(ta);
         ta.select();
-        try { document.execCommand("copy"); } catch (e) {}
+        try { document.execCommand("copy"); } catch (e) { }
         document.body.removeChild(ta);
       };
       if (navigator.clipboard && window.isSecureContext) {
