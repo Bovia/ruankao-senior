@@ -775,10 +775,8 @@ createApp({
       this.activeView = "study";
       this.markLearned(processId);
       this.$nextTick(() => {
-        const el = document.querySelector(".study-card");
-        if (!el) return;
-        const top = window.scrollY + el.getBoundingClientRect().top - 80;
-        window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+        const el = document.querySelector('.items-start');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     },
     goProcess(delta) {

@@ -777,7 +777,7 @@ createApp({
       this.$nextTick(() => {
         const el = document.querySelector(".study-card");
         if (!el) return;
-        const top = window.scrollY + el.getBoundingClientRect().top - 80;
+        const top = window.scrollY + el.getBoundingClientRect().top - 70;
         window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
       });
     },
