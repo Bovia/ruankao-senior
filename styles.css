@@ -1177,7 +1177,7 @@ code {
   top: 50%;
   transform: translateY(-50%);
   z-index: 55;
-  width: 36px;
+  width: 28px;
   height: 56px;
   display: flex;
   align-items: center;
@@ -1278,8 +1278,8 @@ code {
 
 .module-fab {
   pointer-events: auto;
-  width: 56px;
-  height: 56px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   display: flex;
   align-items: center;

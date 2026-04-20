@@ -1493,20 +1493,25 @@
           :aria-expanded="moduleSheetOpen"
           :aria-label="'切换学科模块（当前：' + activeModuleMeta.name + '）'"
         >
-          <span class="module-fab-icon">{{ activeModuleMeta.icon }}</span>
-          <span
-            class="module-fab-caret"
-            :class="{ 'module-fab-caret--open': moduleSheetOpen }"
-          >
+          <span class="module-fab-icon">
+            <!-- 左右切换的icon，两个对称的箭头 -->
             <svg
-              viewBox="0 0 24 24"
+              viewBox="0 0 32 32"
+              width="24"
+              height="24"
               fill="none"
               stroke="currentColor"
-              stroke-width="2.4"
+              stroke-width="2.8"
               stroke-linecap="round"
               stroke-linejoin="round"
+              style="display: block;"
             >
-              <polyline points="6 9 12 15 18 9" />
+              <!-- 上方向左的箭头 -->
+              <polyline points="13 8 5 8 9 4" />
+              <line x1="5" y1="8" x2="27" y2="8" />
+              <!-- 下方向右的箭头 -->
+              <polyline points="19 24 27 24 23 28" />
+              <line x1="27" y1="24" x2="5" y2="24" />
             </svg>
           </span>
         </button>
