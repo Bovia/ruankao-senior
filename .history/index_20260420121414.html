@@ -47,8 +47,7 @@
     class="min-h-screen"
   >
     <div class="app-shell mx-auto max-w-[1600px] px-3 py-3 pb-20 md:px-6 md:py-4 md:pb-4 lg:px-8 lg:py-6">
-      <header
-        class="hero-panel mb-4 overflow-hidden rounded-[28px] p-4 shadow-soft md:mb-6 md:p-7"
+      <header class="hero-panel mb-4 overflow-hidden rounded-[28px] p-4 shadow-soft md:mb-6 md:p-7"
         :class="{ 'hidden md:block': activeModule !== 'essay' && activeView !== 'processGroup' }"
       >
         <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
@@ -79,14 +78,12 @@
           <div class="hidden gap-3 sm:grid sm:grid-cols-3 lg:w-[420px]">
             <div class="metric-card">
               <div class="metric-label">{{ activeModule === 'essay' ? '论文区模块' : '知识域' }}</div>
-              <div class="metric-value">
-                {{ activeModule === 'essay' ? essayData.structure.sections.length + '段' : visibleDomains.length }}</div>
+              <div class="metric-value">{{ activeModule === 'essay' ? essayData.structure.sections.length + '段' : visibleDomains.length }}</div>
               <div class="metric-note">{{ activeModule === 'essay' ? '五段式结构' : '当前模块可切换' }}</div>
             </div>
             <div class="metric-card">
               <div class="metric-label">{{ activeModule === 'essay' ? '项目素材' : '当前过程' }}</div>
-              <div class="metric-value">
-                {{ activeModule === 'essay' ? essayData.projectTemplates.length + '个' : activeProcess.name }}</div>
+              <div class="metric-value">{{ activeModule === 'essay' ? essayData.projectTemplates.length + '个' : activeProcess.name }}</div>
               <div class="metric-note">{{ activeModule === 'essay' ? '考场即用' : '学习卡联动' }}</div>
             </div>
             <div
@@ -135,7 +132,7 @@
       <div class="view-chip-bar mb-4 hidden flex-wrap items-center gap-3 md:flex md:mb-6">
         <button
           v-for="view in visibleViews"
-          :key="'header-'+view.id"
+            :key="'header-'+view.id"
           @click="activeView = view.id"
           class="mode-chip mode-chip-light"
           :class="{ 'mode-chip-active': activeView === view.id }"
@@ -224,10 +221,7 @@
             <div class="rounded-full bg-mist px-3 py-1 text-xs font-medium text-ocean">
               {{ learnedCount }}/{{ activeDomain.processes.length }} 已点亮</div>
           </div>
-          <div
-            class="domain-pills flex gap-2 overflow-x-auto pb-1 lg:hidden"
-            ref="domainPillBar"
-          >
+          <div class="domain-pills flex gap-2 overflow-x-auto pb-1 lg:hidden" ref="domainPillBar">
             <button
               v-for="domain in visibleDomains"
               :key="'pill-'+domain.id"
@@ -293,10 +287,7 @@
                 >展开全部</button>
               </div>
             </div>
-            <div
-              class="process-strip"
-              ref="processStrip"
-            >
+            <div class="process-strip" ref="processStrip">
               <button
                 v-for="(process, index) in activeDomain.processes"
                 :key="process.id"
@@ -339,10 +330,8 @@
           >
             <div class="mb-4 flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
               <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">
-                  {{ processGroupTitle.eyebrow }}</p>
-                <h3 class="font-display text-2xl font-semibold">{{ processGroupTitle.heading }} ·
-                  {{ filteredProcessCount }} 个子项</h3>
+                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">{{ processGroupTitle.eyebrow }}</p>
+                <h3 class="font-display text-2xl font-semibold">{{ processGroupTitle.heading }} · {{ filteredProcessCount }} 个子项</h3>
                 <p class="mt-2 text-sm leading-7 text-ink/75">{{ processGroupTitle.desc }}</p>
               </div>
             </div>
@@ -1010,10 +999,7 @@
               <p class="mt-2 max-w-3xl text-sm leading-7 text-ink/75">{{ essayData.summary }}</p>
             </div>
             <div class="flex flex-wrap gap-2">
-              <template
-                v-for="tab in essayTabs"
-                :key="'esy-'+tab.id"
-              >
+              <template v-for="tab in essayTabs" :key="'esy-'+tab.id">
                 <button
                   v-if="tab.id !== 'myEssay'"
                   @click="activeEssayTab = tab.id"
@@ -1032,7 +1018,7 @@
                   class="density-toggle"
                   :class="{ 'density-toggle-active': activeEssayTab === 'myEssay' }"
                   style="opacity:0.35;filter:blur(1.5px);user-select:none;"
-                > </button>
+                >???</button>
               </template>
             </div>
           </div>
@@ -1074,10 +1060,7 @@
                   <div class="essay-block">
                     <div class="essay-block-label">必须包含</div>
                     <ul class="essay-list">
-                      <li
-                        v-for="(m, mi) in sec.mustHave"
-                        :key="'mh-'+i+'-'+mi"
-                      >{{ m }}</li>
+                      <li v-for="(m, mi) in sec.mustHave" :key="'mh-'+i+'-'+mi">{{ m }}</li>
                     </ul>
                   </div>
                   <div class="essay-block">
@@ -1087,10 +1070,7 @@
                   <div class="essay-block">
                     <div class="essay-block-label">易踩坑</div>
                     <ul class="essay-list essay-list-warn">
-                      <li
-                        v-for="(p, pi) in sec.pitfalls"
-                        :key="'pf-'+i+'-'+pi"
-                      >{{ p }}</li>
+                      <li v-for="(p, pi) in sec.pitfalls" :key="'pf-'+i+'-'+pi">{{ p }}</li>
                     </ul>
                   </div>
                 </div>
@@ -1112,10 +1092,7 @@
               >
                 <div class="essay-score-range">{{ crit.range }}</div>
                 <ul class="essay-list">
-                  <li
-                    v-for="(f, fi) in crit.features"
-                    :key="'crt-f-'+ci+'-'+fi"
-                  >{{ f }}</li>
+                  <li v-for="(f, fi) in crit.features" :key="'crt-f-'+ci+'-'+fi">{{ f }}</li>
                 </ul>
               </div>
             </div>
@@ -1148,31 +1125,15 @@
                 class="essay-domain-card"
               >
                 <div class="essay-domain-head">{{ d.domain }}</div>
-                <div class="essay-domain-block"><span class="essay-domain-label">核心过程</span>
-                  <div class="essay-tags">
-                    <span
-                      v-for="(p, pi) in d.corePhases"
-                      :key="'dp-p-'+di+'-'+pi"
-                      class="essay-tag"
-                    >{{ p }}</span>
-                  </div>
-                </div>
-                <div class="essay-domain-block"><span class="essay-domain-label">常见难题</span>
-                  <ul class="essay-list">
-                    <li
-                      v-for="(p, pi) in d.typicalProblems"
-                      :key="'dp-pb-'+di+'-'+pi"
-                    >{{ p }}</li>
-                  </ul>
-                </div>
-                <div class="essay-domain-block"><span class="essay-domain-label">专业解法</span>
-                  <ul class="essay-list">
-                    <li
-                      v-for="(p, pi) in d.typicalSolutions"
-                      :key="'dp-s-'+di+'-'+pi"
-                    >{{ p }}</li>
-                  </ul>
-                </div>
+                <div class="essay-domain-block"><span class="essay-domain-label">核心过程</span><div class="essay-tags">
+                  <span v-for="(p, pi) in d.corePhases" :key="'dp-p-'+di+'-'+pi" class="essay-tag">{{ p }}</span>
+                </div></div>
+                <div class="essay-domain-block"><span class="essay-domain-label">常见难题</span><ul class="essay-list">
+                  <li v-for="(p, pi) in d.typicalProblems" :key="'dp-pb-'+di+'-'+pi">{{ p }}</li>
+                </ul></div>
+                <div class="essay-domain-block"><span class="essay-domain-label">专业解法</span><ul class="essay-list">
+                  <li v-for="(p, pi) in d.typicalSolutions" :key="'dp-s-'+di+'-'+pi">{{ p }}</li>
+                </ul></div>
                 <div class="essay-domain-hook">{{ d.essayHook }}</div>
               </div>
             </div>
@@ -1198,19 +1159,12 @@
                 <p class="essay-project-bg">{{ proj.background }}</p>
                 <div class="essay-project-block"><span class="essay-domain-label">关键挑战</span>
                   <ul class="essay-list">
-                    <li
-                      v-for="(c, ci) in proj.keyChallenges"
-                      :key="proj.id+'-c-'+ci"
-                    >{{ c }}</li>
+                    <li v-for="(c, ci) in proj.keyChallenges" :key="proj.id+'-c-'+ci">{{ c }}</li>
                   </ul>
                 </div>
                 <div class="essay-project-block"><span class="essay-domain-label">适配论文主题</span>
                   <div class="essay-tags">
-                    <span
-                      v-for="(d, di) in proj.suitableDomains"
-                      :key="proj.id+'-d-'+di"
-                      class="essay-tag"
-                    >{{ d }}</span>
+                    <span v-for="(d, di) in proj.suitableDomains" :key="proj.id+'-d-'+di" class="essay-tag">{{ d }}</span>
                   </div>
                 </div>
               </div>
@@ -1229,10 +1183,7 @@
             >
               <div class="essay-phrase-head">{{ phraseLabel(key) }}</div>
               <ul class="essay-list">
-                <li
-                  v-for="(p, pi) in group"
-                  :key="'ph-'+key+'-'+pi"
-                >{{ p }}</li>
+                <li v-for="(p, pi) in group" :key="'ph-'+key+'-'+pi">{{ p }}</li>
               </ul>
             </div>
           </div>
@@ -1246,17 +1197,10 @@
               <h3 class="essay-h3">历年主题速查</h3>
               <table class="essay-table">
                 <thead>
-                  <tr>
-                    <th>年份</th>
-                    <th>主题</th>
-                    <th>对应知识域</th>
-                  </tr>
+                  <tr><th>年份</th><th>主题</th><th>对应知识域</th></tr>
                 </thead>
                 <tbody>
-                  <tr
-                    v-for="(t, ti) in essayData.pastTopics"
-                    :key="'tp-'+ti"
-                  >
+                  <tr v-for="(t, ti) in essayData.pastTopics" :key="'tp-'+ti">
                     <td>{{ t.year }}</td>
                     <td>{{ t.topic }}</td>
                     <td>{{ t.domain }}</td>
@@ -1295,11 +1239,7 @@
               <div class="my-essay-req-head">
                 <span class="my-essay-req-tag">基本结构</span>
                 <div class="my-essay-req-body">
-                  <div
-                    v-for="(sec, si) in myEssayData.wordRequirements.sections"
-                    :key="'myreq-'+si"
-                    class="my-essay-req-row"
-                  >
+                  <div v-for="(sec, si) in myEssayData.wordRequirements.sections" :key="'myreq-'+si" class="my-essay-req-row">
                     <span class="my-essay-req-name">{{ sec.name }}</span>
                     <span class="my-essay-req-range">{{ sec.range }}</span>
                     <span class="my-essay-req-desc">{{ sec.desc }}</span>
@@ -1400,10 +1340,7 @@
                   <p class="my-essay-section-meta">（内容先空着，结构已定义好；可参照下方提示自行撰写）</p>
                 </div>
               </header>
-              <div
-                class="my-essay-conclusion-hook"
-                v-if="activeMyEssayTopic.conclusionHook"
-              >
+              <div class="my-essay-conclusion-hook" v-if="activeMyEssayTopic.conclusionHook">
                 <span class="my-essay-conclusion-hook-label">本主题结尾金句参考</span>
                 <span>{{ activeMyEssayTopic.conclusionHook }}</span>
               </div>
@@ -1432,14 +1369,7 @@
           :disabled="!canGoPrevDomain"
           :aria-label="'上一个知识域'"
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.4"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
@@ -1451,14 +1381,7 @@
           :disabled="!canGoNextDomain"
           :aria-label="'下一个知识域'"
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.4"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="9 18 15 12 9 6" />
           </svg>
         </button>
@@ -1515,22 +1438,14 @@
             class="module-fab-caret"
             :class="{ 'module-fab-caret--open': moduleSheetOpen }"
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.4"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="6 9 12 15 18 9" />
             </svg>
           </span>
         </button>
       </div>
 
-      <nav
-        class="mobile-tab-bar md:hidden"
+      <nav class="mobile-tab-bar md:hidden"
         v-if="activeModule !== 'essay'"
       >
         <button

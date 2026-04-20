@@ -633,7 +633,7 @@ createApp({
     tapMyEssay() {
       clearTimeout(this._myEssayTapTimer);
       this._myEssayTapCount++;
-      if (this._myEssayTapCount >= 10) {
+      if (this._myEssayTapCount >= 5) {
         this._myEssayTapCount = 0;
         this.myEssayUnlocked = true;
         this.activeEssayTab = "myEssay";
