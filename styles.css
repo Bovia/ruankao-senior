@@ -1571,6 +1571,40 @@ code {
 }
 
 /* ================== 侧边栏 L2 板块分组 ================== */
+/* 移动端知识域面板吸顶 */
+.domain-aside-sticky {
+  position: sticky;
+  top: -40px;
+  z-index: 30;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-left: 3px solid #1c7c7d;
+  box-shadow: 0 6px 24px rgba(12, 55, 72, 0.13);
+  padding: 14px 16px !important;
+}
+
+.domain-aside-sticky h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+@media (min-width: 768px) {
+  .domain-aside-sticky {
+    position: static;
+    background: unset;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-left: none;
+    box-shadow: unset;
+    padding: unset !important;
+  }
+  .domain-aside-sticky h2 {
+    font-size: unset;
+    font-weight: unset;
+  }
+}
+
 .domain-group {
   display: flex;
   flex-direction: column;

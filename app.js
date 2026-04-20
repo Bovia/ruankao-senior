@@ -546,7 +546,7 @@ createApp({
   },
   watch: {
     activeView() {
-      window.scrollTo({ top: 0, behavior: "instant" });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   },
   mounted() {
@@ -592,7 +592,7 @@ createApp({
       this.matcherMatchedIds = [];
       this.matcherWrong = false;
       this.pgFilterDomain = "all";
-      window.scrollTo({ top: 0, behavior: "instant" });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     },
     essayBasicLabel(key) {
       const map = {
@@ -776,7 +776,7 @@ createApp({
       this.matcherRightSel = null;
       this.matcherMatchedIds = [];
       this.matcherWrong = false;
-      window.scrollTo({ top: 0, behavior: "instant" });
+      window.scrollTo({ top: 0, behavior: "smooth" });
       this.$nextTick(() => {
         const bar = this.$refs.domainPillBar;
         if (!bar) return;

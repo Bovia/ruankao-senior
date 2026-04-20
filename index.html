@@ -205,12 +205,12 @@
 
       <main
         v-if="activeModule !== 'essay'"
-        class="grid gap-4 items-start overflow-hidden"
+        class="grid gap-4 items-start"
         :class="activeView === 'processGroup' ? 'lg:grid-cols-1' : 'lg:grid-cols-[280px_minmax(0,1fr)]'"
       >
         <aside
           v-if="activeView !== 'processGroup'"
-          class="panel p-3 md:p-4 min-w-0"
+          class="domain-aside-sticky panel p-3 md:p-4 min-w-0"
         >
           <div class="mb-3 flex items-center justify-between">
             <div>
