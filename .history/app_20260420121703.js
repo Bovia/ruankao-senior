@@ -15,8 +15,7 @@ createApp({
       { id: "domainPoints", label: "知识域要点" },
       { id: "projects", label: "项目素材库" },
       { id: "phrases", label: "金句表" },
-      { id: "pastTopics", label: "历年真题" },
-      { id: "myEssay", label: "我的论文" }
+      { id: "pastTopics", label: "历年真题" }
     ];
     const allDomains = Object.values(window.knowledgeData || {});
     const pmDomains = allDomains.filter((d) => (d.module || "pm") === "pm");

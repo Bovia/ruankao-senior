@@ -1010,30 +1010,13 @@
               <p class="mt-2 max-w-3xl text-sm leading-7 text-ink/75">{{ essayData.summary }}</p>
             </div>
             <div class="flex flex-wrap gap-2">
-              <template
+              <button
                 v-for="tab in essayTabs"
                 :key="'esy-'+tab.id"
-              >
-                <button
-                  v-if="tab.id !== 'myEssay'"
-                  @click="activeEssayTab = tab.id"
-                  class="density-toggle"
-                  :class="{ 'density-toggle-active': activeEssayTab === tab.id }"
-                >{{ tab.label }}</button>
-                <button
-                  v-else-if="myEssayUnlocked"
-                  @click="tapMyEssay()"
-                  class="density-toggle"
-                  :class="{ 'density-toggle-active': activeEssayTab === 'myEssay' }"
-                >{{ tab.label }}</button>
-                <button
-                  v-else
-                  @click="tapMyEssay()"
-                  class="density-toggle"
-                  :class="{ 'density-toggle-active': activeEssayTab === 'myEssay' }"
-                  style="opacity:0.35;filter:blur(1.5px);user-select:none;"
-                > </button>
-              </template>
+                @click="activeEssayTab = tab.id"
+                class="density-toggle"
+                :class="{ 'density-toggle-active': activeEssayTab === tab.id }"
+              >{{ tab.label }}</button>
             </div>
           </div>
 
@@ -1279,7 +1262,7 @@
 
           <!-- 我的论文（固定项目概况 + 主题切换的过渡段 / 子过程 / 结尾） -->
           <div
-            v-if="activeEssayTab === 'myEssay' && myEssayUnlocked"
+            v-if="activeEssayTab === 'myEssay'"
             class="my-essay"
           >
             <!-- 字数与结构要求 -->

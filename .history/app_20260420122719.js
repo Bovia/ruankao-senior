@@ -15,7 +15,8 @@ createApp({
       { id: "domainPoints", label: "知识域要点" },
       { id: "projects", label: "项目素材库" },
       { id: "phrases", label: "金句表" },
-      { id: "pastTopics", label: "历年真题" }
+      { id: "pastTopics", label: "历年真题" },
+      { id: "myEssay", label: "我的论文" }
     ];
     const allDomains = Object.values(window.knowledgeData || {});
     const pmDomains = allDomains.filter((d) => (d.module || "pm") === "pm");
@@ -625,6 +626,18 @@ createApp({
     selectMyEssayTopic(topicId) {
       this.myEssayTopicId = topicId;
       this.myEssayCopied = "";
+    },
+    tapMyEssay() {
+      clearTimeout(this._myEssayTapTimer);
+      this._myEssayTapCount++;
+      if (this._myEssayTapCount >= 10) {
+        this._myEssayTapCount = 0;
+        this.myEssayUnlocked = true;
+        this.activeEssayTab = "myEssay";
+        return;
+      }
+      this._myEssayTapTimer = setTimeout(() => { this._myEssayTapCount = 0; }, 2000);
+      this.activeEssayTab = "myEssay";
     },
     copyMyEssayText(text, tag) {
       if (!text) return;
