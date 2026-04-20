@@ -113,6 +113,47 @@ code {
   color: #16313f;
 }
 
+.mode-chip-light {
+  border: 1px solid rgba(22, 49, 63, 0.08);
+  background: #ffffff;
+  color: #334155;
+  box-shadow: 0 4px 12px rgba(12, 55, 72, 0.04);
+}
+
+.mode-chip-light:hover {
+  background: #ffffff;
+  border-color: rgba(31, 122, 140, 0.35);
+  box-shadow: 0 8px 18px rgba(12, 55, 72, 0.08);
+}
+
+.mode-chip-light.mode-chip-active {
+  background: linear-gradient(135deg, #1c7c7d, #0f4c5c);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 10px 22px rgba(15, 76, 92, 0.25);
+}
+
+.view-chip-bar .search-box {
+  border: 1px solid rgba(22, 49, 63, 0.1);
+  background: #ffffff;
+  color: rgba(22, 49, 63, 0.75);
+  box-shadow: 0 4px 12px rgba(12, 55, 72, 0.04);
+}
+
+.view-chip-bar .search-box:focus-within {
+  background: #ffffff;
+  border-color: rgba(31, 122, 140, 0.4);
+  box-shadow: 0 8px 18px rgba(12, 55, 72, 0.08);
+}
+
+.view-chip-bar .search-input {
+  color: #16313f;
+}
+
+.view-chip-bar .search-input::placeholder {
+  color: rgba(22, 49, 63, 0.4);
+}
+
 .domain-card {
   min-width: 220px;
   border: 1px solid rgba(15, 76, 92, 0.08);
@@ -1130,6 +1171,186 @@ code {
   letter-spacing: 0.02em;
 }
 
+/* ── 移动端 知识域左右切换箭头 ── */
+.domain-nav-arrow {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 55;
+  width: 36px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.domain-nav-arrow--left {
+  left: 0;
+  border-radius: 0 12px 12px 0;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 3px 0 12px rgba(12, 55, 72, 0.10);
+}
+
+.domain-nav-arrow--right {
+  right: 0;
+  border-radius: 12px 0 0 12px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: -3px 0 12px rgba(12, 55, 72, 0.10);
+}
+
+.domain-nav-arrow svg {
+  width: 18px;
+  height: 18px;
+  color: #0f4c5c;
+}
+
+.domain-nav-arrow--disabled {
+  opacity: 0.2;
+  pointer-events: none;
+}
+
+.domain-nav-arrow:active:not(.domain-nav-arrow--disabled) {
+  transform: translateY(-50%) scale(0.92);
+}
+
+/* ── 移动端 学科模块切换 浮动按钮 + 弹层 ── */
+.module-fab-wrapper {
+  position: fixed;
+  right: 16px;
+  bottom: calc(72px + env(safe-area-inset-bottom));
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.module-fab-wrapper--no-tabbar {
+  bottom: calc(20px + env(safe-area-inset-bottom));
+}
+
+.module-fab-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 31, 41, 0.32);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: -1;
+  pointer-events: auto;
+}
+
+.module-fab-sheet {
+  pointer-events: auto;
+  width: min(78vw, 280px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(22, 49, 63, 0.08);
+  box-shadow: 0 18px 38px rgba(12, 55, 72, 0.18);
+  transform-origin: bottom right;
+}
+
+.module-fab-sheet-title {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(22, 49, 63, 0.5);
+  padding: 4px 6px 2px;
+}
+
+.module-fab-item {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.module-fab {
+  pointer-events: auto;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: var(--mod-accent, #1c7c7d);
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 12px 26px rgba(15, 76, 92, 0.32);
+  cursor: pointer;
+  transition: transform 200ms ease, box-shadow 200ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.module-fab:active {
+  transform: scale(0.94);
+}
+
+.module-fab--open {
+  box-shadow: 0 16px 32px rgba(15, 76, 92, 0.4);
+}
+
+.module-fab-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.module-fab-caret {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: var(--mod-accent, #1c7c7d);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(12, 55, 72, 0.18);
+  transition: transform 220ms ease;
+}
+
+.module-fab-caret svg {
+  width: 12px;
+  height: 12px;
+}
+
+.module-fab-caret--open {
+  transform: rotate(180deg);
+}
+
+/* 弹层动画 */
+.module-fab-pop-enter-active,
+.module-fab-pop-leave-active {
+  transition: transform 200ms ease, opacity 180ms ease;
+}
+.module-fab-pop-enter-from,
+.module-fab-pop-leave-to {
+  transform: translateY(8px) scale(0.94);
+  opacity: 0;
+}
+.module-fab-fade-enter-active,
+.module-fab-fade-leave-active {
+  transition: opacity 180ms ease;
+}
+.module-fab-fade-enter-from,
+.module-fab-fade-leave-to {
+  opacity: 0;
+}
+
 /* ── Domain pill (mobile compact selector) ── */
 .domain-pill {
   flex: 0 0 auto;
@@ -1350,6 +1571,40 @@ code {
 }
 
 /* ================== 侧边栏 L2 板块分组 ================== */
+/* 移动端知识域面板吸顶 */
+.domain-aside-sticky {
+  position: sticky;
+  top: -40px;
+  z-index: 30;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-left: 3px solid #1c7c7d;
+  box-shadow: 0 6px 24px rgba(12, 55, 72, 0.13);
+  padding: 14px 16px !important;
+}
+
+.domain-aside-sticky h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+@media (min-width: 768px) {
+  .domain-aside-sticky {
+    position: static;
+    background: unset;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-left: none;
+    box-shadow: unset;
+    padding: unset !important;
+  }
+  .domain-aside-sticky h2 {
+    font-size: unset;
+    font-weight: unset;
+  }
+}
+
 .domain-group {
   display: flex;
   flex-direction: column;
