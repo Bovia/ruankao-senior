@@ -152,77 +152,77 @@ window.knowledgeData.cost = {
   ],
   "formulas": [
     {
-      "name": "成本偏差 CV",
+      "name": "成本偏差 CV（Cost Variance）",
       "expression": "CV = EV - AC",
       "variables": "EV=挣值（已完成工作的预算价值），AC=实际成本。",
       "usage": "判断成本超支或节约。CV>0节约，CV<0超支。",
       "pitfall": "CV是金额，不是百分比。"
     },
     {
-      "name": "进度偏差 SV",
+      "name": "进度偏差 SV（Schedule Variance）",
       "expression": "SV = EV - PV",
       "variables": "EV=挣值，PV=计划价值（计划要完成工作的预算）。",
       "usage": "判断进度提前或滞后。SV>0提前，SV<0滞后。",
       "pitfall": "SV用金额衡量进度偏差，不是时间单位。项目完工时SV必为0。"
     },
     {
-      "name": "成本绩效指数 CPI",
+      "name": "成本绩效指数 CPI（Cost Performance Index）",
       "expression": "CPI = EV / AC",
       "variables": "CPI>1成本效率好（花1元挣>1元价值），CPI<1效率差。",
       "usage": "衡量成本效率，也用于EAC预测。",
       "pitfall": "CPI<1才是超支，CPI是效率不是偏差。"
     },
     {
-      "name": "进度绩效指数 SPI",
+      "name": "进度绩效指数 SPI（Schedule Performance Index）",
       "expression": "SPI = EV / PV",
       "variables": "SPI>1进度提前，SPI<1进度落后。",
       "usage": "衡量进度执行效率。",
       "pitfall": "项目完工时SPI趋向1，不能反映真实进度状态。"
     },
     {
-      "name": "EAC（典型）—按当前CPI趋势",
+      "name": "完工估算 EAC（Estimate at Completion）典型—按当前CPI趋势",
       "expression": "EAC = BAC / CPI",
       "variables": "BAC=完工预算。适用于：剩余工作按当前成本效率继续。",
       "usage": "最常用的EAC公式。",
       "pitfall": "前提是'未来绩效与过去一致'。"
     },
     {
-      "name": "EAC（非典型）—剩余按原计划",
+      "name": "完工估算 EAC（Estimate at Completion）非典型—剩余按原计划",
       "expression": "EAC = AC + (BAC - EV)",
       "variables": "适用于：当前偏差是一次性的，剩余工作按原计划效率执行。",
       "usage": "题干提示'偏差不再发生'或'剩余工作按原计划执行'时使用。",
       "pitfall": "题干没说偏差是一次性的，就不能用这个公式。"
     },
     {
-      "name": "EAC（综合）—同时考虑CPI和SPI",
+      "name": "完工估算 EAC（Estimate at Completion）综合—同时考虑CPI和SPI",
       "expression": "EAC = AC + (BAC - EV) / (CPI × SPI)",
       "variables": "适用于：剩余工作同时受成本和进度绩效影响。",
       "usage": "题干同时提到成本超支和进度落后时使用。",
       "pitfall": "分母是两个指数相乘，不是相加。"
     },
     {
-      "name": "完工尚需估算 ETC",
+      "name": "完工尚需估算 ETC（Estimate to Complete）",
       "expression": "ETC = EAC - AC",
       "variables": "从现在到完工还需投入多少钱。",
       "usage": "预测剩余资金需求。",
       "pitfall": "ETC基于EAC计算，EAC公式不同则ETC不同。"
     },
     {
-      "name": "完工偏差 VAC",
+      "name": "完工偏差 VAC（Variance at Completion）",
       "expression": "VAC = BAC - EAC",
       "variables": "VAC>0预计结余，VAC<0预计超支。",
       "usage": "判断最终会不会超预算。",
       "pitfall": "VAC是预测值，不是已发生值。"
     },
     {
-      "name": "完工尚需绩效指数 TCPI（基于BAC）",
+      "name": "完工尚需绩效指数 TCPI（To-Complete Performance Index，基于BAC）",
       "expression": "TCPI = (BAC - EV) / (BAC - AC)",
       "variables": "要守住原预算BAC，剩余工作需要达到的成本效率。",
       "usage": "TCPI>1说明需要比目前更高效率才能守住预算。",
       "pitfall": "如果已经放弃BAC改用EAC，公式变为(BAC-EV)/(EAC-AC)。"
     },
     {
-      "name": "成本基准层级",
+      "name": "成本基准层级（Cost Baseline / Project Funding Requirements）",
       "expression": "项目资金需求 = 成本基准 + 管理储备 = 工作包估算 + 应急储备 + 管理储备",
       "variables": "应急储备→已知风险→PM可用；管理储备→未知风险→管理层审批。",
       "usage": "理解预算层级关系。",
@@ -336,20 +336,20 @@ window.knowledgeData.cost = {
     }
   ],
   "keywordMap": [
-    {"keywords": ["EV-AC","成本偏差","花多了还是省了"], "answer": "CV 成本偏差", "why": "CV=EV-AC，正值节约，负值超支", "trap": "CV和SV都用EV减，CV减AC看钱，SV减PV看进度"},
-    {"keywords": ["EV/AC","成本效率","每花一块钱产出多少"], "answer": "CPI 成本绩效指数", "why": "CPI=EV/AC，>1高效，<1低效", "trap": "CPI和SPI都用EV除，CPI除AC，SPI除PV"},
-    {"keywords": ["BAC/CPI","完工总成本预测"], "answer": "EAC 完工估算", "why": "典型EAC=BAC/CPI，假设未来效率不变", "trap": "EAC有多个公式，最常考的是BAC/CPI"},
-    {"keywords": ["应急储备","已识别风险","成本基准内"], "answer": "应急储备", "why": "应对已识别风险，包含在成本基准中", "trap": "管理储备应对未知风险，不在成本基准中"},
-    {"keywords": ["自下而上估算","详细估算","最准确"], "answer": "自下而上估算", "why": "从工作包逐层汇总，精度最高但耗时最长", "trap": "类比估算最快但最粗，参数估算居中"}
+    { "keywords": ["EV-AC", "成本偏差", "花多了还是省了"], "answer": "CV 成本偏差", "why": "CV=EV-AC，正值节约，负值超支", "trap": "CV和SV都用EV减，CV减AC看钱，SV减PV看进度" },
+    { "keywords": ["EV/AC", "成本效率", "每花一块钱产出多少"], "answer": "CPI 成本绩效指数", "why": "CPI=EV/AC，>1高效，<1低效", "trap": "CPI和SPI都用EV除，CPI除AC，SPI除PV" },
+    { "keywords": ["BAC/CPI", "完工总成本预测"], "answer": "EAC 完工估算", "why": "典型EAC=BAC/CPI，假设未来效率不变", "trap": "EAC有多个公式，最常考的是BAC/CPI" },
+    { "keywords": ["应急储备", "已识别风险", "成本基准内"], "answer": "应急储备", "why": "应对已识别风险，包含在成本基准中", "trap": "管理储备应对未知风险，不在成本基准中" },
+    { "keywords": ["自下而上估算", "详细估算", "最准确"], "answer": "自下而上估算", "why": "从工作包逐层汇总，精度最高但耗时最长", "trap": "类比估算最快但最粗，参数估算居中" }
   ],
   "actionFlows": [
-    {"scenario": "项目执行到一半发现成本已经超支", "steps": ["计算CV和CPI确认超支程度", "分析超支根本原因", "预测EAC评估完工总成本", "制定纠偏措施（缩减范围/优化资源）", "提交变更请求更新成本基准"], "keyRule": "先用EVM量化问题，再分析原因，最后纠偏", "examTip": "看到成本超支，第一步永远是'计算/分析EVM指标'而不是'立即削减预算'"},
-    {"scenario": "管理层要求使用管理储备来弥补成本超支", "steps": ["确认超支原因是否属于'未知未知'风险", "如果是已识别风险应先用应急储备", "使用管理储备需经管理层审批", "使用后更新成本基准", "记录管理储备使用情况"], "keyRule": "管理储备只用于未知风险，已知风险用应急储备", "examTip": "管理储备使用后会改变成本基准"}
+    { "scenario": "项目执行到一半发现成本已经超支", "steps": ["计算CV和CPI确认超支程度", "分析超支根本原因", "预测EAC评估完工总成本", "制定纠偏措施（缩减范围/优化资源）", "提交变更请求更新成本基准"], "keyRule": "先用EVM量化问题，再分析原因，最后纠偏", "examTip": "看到成本超支，第一步永远是'计算/分析EVM指标'而不是'立即削减预算'" },
+    { "scenario": "管理层要求使用管理储备来弥补成本超支", "steps": ["确认超支原因是否属于'未知未知'风险", "如果是已识别风险应先用应急储备", "使用管理储备需经管理层审批", "使用后更新成本基准", "记录管理储备使用情况"], "keyRule": "管理储备只用于未知风险，已知风险用应急储备", "examTip": "管理储备使用后会改变成本基准" }
   ],
   "logicalLinks": [
-    {"from": "估算成本 → 成本估算", "to": "制定预算（输入）", "why": "先估算每个活动的成本，再汇总形成预算"},
-    {"from": "制定预算 → 成本基准", "to": "控制成本（输入）", "why": "成本基准=工作包成本+应急储备，是控制成本的标尺"},
-    {"from": "控制成本 → 工作绩效信息(CV/CPI/SV/SPI)", "to": "监控项目工作（输入）", "why": "成本绩效数据汇入整体监控"},
-    {"from": "制定预算 → 项目资金需求", "to": "项目总预算=成本基准+管理储备", "why": "资金需求展示随时间的累计支出曲线（S曲线）"}
+    { "from": "估算成本 → 成本估算", "to": "制定预算（输入）", "why": "先估算每个活动的成本，再汇总形成预算" },
+    { "from": "制定预算 → 成本基准", "to": "控制成本（输入）", "why": "成本基准=工作包成本+应急储备，是控制成本的标尺" },
+    { "from": "控制成本 → 工作绩效信息(CV/CPI/SV/SPI)", "to": "监控项目工作（输入）", "why": "成本绩效数据汇入整体监控" },
+    { "from": "制定预算 → 项目资金需求", "to": "项目总预算=成本基准+管理储备", "why": "资金需求展示随时间的累计支出曲线（S曲线）" }
   ]
 };
