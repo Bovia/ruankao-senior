@@ -221,7 +221,7 @@
             <div class="rounded-full bg-mist px-3 py-1 text-xs font-medium text-ocean">
               {{ learnedCount }}/{{ activeDomain.processes.length }} 已点亮</div>
           </div>
-          <div class="domain-pills flex gap-2 overflow-x-auto pb-1 lg:hidden">
+          <div class="domain-pills flex gap-2 overflow-x-auto pb-1 lg:hidden" ref="domainPillBar">
             <button
               v-for="domain in visibleDomains"
               :key="'pill-'+domain.id"
@@ -229,6 +229,7 @@
               class="domain-pill"
               :class="{ 'domain-pill-active': activeDomainId === domain.id }"
               :style="{ '--domain-accent': domain.themeColor }"
+              :data-domain-id="domain.id"
             >{{ domain.name }}</button>
           </div>
           <div class="domain-nav hidden gap-4 lg:flex lg:flex-col lg:overflow-visible">

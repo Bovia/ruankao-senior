@@ -544,6 +544,11 @@ createApp({
       }));
     }
   },
+  watch: {
+    activeView() {
+      window.scrollTo({ top: 0, behavior: "instant" });
+    }
+  },
   mounted() {
     this._countdownTimer = setInterval(() => { this.nowTimestamp = Date.now(); }, 1000);
     document.addEventListener("click", this.handleGlobalClick);
@@ -587,6 +592,7 @@ createApp({
       this.matcherMatchedIds = [];
       this.matcherWrong = false;
       this.pgFilterDomain = "all";
+      window.scrollTo({ top: 0, behavior: "instant" });
     },
     essayBasicLabel(key) {
       const map = {
@@ -770,6 +776,15 @@ createApp({
       this.matcherRightSel = null;
       this.matcherMatchedIds = [];
       this.matcherWrong = false;
+      window.scrollTo({ top: 0, behavior: "instant" });
+      this.$nextTick(() => {
+        const bar = this.$refs.domainPillBar;
+        if (!bar) return;
+        const btn = bar.querySelector(`[data-domain-id="${domainId}"]`);
+        if (btn) {
+          bar.scrollTo({ left: btn.offsetLeft - 12, behavior: "smooth" });
+        }
+      });
     },
     selectProcess(processId) {
       this.activeProcessId = processId;
