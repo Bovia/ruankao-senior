@@ -213,7 +213,7 @@ createApp({
       return this.activeDomainIndex < this.visibleDomains.length - 1;
     },
     showDomainNavArrows() {
-      return ["keyword", "scenario", "formula", "compare", "quiz"].includes(this.activeView);
+      return ["study", "keyword", "scenario", "formula", "compare", "quiz"].includes(this.activeView);
     },
     visibleViews() {
       const domains = this.visibleDomains;
@@ -546,7 +546,19 @@ createApp({
   },
   watch: {
     activeView() {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      if (window.innerWidth < 768) window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    activeProcessId(newId) {
+      setTimeout(() => {
+        const strip = this.$refs.processStrip;
+        if (!strip) return;
+        const btn = strip.querySelector(`[data-pid="${newId}"]`);
+        if (!btn) return;
+        const stripRect = strip.getBoundingClientRect();
+        const btnRect = btn.getBoundingClientRect();
+        const target = strip.scrollLeft + btnRect.left - stripRect.left - 12;
+        strip.scrollTo({ left: Math.max(0, target), behavior: "smooth" });
+      }, 80);
     }
   },
   mounted() {
@@ -738,7 +750,7 @@ createApp({
       this.activeView = "study";
       this.markLearned(processId);
       this.$nextTick(() => {
-        const el = document.querySelector('.study-block');
+        const el = document.querySelector('.content-start');
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     },

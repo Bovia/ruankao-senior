@@ -287,13 +287,14 @@
                 >展开全部</button>
               </div>
             </div>
-            <div class="process-strip">
+            <div class="process-strip" ref="processStrip">
               <button
                 v-for="(process, index) in activeDomain.processes"
                 :key="process.id"
                 @click="selectProcess(process.id)"
                 class="process-node"
                 :class="processNodeClass(process.id)"
+                :data-pid="process.id"
               >
                 <span class="process-step">P{{ index + 1 }}</span>
                 <span class="process-stage">{{ process.stageOrder }}</span>
