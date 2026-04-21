@@ -223,6 +223,93 @@ code {
   color: white;
 }
 
+/* ── Practice layer segmented control (sidebar) ── */
+.practice-seg {
+  display: flex;
+  gap: 0;
+  width: 100%;
+  border-radius: 14px;
+  background: rgba(15, 76, 92, 0.07);
+  padding: 3px;
+}
+
+.practice-seg-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  border-radius: 11px;
+  padding: 0.38rem 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(22, 49, 63, 0.48);
+  cursor: pointer;
+  text-align: center;
+  white-space: nowrap;
+  transition: color 140ms ease, background 140ms ease, box-shadow 140ms ease;
+}
+
+.practice-seg-btn:hover {
+  color: rgba(22, 49, 63, 0.72);
+}
+
+.practice-seg-btn-active {
+  background: #ffffff;
+  color: #0f4c5c;
+  box-shadow: 0 1px 5px rgba(12, 55, 72, 0.12);
+}
+
+/* ── Quiz answer global toggle bar ── */
+.quiz-ans-bar {
+  display: inline-flex;
+  gap: 0;
+  border-radius: 12px;
+  background: rgba(15, 76, 92, 0.06);
+  padding: 3px;
+  flex-shrink: 0;
+}
+
+.quiz-ans-btn {
+  border: none;
+  background: transparent;
+  border-radius: 9px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(22, 49, 63, 0.48);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 140ms ease, background 140ms ease, box-shadow 140ms ease;
+}
+
+.quiz-ans-btn:hover {
+  color: rgba(22, 49, 63, 0.72);
+}
+
+.quiz-ans-btn-active {
+  background: #ffffff;
+  color: #0f4c5c;
+  box-shadow: 0 1px 4px rgba(12, 55, 72, 0.10);
+}
+
+/* ── Quiz card answer peek hint ── */
+.quiz-peek-hint {
+  margin-top: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.76rem;
+  color: rgba(15, 76, 92, 0.42);
+  letter-spacing: 0.01em;
+}
+
+.quiz-card.is-peekable {
+  transition: box-shadow 140ms ease;
+}
+
+.quiz-card.is-peekable:hover {
+  box-shadow: 0 6px 20px rgba(12, 55, 72, 0.09);
+}
+
 .domain-brief-mini {
   border-left: 3px solid var(--ocean);
 }

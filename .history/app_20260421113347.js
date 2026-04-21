@@ -1,68 +1,5 @@
 const { createApp } = Vue;
 
-/**
- * 将 zonghe_1.md 等格式的题库文本解析为 quiz 数组
- * 支持的格式：
- *   数字、 *[单选]* 题目内容
- *   -  A：选项
- *   正确答案：**X** 你的答案：**X**
- *   解析：解析内容…
- */
-function parsePracticeMarkdown(text) {
-  const questions = [];
-  // 按题号切割：行首数字 + 顿号/逗号/点
-  const blocks = text.split(/\n(?=\d+[、，,.]\s)/);
-
-  for (const block of blocks) {
-    const trimmed = block.trim();
-    if (!trimmed || !/^\d+/.test(trimmed)) continue;
-
-    const lines = trimmed.split("\n");
-
-    // 题型
-    const typeMatch = trimmed.match(/\*\[([^\]]+)\]\*/);
-    const type = typeMatch ? typeMatch[1] + "题" : "单选题";
-
-    // 题干（第一行，去掉序号和 *[…]*）
-    const question = (lines[0] || "")
-      .replace(/^\d+[、，,.]\s*/, "")
-      .replace(/\*\[[^\]]+\]\*\s*/, "")
-      .trim();
-
-    // 选项（以 "- 字母：" 开头的行）
-    const options = [];
-    for (const line of lines) {
-      const m = line.match(/^-+\s*([A-Za-z])[：:]\s*(.+)/);
-      if (m) options.push(`${m[1]}. ${m[2].trim()}`);
-    }
-
-    // 正确答案（取第一个 **X**）
-    const ansMatch = trimmed.match(/正确答案[：:]\s*\*\*([^*]+)\*\*/);
-    const answer = ansMatch ? ansMatch[1].trim() : "";
-
-    // 解析（"解析：" 之后的所有内容，去掉行首的图片链接）
-    const analysisMatch = trimmed.match(/解析[：:]([^]*)/);
-    const analysis = analysisMatch
-      ? analysisMatch[1]
-          .replace(/!\[[^\]]*\]\([^)]*\)/g, "")  // 去图片
-          .replace(/\n{3,}/g, "\n\n")
-          .trim()
-      : "";
-
-    // 考点（从解析首句提取，供 relatedProcess 用）
-    const processMatch = analysis.match(/考点[^：:是]*[：:是]([^。\n]{2,25})/);
-    const relatedProcess = processMatch
-      ? processMatch[1].replace(/[。.，,].*/, "").trim()
-      : "";
-
-    if (question && options.length > 0) {
-      questions.push({ question, type, options, answer, analysis, relatedProcess });
-    }
-  }
-
-  return questions;
-}
-
 createApp({
   data() {
     const modules = [
@@ -84,9 +21,6 @@ createApp({
     const pmDomains = allDomains.filter((d) => (d.module || "pm") === "pm");
     const firstDomain = pmDomains[0] || allDomains[0] || { processes: [] };
     const firstProcess = (firstDomain.processes || [])[0] || {};
-    const practiceSetsBootstrap = window.practiceSets || { comprehensive: [], mock: [] };
-    const compFirstId = (practiceSetsBootstrap.comprehensive && practiceSetsBootstrap.comprehensive[0] && practiceSetsBootstrap.comprehensive[0].id) || "";
-    const mockFirstId = (practiceSetsBootstrap.mock && practiceSetsBootstrap.mock[0] && practiceSetsBootstrap.mock[0].id) || "";
 
     return {
       knowledgeData: window.knowledgeData || {},
@@ -143,13 +77,7 @@ createApp({
         { key: "PV", label: "PV 计划价值", placeholder: "例如 100" },
         { key: "AC", label: "AC 实际成本", placeholder: "例如 110" },
         { key: "BAC", label: "BAC 完工预算", placeholder: "例如 300" }
-      ],
-      practiceLayer: "domain",
-      activeComprehensiveId: compFirstId,
-      activeMockId: mockFirstId,
-      quizAnswersGlobalShow: true,
-      quizAnswerPeek: {},
-      practiceSetCache: {}    // { [set.id]: quiz[] }，首次访问时同步解析并缓存
+      ]
     };
   },
   computed: {
@@ -353,51 +281,6 @@ createApp({
     },
     domainLogicalLinks() {
       return this.activeDomain.logicalLinks || [];
-    },
-    practiceSetsRoot() {
-      return window.practiceSets || { comprehensive: [], mock: [] };
-    },
-    comprehensiveSets() {
-      return this.practiceSetsRoot.comprehensive || [];
-    },
-    mockSets() {
-      return this.practiceSetsRoot.mock || [];
-    },
-    activeComprehensiveSet() {
-      const list = this.comprehensiveSets;
-      const hit = list.find((s) => s.id === this.activeComprehensiveId);
-      return hit || list[0] || null;
-    },
-    activeMockSet() {
-      const list = this.mockSets;
-      const hit = list.find((s) => s.id === this.activeMockId);
-      return hit || list[0] || null;
-    },
-    activePracticeSet() {
-      if (this.practiceLayer === "comprehensive") return this.activeComprehensiveSet;
-      if (this.practiceLayer === "mock") return this.activeMockSet;
-      return null;
-    },
-    practiceQuizList() {
-      if (this.practiceLayer === "comprehensive") {
-        return this._resolveSetQuiz(this.activeComprehensiveSet);
-      }
-      if (this.practiceLayer === "mock") {
-        return this._resolveSetQuiz(this.activeMockSet);
-      }
-      return this.activeDomain.quiz || [];
-    },
-    practicePanelTitle() {
-      if (this.practiceLayer === "comprehensive" && this.activeComprehensiveSet) {
-        return this.activeComprehensiveSet.title;
-      }
-      if (this.practiceLayer === "mock" && this.activeMockSet) {
-        return this.activeMockSet.title;
-      }
-      return this.activeDomain.name;
-    },
-    quizBundleKey() {
-      return [this.activeView, this.practiceLayer, this.activeDomainId, this.activeComprehensiveId, this.activeMockId].join("|");
     },
     matcherFinished() {
       return this.matcherPairs.length > 0 && this.matcherMatchedIds.length === this.matcherPairs.length;
@@ -679,11 +562,6 @@ createApp({
         const target = strip.scrollLeft + btnRect.left - stripRect.left - 12;
         strip.scrollTo({ left: Math.max(0, target), behavior: "smooth" });
       }, 80);
-    },
-    quizBundleKey: {
-      handler() {
-        this.quizAnswerPeek = {};
-      }
     }
   },
   mounted() {
@@ -740,7 +618,14 @@ createApp({
       }
       this.flippedKeywords = {};
       this.blindFillRevealed = {};
-      this.resetQuizMatcherState();
+      this.quizSubMode = "quiz";
+      this.matcherPairs = [];
+      this.matcherLeftItems = [];
+      this.matcherRightItems = [];
+      this.matcherLeftSel = null;
+      this.matcherRightSel = null;
+      this.matcherMatchedIds = [];
+      this.matcherWrong = false;
       this.pgFilterDomain = "all";
       if (window.innerWidth < 768) {
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -814,68 +699,6 @@ createApp({
       this.searchQuery = "";
       this.searchFocused = false;
       this.navigateToProcess(result.domainId, result.id);
-    },
-    resetQuizMatcherState() {
-      this.quizSubMode = "quiz";
-      this.matcherPairs = [];
-      this.matcherLeftItems = [];
-      this.matcherRightItems = [];
-      this.matcherLeftSel = null;
-      this.matcherRightSel = null;
-      this.matcherMatchedIds = [];
-      this.matcherWrong = false;
-    },
-    _resolveSetQuiz(set) {
-      if (!set) return [];
-      if (this.practiceSetCache[set.id]) return this.practiceSetCache[set.id];
-      // 从 window.practiceMarkdown 同步解析
-      const raw = set.key && window.practiceMarkdown && window.practiceMarkdown[set.key];
-      if (raw) {
-        const quiz = parsePracticeMarkdown(raw);
-        this.practiceSetCache = { ...this.practiceSetCache, [set.id]: quiz };
-        return quiz;
-      }
-      return set.quiz || [];
-    },
-    selectPracticeLayer(layer) {
-      this.practiceLayer = layer;
-      this.resetQuizMatcherState();
-      if (layer === "comprehensive") {
-        const list = this.comprehensiveSets;
-        if (list.length && !list.some((s) => s.id === this.activeComprehensiveId)) {
-          this.activeComprehensiveId = list[0].id;
-        }
-      }
-      if (layer === "mock") {
-        const list = this.mockSets;
-        if (list.length && !list.some((s) => s.id === this.activeMockId)) {
-          this.activeMockId = list[0].id;
-        }
-      }
-    },
-    selectComprehensiveSet(id) {
-      this.activeComprehensiveId = id;
-      this.resetQuizMatcherState();
-    },
-    selectMockSet(id) {
-      this.activeMockId = id;
-      this.resetQuizMatcherState();
-    },
-    setQuizAnswersGlobal(show) {
-      this.quizAnswersGlobalShow = show;
-      this.quizAnswerPeek = {};
-    },
-    toggleQuizAnswerPeek(qi) {
-      if (this.quizAnswersGlobalShow) return;
-      const key = String(qi);
-      const next = { ...this.quizAnswerPeek };
-      if (next[key]) delete next[key];
-      else next[key] = true;
-      this.quizAnswerPeek = next;
-    },
-    isQuizAnswerVisible(qi) {
-      if (this.quizAnswersGlobalShow) return true;
-      return !!this.quizAnswerPeek[String(qi)];
     },
     toggleBlindFill() {
       this.blindFillMode = !this.blindFillMode;
@@ -984,7 +807,14 @@ createApp({
       // 切换知识域时重置所有视图相关状态
       this.flippedKeywords = {};
       this.blindFillRevealed = {};
-      this.resetQuizMatcherState();
+      this.quizSubMode = "quiz";
+      this.matcherPairs = [];
+      this.matcherLeftItems = [];
+      this.matcherRightItems = [];
+      this.matcherLeftSel = null;
+      this.matcherRightSel = null;
+      this.matcherMatchedIds = [];
+      this.matcherWrong = false;
       if (window.innerWidth < 768) {
         window.scrollTo({ top: 0, behavior: "smooth" });
       }

@@ -215,57 +215,171 @@
           v-if="activeView !== 'processGroup'"
           class="domain-aside-sticky panel p-3 md:p-4 min-w-0"
         >
-          <div class="domain-aside-head ml-3 mr-3 mb-3 flex items-center justify-between">
-            <div>
-              <p class="hidden text-xs font-semibold uppercase tracking-[0.22em] text-ocean/60 md:block">Knowledge Map
-              </p>
-              <h2 class="font-display text-base font-semibold md:text-xl">知识域</h2>
-            </div>
-            <div class="rounded-full bg-mist px-3 py-1 text-xs font-medium text-ocean">
-              {{ learnedCount }}/{{ activeDomain.processes.length }} 已点亮</div>
-          </div>
           <div
-            class="domain-pills flex gap-2 overflow-x-auto pb-1 lg:hidden"
-            ref="domainPillBar"
+            v-if="activeView === 'quiz'"
+            class="mb-3 ml-3 mr-3"
           >
-            <button
-              v-for="domain in visibleDomains"
-              :key="'pill-'+domain.id"
-              @click="selectDomain(domain.id)"
-              class="domain-pill"
-              :class="{ 'domain-pill-active': activeDomainId === domain.id }"
-              :style="{ '--domain-accent': domain.themeColor }"
-              :data-domain-id="domain.id"
-            >{{ domain.name }}</button>
+            <div class="practice-seg">
+              <button
+                type="button"
+                class="practice-seg-btn"
+                :class="{ 'practice-seg-btn-active': practiceLayer === 'domain' }"
+                @click="selectPracticeLayer('domain')"
+              >知识域</button>
+              <button
+                type="button"
+                class="practice-seg-btn"
+                :class="{ 'practice-seg-btn-active': practiceLayer === 'comprehensive' }"
+                @click="selectPracticeLayer('comprehensive')"
+              >综合题</button>
+              <button
+                type="button"
+                class="practice-seg-btn"
+                :class="{ 'practice-seg-btn-active': practiceLayer === 'mock' }"
+                @click="selectPracticeLayer('mock')"
+              >模考</button>
+            </div>
           </div>
-          <div class="domain-nav domain-nav-scroll hidden gap-4 lg:flex lg:flex-col">
-            <div
-              v-for="group in domainGroups"
-              :key="'grp-'+group.category"
-              class="domain-group"
-            >
-              <div class="domain-group-head">
-                <span class="domain-group-title">{{ group.category }}</span>
-                <span class="domain-group-count">{{ group.domains.length }}</span>
+
+          <template v-if="activeView !== 'quiz' || practiceLayer === 'domain'">
+            <div class="domain-aside-head ml-3 mr-3 mb-3 flex items-center justify-between">
+              <div>
+                <p class="hidden text-xs font-semibold uppercase tracking-[0.22em] text-ocean/60 md:block">Knowledge Map
+                </p>
+                <h2 class="font-display text-base font-semibold md:text-xl">知识域</h2>
               </div>
+              <div class="rounded-full bg-mist px-3 py-1 text-xs font-medium text-ocean">
+                {{ learnedCount }}/{{ activeDomain.processes.length }} 已点亮</div>
+            </div>
+            <div
+              class="domain-pills flex gap-2 overflow-x-auto pb-1 lg:hidden"
+              ref="domainPillBar"
+            >
+              <button
+                v-for="domain in visibleDomains"
+                :key="'pill-'+domain.id"
+                @click="selectDomain(domain.id)"
+                class="domain-pill"
+                :class="{ 'domain-pill-active': activeDomainId === domain.id }"
+                :style="{ '--domain-accent': domain.themeColor }"
+                :data-domain-id="domain.id"
+              >{{ domain.name }}</button>
+            </div>
+            <div class="domain-nav domain-nav-scroll hidden gap-4 lg:flex lg:flex-col">
+              <div
+                v-for="group in domainGroups"
+                :key="'grp-'+group.category"
+                class="domain-group"
+              >
+                <div class="domain-group-head">
+                  <span class="domain-group-title">{{ group.category }}</span>
+                  <span class="domain-group-count">{{ group.domains.length }}</span>
+                </div>
+                <div class="flex flex-col gap-2">
+                  <button
+                    v-for="domain in group.domains"
+                    :key="domain.id"
+                    @click="selectDomain(domain.id)"
+                    class="domain-card"
+                    :class="{ 'domain-card-active': activeDomainId === domain.id }"
+                    :style="{ '--domain-accent': domain.themeColor }"
+                  >
+                    <div class="mb-2 flex items-center justify-between gap-3">
+                      <span class="domain-name">{{ domain.name }}</span>
+                      <span class="domain-badge">{{ domain.processes.length }}</span>
+                    </div>
+                    <p class="line-clamp-2 text-sm leading-6 text-ink/70">{{ domain.summary }}</p>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <template v-else-if="activeView === 'quiz' && practiceLayer === 'comprehensive'">
+            <div class="domain-aside-head ml-3 mr-3 mb-3 flex items-center justify-between">
+              <div>
+                <p class="hidden text-xs font-semibold uppercase tracking-[0.22em] text-ocean/60 md:block">Comprehensive</p>
+                <h2 class="font-display text-base font-semibold md:text-xl">综合题</h2>
+              </div>
+              <div class="rounded-full bg-mist px-3 py-1 text-xs font-medium text-ocean">{{ comprehensiveSets.length }} 套</div>
+            </div>
+            <div
+              class="domain-pills flex gap-2 overflow-x-auto pb-1 lg:hidden"
+              ref="domainPillBar"
+            >
+              <button
+                v-for="set in comprehensiveSets"
+                :key="'cp-'+set.id"
+                type="button"
+                @click="selectComprehensiveSet(set.id)"
+                class="domain-pill"
+                :class="{ 'domain-pill-active': activeComprehensiveId === set.id }"
+                :data-domain-id="set.id"
+              >{{ set.title }}</button>
+            </div>
+            <div class="domain-nav domain-nav-scroll hidden gap-4 lg:flex lg:flex-col">
               <div class="flex flex-col gap-2">
                 <button
-                  v-for="domain in group.domains"
-                  :key="domain.id"
-                  @click="selectDomain(domain.id)"
+                  v-for="set in comprehensiveSets"
+                  :key="set.id"
+                  type="button"
+                  @click="selectComprehensiveSet(set.id)"
                   class="domain-card"
-                  :class="{ 'domain-card-active': activeDomainId === domain.id }"
-                  :style="{ '--domain-accent': domain.themeColor }"
+                  :class="{ 'domain-card-active': activeComprehensiveId === set.id }"
+                  style="--domain-accent: #1c7c7d"
                 >
                   <div class="mb-2 flex items-center justify-between gap-3">
-                    <span class="domain-name">{{ domain.name }}</span>
-                    <span class="domain-badge">{{ domain.processes.length }}</span>
+                    <span class="domain-name">{{ set.title }}</span>
+                    <span class="domain-badge">{{ (set.quiz || []).length }}</span>
                   </div>
-                  <p class="line-clamp-2 text-sm leading-6 text-ink/70">{{ domain.summary }}</p>
+                  <p class="line-clamp-2 text-sm leading-6 text-ink/70">{{ set.summary }}</p>
                 </button>
               </div>
             </div>
-          </div>
+          </template>
+
+          <template v-else-if="activeView === 'quiz' && practiceLayer === 'mock'">
+            <div class="domain-aside-head ml-3 mr-3 mb-3 flex items-center justify-between">
+              <div>
+                <p class="hidden text-xs font-semibold uppercase tracking-[0.22em] text-ocean/60 md:block">Mock Exam</p>
+                <h2 class="font-display text-base font-semibold md:text-xl">模考</h2>
+              </div>
+              <div class="rounded-full bg-mist px-3 py-1 text-xs font-medium text-ocean">{{ mockSets.length }} 套</div>
+            </div>
+            <div
+              class="domain-pills flex gap-2 overflow-x-auto pb-1 lg:hidden"
+              ref="domainPillBar"
+            >
+              <button
+                v-for="set in mockSets"
+                :key="'mk-'+set.id"
+                type="button"
+                @click="selectMockSet(set.id)"
+                class="domain-pill"
+                :class="{ 'domain-pill-active': activeMockId === set.id }"
+                :data-domain-id="set.id"
+              >{{ set.title }}</button>
+            </div>
+            <div class="domain-nav domain-nav-scroll hidden gap-4 lg:flex lg:flex-col">
+              <div class="flex flex-col gap-2">
+                <button
+                  v-for="set in mockSets"
+                  :key="set.id"
+                  type="button"
+                  @click="selectMockSet(set.id)"
+                  class="domain-card"
+                  :class="{ 'domain-card-active': activeMockId === set.id }"
+                  style="--domain-accent: #0f4c5c"
+                >
+                  <div class="mb-2 flex items-center justify-between gap-3">
+                    <span class="domain-name">{{ set.title }}</span>
+                    <span class="domain-badge">{{ (set.quiz || []).length }}</span>
+                  </div>
+                  <p class="line-clamp-2 text-sm leading-6 text-ink/70">{{ set.summary }}</p>
+                </button>
+              </div>
+            </div>
+          </template>
         </aside>
 
         <section class="grid gap-4 content-start min-w-0">
@@ -316,20 +430,29 @@
             v-else-if="activeView !== 'processGroup'"
             class="domain-brief-mini panel overflow-hidden px-4 py-3 min-w-0 hidden md:block"
           >
-            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Domain Brief</p>
-            <div class="flex items-start gap-3 flex-wrap">
-              <h2 class="font-display text-lg font-semibold shrink-0">{{ activeDomain.name }}</h2>
-              <p class="text-sm text-ink/60 leading-6 flex-1 min-w-0">{{ activeDomain.summary }}</p>
-            </div>
-            <div class="mt-2 flex flex-wrap gap-1.5">
-              <span
-                v-for="(process, index) in activeDomain.processes"
-                :key="'mini-'+process.id"
-                class="domain-brief-process-tag"
-              >
-                P{{ index + 1 }} {{ process.name }}
-              </span>
-            </div>
+            <template v-if="activeView === 'quiz' && practiceLayer !== 'domain' && activePracticeSet">
+              <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Practice Set</p>
+              <div class="flex items-start gap-3 flex-wrap">
+                <h2 class="font-display text-lg font-semibold shrink-0">{{ activePracticeSet.title }}</h2>
+                <p class="text-sm text-ink/60 leading-6 flex-1 min-w-0">{{ activePracticeSet.summary }}</p>
+              </div>
+            </template>
+            <template v-else>
+              <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Domain Brief</p>
+              <div class="flex items-start gap-3 flex-wrap">
+                <h2 class="font-display text-lg font-semibold shrink-0">{{ activeDomain.name }}</h2>
+                <p class="text-sm text-ink/60 leading-6 flex-1 min-w-0">{{ activeDomain.summary }}</p>
+              </div>
+              <div class="mt-2 flex flex-wrap gap-1.5">
+                <span
+                  v-for="(process, index) in activeDomain.processes"
+                  :key="'mini-'+process.id"
+                  class="domain-brief-process-tag"
+                >
+                  P{{ index + 1 }} {{ process.name }}
+                </span>
+              </div>
+            </template>
           </div>
 
           <!-- 过程组总览 -->
@@ -905,7 +1028,7 @@
             <div class="mb-4 flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
               <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Practice Mode</p>
-                <h3 class="font-display text-2xl font-semibold">{{ activeDomain.name }} · 练习场</h3>
+                <h3 class="font-display text-2xl font-semibold">{{ practicePanelTitle }} · 练习场</h3>
               </div>
               <div class="flex gap-2">
                 <button
@@ -914,6 +1037,7 @@
                   @click="quizSubMode = 'quiz'"
                 >题库</button>
                 <button
+                  v-if="practiceLayer === 'domain'"
                   class="density-toggle"
                   :class="{ 'density-toggle-active': quizSubMode === 'matcher' }"
                   @click="startMatcher"
@@ -923,10 +1047,45 @@
             <div v-if="quizSubMode === 'quiz'">
               <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] min-w-0">
                 <div class="space-y-4">
+                  <div
+                    v-if="practiceQuizList.length"
+                    class="flex flex-wrap items-center gap-3"
+                  >
+                    <div class="quiz-ans-bar">
+                      <button
+                        type="button"
+                        class="quiz-ans-btn"
+                        :class="{ 'quiz-ans-btn-active': quizAnswersGlobalShow }"
+                        @click="setQuizAnswersGlobal(true)"
+                      >展开答案</button>
+                      <button
+                        type="button"
+                        class="quiz-ans-btn"
+                        :class="{ 'quiz-ans-btn-active': !quizAnswersGlobalShow }"
+                        @click="setQuizAnswersGlobal(false)"
+                      >收起答案</button>
+                    </div>
+                    <span
+                      v-if="!quizAnswersGlobalShow"
+                      class="text-xs text-ink/40"
+                    >收起时可点击单题查看解析</span>
+                  </div>
+                  <div
+                    v-if="!practiceQuizList.length && activePracticeSet"
+                    class="panel-subtle"
+                  >
+                    <p class="eyebrow">暂无题目</p>
+                    <p class="mt-2 text-sm leading-7 text-ink/80">
+                      请创建 <code>data/practice/{{ activePracticeSet.key }}.js</code>，
+                      并在 <code>index.html</code> 中以 <code>&lt;script&gt;</code> 引入，内容格式参考 <code>zonghe_1.js</code>。
+                    </p>
+                  </div>
                   <article
-                    v-for="question in activeDomain.quiz"
-                    :key="question.question"
+                    v-for="(question, qi) in practiceQuizList"
+                    :key="'pq-'+qi+'-'+(question.question || qi)"
                     class="quiz-card"
+                    :class="{ 'is-peekable cursor-pointer': !quizAnswersGlobalShow }"
+                    @click="toggleQuizAnswerPeek(qi)"
                   >
                     <div class="mb-2 flex items-center justify-between gap-3">
                       <div class="text-sm font-semibold text-ocean">{{ question.type }}</div>
@@ -940,13 +1099,24 @@
                         :key="option"
                       >• {{ option }}</li>
                     </ul>
-                    <div class="mt-4 rounded-2xl bg-sand px-4 py-3 text-sm leading-7 text-ink/80">
+                    <p
+                      v-if="!quizAnswersGlobalShow && !isQuizAnswerVisible(qi)"
+                      class="quiz-peek-hint"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      点击查看答案与解析
+                    </p>
+                    <div
+                      v-show="isQuizAnswerVisible(qi)"
+                      class="mt-4 rounded-2xl bg-sand px-4 py-3 text-sm leading-7 text-ink/80"
+                    >
                       <strong>答案：</strong>{{ question.answer }}<br /><strong>解析：</strong>{{ question.analysis }}</div>
                   </article>
                 </div>
                 <aside class="panel-subtle h-fit">
                   <p class="eyebrow">练习提示</p>
                   <ul class="mt-3 space-y-2 text-sm leading-7 text-ink/80">
+                    <li>• 用「收起/展开全部答案」批量控制；收起后点单题查看解析。</li>
                     <li>• 切「连连看」配对输出与过程。</li>
                     <li>• 学习卡开「盲填」主动回忆。</li>
                   </ul>
@@ -1717,6 +1887,9 @@
   <script src="./data/law_regulations.js"></script>
   <script src="./data/essay.js"></script>
   <script src="./data/my_essay.js"></script>
+  <script src="./data/practice_sets.js"></script>
+  <!-- 综合题 / 模考 Markdown 数据（命名规则：zonghe_n.js / mock_n.js） -->
+  <script src="./data/practice/zonghe_1.js"></script>
   <script src="./app.js"></script>
 </body>
 
