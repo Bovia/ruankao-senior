@@ -63,6 +63,137 @@ function parsePracticeMarkdown(text) {
   return questions;
 }
 
+const NAV_STORAGE_KEY = "jiyiqi-nav-v1";
+
+function visibleViewIdsForModule(moduleId, knowledgeData, views) {
+  const domains = Object.values(knowledgeData || {}).filter((d) => (d.module || "pm") === moduleId);
+  const has = (field) => domains.some((d) => {
+    const val = d[field];
+    return Array.isArray(val) ? val.length > 0 : !!val;
+  });
+  return views
+    .filter((v) => {
+      if (v.id === "formula") return has("formulas");
+      if (v.id === "scenario") return has("actionFlows");
+      return true;
+    })
+    .map((v) => v.id);
+}
+
+function loadPersistedNavState(ctx) {
+  const {
+    modules,
+    essayTabs,
+    views,
+    knowledgeData,
+    practiceSets,
+    myEssayData,
+    defaults
+  } = ctx;
+  let raw = null;
+  try {
+    raw = JSON.parse(localStorage.getItem(NAV_STORAGE_KEY) || "null");
+  } catch (e) {
+    return null;
+  }
+  if (!raw || raw.v !== 1) return null;
+
+  const moduleIds = new Set(modules.map((m) => m.id));
+  let activeModule = raw.activeModule;
+  if (!moduleIds.has(activeModule)) activeModule = defaults.activeModule;
+
+  if (activeModule === "essay") {
+    const tabOk = essayTabs.some((t) => t.id === raw.activeEssayTab);
+    let myEssayGroupId = typeof raw.myEssayGroupId === "string" ? raw.myEssayGroupId : defaults.myEssayGroupId;
+    let myEssayTopicId = typeof raw.myEssayTopicId === "string" ? raw.myEssayTopicId : defaults.myEssayTopicId;
+    const groups = Object.keys(myEssayData.topics || {});
+    if (!groups.includes(myEssayGroupId)) myEssayGroupId = groups[0] || "knowledge";
+    const tlist = (myEssayData.topics || {})[myEssayGroupId] || [];
+    if (!tlist.some((t) => t.id === myEssayTopicId)) {
+      myEssayTopicId = tlist[0]?.id || "";
+    }
+    return {
+      activeModule: "essay",
+      activeEssayTab: tabOk ? raw.activeEssayTab : "basics",
+      myEssayGroupId,
+      myEssayTopicId
+    };
+  }
+
+  const domainList = Object.values(knowledgeData || {}).filter((d) => (d.module || "pm") === activeModule);
+  const domainIds = new Set(domainList.map((d) => d.id));
+  let activeDomainId = raw.activeDomainId;
+  if (!domainIds.has(activeDomainId)) {
+    activeDomainId = domainList[0]?.id || defaults.activeDomainId;
+  }
+  const domain = knowledgeData[activeDomainId] || domainList[0] || { processes: [] };
+  const procIds = new Set((domain.processes || []).map((p) => p.id));
+  let activeProcessId = raw.activeProcessId;
+  if (!procIds.has(activeProcessId)) {
+    activeProcessId = (domain.processes || [])[0]?.id || "";
+  }
+
+  const allowedViews = new Set(visibleViewIdsForModule(activeModule, knowledgeData, views));
+  let activeView = raw.activeView;
+  if (!allowedViews.has(activeView)) activeView = "study";
+
+  const layers = new Set(["domain", "comprehensive", "mock"]);
+  let practiceLayer = raw.practiceLayer;
+  if (!layers.has(practiceLayer)) practiceLayer = "domain";
+
+  const comp = practiceSets.comprehensive || [];
+  const mock = practiceSets.mock || [];
+  let activeComprehensiveId = raw.activeComprehensiveId;
+  if (!comp.some((s) => s.id === activeComprehensiveId)) {
+    activeComprehensiveId = comp[0]?.id || defaults.activeComprehensiveId;
+  }
+  let activeMockId = raw.activeMockId;
+  if (!mock.some((s) => s.id === activeMockId)) {
+    activeMockId = mock[0]?.id || defaults.activeMockId;
+  }
+
+  let quizSubMode = raw.quizSubMode === "matcher" ? "matcher" : "quiz";
+  if (quizSubMode === "matcher") quizSubMode = "quiz";
+
+  let pgFilterDomain = raw.pgFilterDomain;
+  if (pgFilterDomain !== "all" && !domainIds.has(pgFilterDomain)) pgFilterDomain = "all";
+
+  const quizAnswersGlobalShow = raw.quizAnswersGlobalShow !== false;
+
+  let quizAnswerPeek = {};
+  if (raw.quizAnswerPeek && typeof raw.quizAnswerPeek === "object" && !Array.isArray(raw.quizAnswerPeek)) {
+    quizAnswerPeek = { ...raw.quizAnswerPeek };
+  }
+
+  let learnedProcessIds = null;
+  if (Array.isArray(raw.learnedProcessIds)) {
+    const allProc = new Set();
+    domainList.forEach((d) => {
+      (d.processes || []).forEach((p) => {
+        if (p.id) allProc.add(p.id);
+      });
+    });
+    learnedProcessIds = raw.learnedProcessIds
+      .filter((id) => typeof id === "string" && allProc.has(id))
+      .slice(0, 400);
+  }
+
+  return {
+    activeModule,
+    activeDomainId,
+    activeProcessId,
+    activeView,
+    practiceLayer,
+    activeComprehensiveId,
+    activeMockId,
+    quizSubMode,
+    pgFilterDomain,
+    quizAnswersGlobalShow,
+    quizAnswerPeek,
+    learnedProcessIds
+  };
+}
+
 createApp({
   data() {
     const modules = [
@@ -87,27 +218,50 @@ createApp({
     const practiceSetsBootstrap = window.practiceSets || { comprehensive: [], mock: [] };
     const compFirstId = (practiceSetsBootstrap.comprehensive && practiceSetsBootstrap.comprehensive[0] && practiceSetsBootstrap.comprehensive[0].id) || "";
     const mockFirstId = (practiceSetsBootstrap.mock && practiceSetsBootstrap.mock[0] && practiceSetsBootstrap.mock[0].id) || "";
+    const knowledgeDataBootstrap = window.knowledgeData || {};
+    const myEssayBootstrap = window.myEssayData || { projectOverview: { title: "", content: "" }, wordRequirements: { sections: [] }, groups: [], topics: { knowledge: [], performance: [] }, conclusionTemplate: { outline: [] } };
+    const defEssayTopics = (myEssayBootstrap.topics || {}).knowledge || [];
+    const defEssayTopicId = defEssayTopics[0]?.id || "integration";
 
-    return {
-      knowledgeData: window.knowledgeData || {},
+    const views = [
+      { id: "processGroup", label: "总览", desc: "总览" },
+      { id: "study", label: "学习卡", desc: "过程 + 记忆卡" },
+      { id: "compare", label: "概念对比", desc: "高频易混项" },
+      { id: "formula", label: "公式看板", desc: "按知识域筛选" },
+      { id: "keyword", label: "关键词", desc: "题目密码词速查" },
+      { id: "scenario", label: "场景演练", desc: "案例分析动作流" },
+      { id: "quiz", label: "练习场", desc: "题库 + 连连看" }
+    ];
+
+    const persisted = loadPersistedNavState({
+      modules,
+      essayTabs,
+      views,
+      knowledgeData: knowledgeDataBootstrap,
+      practiceSets: practiceSetsBootstrap,
+      myEssayData: myEssayBootstrap,
+      defaults: {
+        activeModule: "pm",
+        activeDomainId: firstDomain.id || "",
+        activeComprehensiveId: compFirstId,
+        activeMockId: mockFirstId,
+        myEssayGroupId: "knowledge",
+        myEssayTopicId: defEssayTopicId
+      }
+    });
+
+    const base = {
+      knowledgeData: knowledgeDataBootstrap,
       essayData: window.essayData || { name: "论文专区", summary: "", examBasics: {}, structure: { sections: [] }, scoringCriteria: [], commonMistakes: [], domainPoints: [], projectTemplates: [], phrases: {}, pastTopics: [], writingTips: [] },
-      myEssayData: window.myEssayData || { projectOverview: { title: "", content: "" }, wordRequirements: { sections: [] }, groups: [], topics: { knowledge: [], performance: [] }, conclusionTemplate: { outline: [] } },
+      myEssayData: myEssayBootstrap,
       modules,
       essayTabs,
       activeModule: "pm",
       activeEssayTab: "basics",
       myEssayGroupId: "knowledge",
-      myEssayTopicId: "integration",
+      myEssayTopicId: defEssayTopicId,
       myEssayCopied: "",
-      views: [
-        { id: "processGroup", label: "总览", desc: "总览" },
-        { id: "study", label: "学习卡", desc: "过程 + 记忆卡" },
-        { id: "compare", label: "概念对比", desc: "高频易混项" },
-        { id: "formula", label: "公式看板", desc: "按知识域筛选" },
-        { id: "keyword", label: "关键词", desc: "题目密码词速查" },
-        { id: "scenario", label: "场景演练", desc: "案例分析动作流" },
-        { id: "quiz", label: "练习场", desc: "题库 + 连连看" }
-      ],
+      views,
       activeDomainId: firstDomain.id || "",
       activeProcessId: firstProcess.id || "",
       activeView: "study",
@@ -151,6 +305,34 @@ createApp({
       quizAnswerPeek: {},
       practiceSetCache: {}    // { [set.id]: quiz[] }，首次访问时同步解析并缓存
     };
+
+    if (persisted) {
+      if (persisted.activeModule === "essay") {
+        base.activeModule = "essay";
+        base.activeEssayTab = persisted.activeEssayTab;
+        base.myEssayGroupId = persisted.myEssayGroupId;
+        base.myEssayTopicId = persisted.myEssayTopicId;
+      } else {
+        Object.assign(base, {
+          activeModule: persisted.activeModule,
+          activeDomainId: persisted.activeDomainId,
+          activeProcessId: persisted.activeProcessId,
+          activeView: persisted.activeView,
+          practiceLayer: persisted.practiceLayer,
+          activeComprehensiveId: persisted.activeComprehensiveId,
+          activeMockId: persisted.activeMockId,
+          quizSubMode: persisted.quizSubMode,
+          pgFilterDomain: persisted.pgFilterDomain,
+          quizAnswersGlobalShow: persisted.quizAnswersGlobalShow,
+          quizAnswerPeek: persisted.quizAnswerPeek
+        });
+        if (persisted.learnedProcessIds && persisted.learnedProcessIds.length) {
+          base.learnedProcessIds = persisted.learnedProcessIds;
+        }
+      }
+    }
+
+    return base;
   },
   computed: {
     domains() {
@@ -398,6 +580,25 @@ createApp({
     },
     quizBundleKey() {
       return [this.activeView, this.practiceLayer, this.activeDomainId, this.activeComprehensiveId, this.activeMockId].join("|");
+    },
+    navPersistSignature() {
+      return JSON.stringify({
+        activeModule: this.activeModule,
+        activeView: this.activeView,
+        practiceLayer: this.practiceLayer,
+        activeDomainId: this.activeDomainId,
+        activeProcessId: this.activeProcessId,
+        activeComprehensiveId: this.activeComprehensiveId,
+        activeMockId: this.activeMockId,
+        quizSubMode: this.quizSubMode,
+        activeEssayTab: this.activeEssayTab,
+        myEssayGroupId: this.myEssayGroupId,
+        myEssayTopicId: this.myEssayTopicId,
+        pgFilterDomain: this.pgFilterDomain,
+        quizAnswersGlobalShow: this.quizAnswersGlobalShow,
+        quizAnswerPeek: this.quizAnswerPeek,
+        learnedProcessIds: this.learnedProcessIds
+      });
     },
     matcherFinished() {
       return this.matcherPairs.length > 0 && this.matcherMatchedIds.length === this.matcherPairs.length;
@@ -681,9 +882,17 @@ createApp({
       }, 80);
     },
     quizBundleKey: {
-      handler() {
+      handler(_newKey, oldKey) {
+        if (oldKey === undefined) return;
         this.quizAnswerPeek = {};
       }
+    },
+    navPersistSignature() {
+      if (this._persistNavTimer) clearTimeout(this._persistNavTimer);
+      this._persistNavTimer = setTimeout(() => {
+        this._persistNavTimer = null;
+        this.persistNavState();
+      }, 120);
     }
   },
   mounted() {
@@ -691,14 +900,50 @@ createApp({
     document.addEventListener("click", this.handleGlobalClick);
     this._onResizeForDomainNav = () => this.updateDomainNavMaxHeight();
     window.addEventListener("resize", this._onResizeForDomainNav);
+    this._onBeforeUnloadPersist = () => {
+      if (this._persistNavTimer) clearTimeout(this._persistNavTimer);
+      this.persistNavState();
+    };
+    window.addEventListener("beforeunload", this._onBeforeUnloadPersist);
     this.$nextTick(() => this.updateDomainNavMaxHeight());
   },
   beforeUnmount() {
+    if (this._persistNavTimer) clearTimeout(this._persistNavTimer);
+    if (this._onBeforeUnloadPersist) {
+      window.removeEventListener("beforeunload", this._onBeforeUnloadPersist);
+    }
     clearInterval(this._countdownTimer);
     document.removeEventListener("click", this.handleGlobalClick);
     window.removeEventListener("resize", this._onResizeForDomainNav);
   },
   methods: {
+    persistNavState() {
+      try {
+        const learned = Array.isArray(this.learnedProcessIds) ? this.learnedProcessIds.slice(-300) : [];
+        const peek = this.quizAnswerPeek && typeof this.quizAnswerPeek === "object" ? { ...this.quizAnswerPeek } : {};
+        const payload = {
+          v: 1,
+          activeModule: this.activeModule,
+          activeView: this.activeView,
+          practiceLayer: this.practiceLayer,
+          activeDomainId: this.activeDomainId,
+          activeProcessId: this.activeProcessId,
+          activeComprehensiveId: this.activeComprehensiveId,
+          activeMockId: this.activeMockId,
+          quizSubMode: this.quizSubMode,
+          activeEssayTab: this.activeEssayTab,
+          myEssayGroupId: this.myEssayGroupId,
+          myEssayTopicId: this.myEssayTopicId,
+          pgFilterDomain: this.pgFilterDomain,
+          quizAnswersGlobalShow: this.quizAnswersGlobalShow,
+          quizAnswerPeek: peek,
+          learnedProcessIds: learned
+        };
+        localStorage.setItem(NAV_STORAGE_KEY, JSON.stringify(payload));
+      } catch (e) {
+        /* 存储已满或禁用 */
+      }
+    },
     updateDomainNavMaxHeight() {
       const aside = document.querySelector(".domain-aside-sticky");
       const nav = aside ? aside.querySelector(".domain-nav-scroll") : null;
