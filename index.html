@@ -1080,17 +1080,17 @@
                         <button
                           type="button"
                           class="quiz-ans-btn"
+                          :class="{ 'quiz-ans-btn-active': quizTtsRate === 1.5 }"
+                          title="1.5 倍速"
+                          @click="setQuizTtsRate(1.5)"
+                        >1.5×</button>
+                        <button
+                          type="button"
+                          class="quiz-ans-btn"
                           :class="{ 'quiz-ans-btn-active': quizTtsRate === 2 }"
                           title="2 倍速"
                           @click="setQuizTtsRate(2)"
                         >2×</button>
-                        <button
-                          type="button"
-                          class="quiz-ans-btn"
-                          :class="{ 'quiz-ans-btn-active': quizTtsRate === 3 }"
-                          title="3 倍速"
-                          @click="setQuizTtsRate(3)"
-                        >3×</button>
                       </div>
                     </div>
                     <span
@@ -1189,17 +1189,17 @@
                           <button
                             type="button"
                             class="quiz-ans-btn"
+                            :class="{ 'quiz-ans-btn-active': quizTtsRate === 1.5 }"
+                            title="1.5 倍速"
+                            @click.stop="setQuizTtsRate(1.5)"
+                          >1.5×</button>
+                          <button
+                            type="button"
+                            class="quiz-ans-btn"
                             :class="{ 'quiz-ans-btn-active': quizTtsRate === 2 }"
                             title="2 倍速"
                             @click.stop="setQuizTtsRate(2)"
                           >2×</button>
-                          <button
-                            type="button"
-                            class="quiz-ans-btn"
-                            :class="{ 'quiz-ans-btn-active': quizTtsRate === 3 }"
-                            title="3 倍速"
-                            @click.stop="setQuizTtsRate(3)"
-                          >3×</button>
                         </div>
                       </div>
                       <p class="mt-1 whitespace-pre-wrap">{{ question.analysis }}</p>

@@ -67,7 +67,9 @@ const NAV_STORAGE_KEY = "jiyiqi-nav-v1";
 
 function normalizeQuizTtsRate(val) {
   const n = Number(val);
-  return n === 2 || n === 3 ? n : 1;
+  if (n === 1.5) return 1.5;
+  if (n === 2 || n === 3) return 2; // 旧版 3× 并入最快档 2×
+  return 1;
 }
 
 function visibleViewIdsForModule(moduleId, knowledgeData, views) {
@@ -312,7 +314,7 @@ createApp({
       quizAnswerPeek: {},
       practiceSetCache: {},    // { [set.id]: quiz[] }，首次访问时同步解析并缓存
       quizTtsPlayingIndex: null, // 当前朗读中的题目索引（题库解析 TTS）
-      quizTtsRate: 1 // 解析朗读倍速：1 / 2 / 3（对应 Web Speech API utter.rate）
+      quizTtsRate: 1 // 解析朗读倍速：1 / 1.5 / 2（对应 Web Speech API utter.rate）
     };
 
     if (persisted) {
@@ -1000,7 +1002,7 @@ createApp({
       synth.speak(utter);
     },
     setQuizTtsRate(r) {
-      if (r !== 1 && r !== 2 && r !== 3) return;
+      if (r !== 1 && r !== 1.5 && r !== 2) return;
       const prev = this.quizTtsRate;
       this.quizTtsRate = r;
       if (prev === r) return;
