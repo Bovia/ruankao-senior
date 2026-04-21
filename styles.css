@@ -291,6 +291,17 @@ code {
   box-shadow: 0 1px 4px rgba(12, 55, 72, 0.10);
 }
 
+.quiz-ans-bar--inline {
+  padding: 2px;
+  border-radius: 10px;
+}
+
+.quiz-ans-bar--inline .quiz-ans-btn {
+  padding: 0.18rem 0.45rem;
+  font-size: 0.72rem;
+  border-radius: 7px;
+}
+
 /* ── Quiz card answer peek hint ── */
 .quiz-peek-hint {
   margin-top: 0.9rem;
@@ -308,6 +319,39 @@ code {
 
 .quiz-card.is-peekable:hover {
   box-shadow: 0 6px 20px rgba(12, 55, 72, 0.09);
+}
+
+.quiz-tts-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 76, 92, 0.12);
+  background: rgba(255, 255, 255, 0.9);
+  color: rgba(15, 76, 92, 0.65);
+  cursor: pointer;
+  transition: color 140ms ease, background 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.quiz-tts-btn:hover {
+  color: #0f4c5c;
+  border-color: rgba(31, 122, 140, 0.35);
+  background: #fff;
+}
+
+.quiz-tts-btn-active {
+  color: #1c7c7d;
+  border-color: rgba(28, 124, 125, 0.45);
+  background: rgba(101, 195, 186, 0.18);
+  box-shadow: 0 0 0 2px rgba(101, 195, 186, 0.2);
+}
+
+.quiz-tts-icon {
+  width: 1.05rem;
+  height: 1.05rem;
 }
 
 .domain-brief-mini {

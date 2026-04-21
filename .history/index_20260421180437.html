@@ -298,12 +298,10 @@
           <template v-else-if="activeView === 'quiz' && practiceLayer === 'comprehensive'">
             <div class="domain-aside-head ml-3 mr-3 mb-3 flex items-center justify-between">
               <div>
-                <p class="hidden text-xs font-semibold uppercase tracking-[0.22em] text-ocean/60 md:block">Comprehensive
-                </p>
+                <p class="hidden text-xs font-semibold uppercase tracking-[0.22em] text-ocean/60 md:block">Comprehensive</p>
                 <h2 class="font-display text-base font-semibold md:text-xl">综合题</h2>
               </div>
-              <div class="rounded-full bg-mist px-3 py-1 text-xs font-medium text-ocean">{{ comprehensiveSets.length }}
-                套</div>
+              <div class="rounded-full bg-mist px-3 py-1 text-xs font-medium text-ocean">{{ comprehensiveSets.length }} 套</div>
             </div>
             <div
               class="domain-pills flex gap-2 overflow-x-auto pb-1 lg:hidden"
@@ -1131,27 +1129,12 @@
                       v-if="!quizAnswersGlobalShow && !isQuizAnswerVisible(qi)"
                       class="quiz-peek-hint"
                     >
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2.2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      >
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                        <circle
-                          cx="12"
-                          cy="12"
-                          r="3"
-                        /></svg>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                       点击查看答案与解析
                     </p>
                     <div
                       v-show="isQuizAnswerVisible(qi)"
-                      class="mb-1 ml-[-11px] mr-[-11px] mt-4 rounded-2xl bg-sand px-4 py-3 text-sm leading-7 text-ink/80"
+                      class="10px ml() mt-4 rounded-2xl bg-sand px-4 py-3 text-sm leading-7 text-ink/80"
                     >
                       <div><strong>答案：</strong>{{ question.answer }}</div>
                       <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
@@ -1165,18 +1148,7 @@
                           aria-label="朗读解析"
                           @click.stop="speakQuizAnalysis(question.analysis, qi)"
                         >
-                          <svg
-                            class="quiz-tts-icon"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            aria-hidden="true"
-                          >
-                            <path d="m3 11 18-5v12L3 13v-2z" />
-                            <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" /></svg>
+                          <svg class="quiz-tts-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 18-5v12L3 13v-2z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
                         </button>
                         <div class="quiz-ans-bar quiz-ans-bar--inline">
                           <button

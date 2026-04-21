@@ -65,6 +65,11 @@ function parsePracticeMarkdown(text) {
 
 const NAV_STORAGE_KEY = "jiyiqi-nav-v1";
 
+function normalizeQuizTtsRate(val) {
+  const n = Number(val);
+  return n === 2 || n === 3 ? n : 1;
+}
+
 function visibleViewIdsForModule(moduleId, knowledgeData, views) {
   const domains = Object.values(knowledgeData || {}).filter((d) => (d.module || "pm") === moduleId);
   const has = (field) => domains.some((d) => {
@@ -116,7 +121,8 @@ function loadPersistedNavState(ctx) {
       activeModule: "essay",
       activeEssayTab: tabOk ? raw.activeEssayTab : "basics",
       myEssayGroupId,
-      myEssayTopicId
+      myEssayTopicId,
+      quizTtsRate: normalizeQuizTtsRate(raw.quizTtsRate)
     };
   }
 
@@ -190,7 +196,8 @@ function loadPersistedNavState(ctx) {
     pgFilterDomain,
     quizAnswersGlobalShow,
     quizAnswerPeek,
-    learnedProcessIds
+    learnedProcessIds,
+    quizTtsRate: normalizeQuizTtsRate(raw.quizTtsRate)
   };
 }
 
@@ -303,7 +310,9 @@ createApp({
       activeMockId: mockFirstId,
       quizAnswersGlobalShow: true,
       quizAnswerPeek: {},
-      practiceSetCache: {}    // { [set.id]: quiz[] }，首次访问时同步解析并缓存
+      practiceSetCache: {},    // { [set.id]: quiz[] }，首次访问时同步解析并缓存
+      quizTtsPlayingIndex: null, // 当前朗读中的题目索引（题库解析 TTS）
+      quizTtsRate: 1 // 解析朗读倍速：1 / 2 / 3（对应 Web Speech API utter.rate）
     };
 
     if (persisted) {
@@ -312,6 +321,7 @@ createApp({
         base.activeEssayTab = persisted.activeEssayTab;
         base.myEssayGroupId = persisted.myEssayGroupId;
         base.myEssayTopicId = persisted.myEssayTopicId;
+        base.quizTtsRate = persisted.quizTtsRate;
       } else {
         Object.assign(base, {
           activeModule: persisted.activeModule,
@@ -324,7 +334,8 @@ createApp({
           quizSubMode: persisted.quizSubMode,
           pgFilterDomain: persisted.pgFilterDomain,
           quizAnswersGlobalShow: persisted.quizAnswersGlobalShow,
-          quizAnswerPeek: persisted.quizAnswerPeek
+          quizAnswerPeek: persisted.quizAnswerPeek,
+          quizTtsRate: persisted.quizTtsRate
         });
         if (persisted.learnedProcessIds && persisted.learnedProcessIds.length) {
           base.learnedProcessIds = persisted.learnedProcessIds;
@@ -597,7 +608,8 @@ createApp({
         pgFilterDomain: this.pgFilterDomain,
         quizAnswersGlobalShow: this.quizAnswersGlobalShow,
         quizAnswerPeek: this.quizAnswerPeek,
-        learnedProcessIds: this.learnedProcessIds
+        learnedProcessIds: this.learnedProcessIds,
+        quizTtsRate: this.quizTtsRate
       });
     },
     matcherFinished() {
@@ -863,6 +875,10 @@ createApp({
   },
   watch: {
     activeView() {
+      if (this.activeView !== "quiz" && window.speechSynthesis) {
+        this._bumpQuizTtsGenAndCancel();
+        this._clearQuizTtsUi();
+      }
       if (window.innerWidth < 768) window.scrollTo({ top: 0, behavior: "smooth" });
       this.$nextTick(() => this.updateDomainNavMaxHeight());
     },
@@ -905,6 +921,9 @@ createApp({
       this.persistNavState();
     };
     window.addEventListener("beforeunload", this._onBeforeUnloadPersist);
+    if (window.speechSynthesis) {
+      window.speechSynthesis.getVoices();
+    }
     this.$nextTick(() => this.updateDomainNavMaxHeight());
   },
   beforeUnmount() {
@@ -912,11 +931,108 @@ createApp({
     if (this._onBeforeUnloadPersist) {
       window.removeEventListener("beforeunload", this._onBeforeUnloadPersist);
     }
+    if (window.speechSynthesis) {
+      this._bumpQuizTtsGenAndCancel();
+      this._clearQuizTtsUi();
+    }
     clearInterval(this._countdownTimer);
     document.removeEventListener("click", this.handleGlobalClick);
     window.removeEventListener("resize", this._onResizeForDomainNav);
   },
   methods: {
+    normalizeQuizAnalysisPlain(text) {
+      return String(text || "")
+        .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+        .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+        .replace(/\*\*([^*]+)\*\*/g, "$1")
+        .replace(/\s+/g, " ")
+        .trim();
+    },
+    _clearQuizTtsUi() {
+      this.quizTtsPlayingIndex = null;
+      this._quizTtsFullPlain = null;
+      this._quizTtsProgressAbs = 0;
+      this._quizTtsSegmentStart = 0;
+    },
+    _bumpQuizTtsGenAndCancel() {
+      this._quizTtsGen = (this._quizTtsGen || 0) + 1;
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+    },
+    _playQuizTtsSegment(fullPlain, absOffset, qi) {
+      const synth = window.speechSynthesis;
+      if (!synth) return;
+      const segment = fullPlain.slice(absOffset).trim();
+      if (!segment) {
+        this._clearQuizTtsUi();
+        return;
+      }
+      const gen = this._quizTtsGen;
+      this._quizTtsFullPlain = fullPlain;
+      this._quizTtsSegmentStart = absOffset;
+      this._quizTtsProgressAbs = absOffset;
+      this.quizTtsPlayingIndex = qi;
+
+      const utter = new SpeechSynthesisUtterance(segment);
+      utter.lang = "zh-CN";
+      utter.rate = this.quizTtsRate;
+      const voices = synth.getVoices();
+      const zh = voices.find((v) => v.lang === "zh-CN" || v.lang === "zh_CN")
+        || voices.find((v) => /^zh/i.test(v.lang || ""));
+      if (zh) utter.voice = zh;
+
+      utter.onboundary = (e) => {
+        if (gen !== this._quizTtsGen) return;
+        if (this.quizTtsPlayingIndex !== qi) return;
+        if (typeof e.charIndex === "number") {
+          this._quizTtsProgressAbs = this._quizTtsSegmentStart + e.charIndex;
+        }
+      };
+      utter.onend = () => {
+        if (gen !== this._quizTtsGen) return;
+        if (this.quizTtsPlayingIndex !== qi) return;
+        this._clearQuizTtsUi();
+      };
+      utter.onerror = () => {
+        if (gen !== this._quizTtsGen) return;
+        if (this.quizTtsPlayingIndex !== qi) return;
+        this._clearQuizTtsUi();
+      };
+      synth.speak(utter);
+    },
+    setQuizTtsRate(r) {
+      if (r !== 1 && r !== 2 && r !== 3) return;
+      const prev = this.quizTtsRate;
+      this.quizTtsRate = r;
+      if (prev === r) return;
+      if (this.quizTtsPlayingIndex == null || !this._quizTtsFullPlain) return;
+      const full = this._quizTtsFullPlain;
+      const qi = this.quizTtsPlayingIndex;
+      let off = this._quizTtsProgressAbs;
+      if (typeof off !== "number" || off < 0 || off > full.length) {
+        off = this._quizTtsSegmentStart || 0;
+      }
+      this._bumpQuizTtsGenAndCancel();
+      this.$nextTick(() => {
+        this._playQuizTtsSegment(full, off, qi);
+      });
+    },
+    speakQuizAnalysis(text, qi) {
+      const synth = window.speechSynthesis;
+      if (!synth) return;
+      const plain = this.normalizeQuizAnalysisPlain(text);
+      if (!plain) return;
+
+      if (this.quizTtsPlayingIndex === qi) {
+        this._bumpQuizTtsGenAndCancel();
+        this._clearQuizTtsUi();
+        return;
+      }
+
+      this._bumpQuizTtsGenAndCancel();
+      this.$nextTick(() => {
+        this._playQuizTtsSegment(plain, 0, qi);
+      });
+    },
     persistNavState() {
       try {
         const learned = Array.isArray(this.learnedProcessIds) ? this.learnedProcessIds.slice(-300) : [];
@@ -937,7 +1053,8 @@ createApp({
           pgFilterDomain: this.pgFilterDomain,
           quizAnswersGlobalShow: this.quizAnswersGlobalShow,
           quizAnswerPeek: peek,
-          learnedProcessIds: learned
+          learnedProcessIds: learned,
+          quizTtsRate: this.quizTtsRate
         };
         localStorage.setItem(NAV_STORAGE_KEY, JSON.stringify(payload));
       } catch (e) {
