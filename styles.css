@@ -1382,6 +1382,63 @@ code {
   bottom: calc(20px + env(safe-area-inset-bottom));
 }
 
+/* 练习场有题数徽标时：题数与绿色「学科切换」浮钮拉开；整块略下移，贴近图二、减少挡住题目区 */
+.module-fab-wrapper--with-quiz-count:not(.module-fab-wrapper--no-tabbar) {
+  gap: 22px;
+  bottom: calc(58px + env(safe-area-inset-bottom));
+}
+
+/* 练习场题库（移动端）：与 .module-fab 同径 40px，浅灰系、当前题略深 */
+.practice-quiz-fab-count {
+  pointer-events: none;
+  box-sizing: border-box;
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 3px 3px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  border-radius: 999px;
+  background: rgba(248, 250, 251, 0.98);
+  border: 1px solid rgba(22, 49, 63, 0.12);
+  box-shadow: 0 4px 14px rgba(12, 55, 72, 0.08);
+  font-weight: 600;
+  font-size: 0.7rem;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  color: rgba(22, 49, 63, 0.38);
+}
+.practice-quiz-fab-count__line {
+  display: block;
+  width: 55%;
+  height: 1.5px;
+  border-radius: 99px;
+  background: rgba(22, 49, 63, 0.18);
+  margin: 1px 0;
+  flex-shrink: 0;
+}
+.practice-quiz-fab-count__cur {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: rgba(22, 49, 63, 0.62);
+  line-height: 1.05;
+}
+.practice-quiz-fab-count__total {
+  font-size: 0.58rem;
+  font-weight: 600;
+  color: rgba(22, 49, 63, 0.36);
+  line-height: 1.05;
+}
+@media (min-width: 768px) {
+  .practice-quiz-fab-count {
+    display: none;
+  }
+}
+
 .module-fab-mask {
   position: fixed;
   inset: 0;

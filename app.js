@@ -312,6 +312,8 @@ createApp({
       activeMockId: mockFirstId,
       quizAnswersGlobalShow: true,
       quizAnswerPeek: {},
+      /** 练习场题库：与滚动/最近点击同步的题号（0-based，用于移动端题数徽标） */
+      practiceQuizActiveIndex: 0,
       practiceSetCache: {},    // { [set.id]: quiz[] }，首次访问时同步解析并缓存
       quizTtsPlayingIndex: null, // 当前朗读中的题目索引（题库解析 TTS）
       quizTtsRate: 1 // 解析朗读倍速：1 / 1.5 / 2（对应 Web Speech API utter.rate）
@@ -883,6 +885,13 @@ createApp({
       }
       if (window.innerWidth < 768) window.scrollTo({ top: 0, behavior: "smooth" });
       this.$nextTick(() => this.updateDomainNavMaxHeight());
+      this._syncPracticeQuizScrollListener();
+    },
+    quizSubMode() {
+      this._syncPracticeQuizScrollListener();
+    },
+    practiceLayer() {
+      this._syncPracticeQuizScrollListener();
     },
     activeModule() {
       this.$nextTick(() => this.updateDomainNavMaxHeight());
@@ -903,6 +912,8 @@ createApp({
       handler(_newKey, oldKey) {
         if (oldKey === undefined) return;
         this.quizAnswerPeek = {};
+        this.practiceQuizActiveIndex = 0;
+        this.$nextTick(() => this._updatePracticeQuizActiveIndexFromLayout());
       }
     },
     navPersistSignature() {
@@ -916,7 +927,10 @@ createApp({
   mounted() {
     this._countdownTimer = setInterval(() => { this.nowTimestamp = Date.now(); }, 1000);
     document.addEventListener("click", this.handleGlobalClick);
-    this._onResizeForDomainNav = () => this.updateDomainNavMaxHeight();
+    this._onResizeForDomainNav = () => {
+      this.updateDomainNavMaxHeight();
+      this._updatePracticeQuizActiveIndexFromLayout();
+    };
     window.addEventListener("resize", this._onResizeForDomainNav);
     this._onBeforeUnloadPersist = () => {
       if (this._persistNavTimer) clearTimeout(this._persistNavTimer);
@@ -926,9 +940,13 @@ createApp({
     if (window.speechSynthesis) {
       window.speechSynthesis.getVoices();
     }
-    this.$nextTick(() => this.updateDomainNavMaxHeight());
+    this.$nextTick(() => {
+      this.updateDomainNavMaxHeight();
+      this._syncPracticeQuizScrollListener();
+    });
   },
   beforeUnmount() {
+    this._detachPracticeQuizScrollListener();
     if (this._persistNavTimer) clearTimeout(this._persistNavTimer);
     if (this._onBeforeUnloadPersist) {
       window.removeEventListener("beforeunload", this._onBeforeUnloadPersist);
@@ -1236,6 +1254,51 @@ createApp({
       if (next[key]) delete next[key];
       else next[key] = true;
       this.quizAnswerPeek = next;
+    },
+    _updatePracticeQuizActiveIndexFromLayout() {
+      if (this.activeView !== "quiz" || this.quizSubMode !== "quiz" || !this.practiceQuizList || !this.practiceQuizList.length) {
+        return;
+      }
+      const n = this.practiceQuizList.length;
+      if (this.practiceQuizActiveIndex > n - 1) {
+        this.practiceQuizActiveIndex = Math.max(0, n - 1);
+      }
+      const band = 100;
+      let best = 0;
+      for (let i = 0; i < n; i++) {
+        const el = document.getElementById(`practice-quiz-card-${i}`);
+        if (!el) continue;
+        const t = el.getBoundingClientRect().top;
+        if (t <= band) best = i;
+      }
+      if (this.practiceQuizActiveIndex !== best) {
+        this.practiceQuizActiveIndex = best;
+      }
+    },
+    _detachPracticeQuizScrollListener() {
+      if (this._practiceQuizOnScroll) {
+        window.removeEventListener("scroll", this._practiceQuizOnScroll);
+        this._practiceQuizOnScroll = null;
+      }
+      if (this._practiceQuizRaf) {
+        cancelAnimationFrame(this._practiceQuizRaf);
+        this._practiceQuizRaf = null;
+      }
+    },
+    _syncPracticeQuizScrollListener() {
+      this._detachPracticeQuizScrollListener();
+      if (this.activeView !== "quiz" || this.quizSubMode !== "quiz" || !this.practiceQuizList || !this.practiceQuizList.length) {
+        return;
+      }
+      this._practiceQuizOnScroll = () => {
+        if (this._practiceQuizRaf) return;
+        this._practiceQuizRaf = requestAnimationFrame(() => {
+          this._practiceQuizRaf = null;
+          this._updatePracticeQuizActiveIndexFromLayout();
+        });
+      };
+      window.addEventListener("scroll", this._practiceQuizOnScroll, { passive: true });
+      this._updatePracticeQuizActiveIndexFromLayout();
     },
     isQuizAnswerVisible(qi) {
       if (this.quizAnswersGlobalShow) return true;

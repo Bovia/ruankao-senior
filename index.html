@@ -1111,6 +1111,7 @@
                   <article
                     v-for="(question, qi) in practiceQuizList"
                     :key="'pq-'+qi+'-'+(question.question || qi)"
+                    :id="'practice-quiz-card-'+qi"
                     class="quiz-card"
                     :class="{ 'is-peekable cursor-pointer': !quizAnswersGlobalShow }"
                     @click="toggleQuizAnswerPeek(qi)"
@@ -1713,7 +1714,10 @@
       <!-- 移动端：学科模块切换 浮动按钮 + 弹层 -->
       <div
         class="module-fab-wrapper md:hidden"
-        :class="{ 'module-fab-wrapper--no-tabbar': activeModule === 'essay' }"
+        :class="{
+          'module-fab-wrapper--no-tabbar': activeModule === 'essay',
+          'module-fab-wrapper--with-quiz-count': activeView === 'quiz' && quizSubMode === 'quiz' && practiceQuizList.length
+        }"
       >
         <transition name="module-fab-fade">
           <div
@@ -1747,6 +1751,19 @@
             </button>
           </div>
         </transition>
+        <div
+          v-if="activeView === 'quiz' && quizSubMode === 'quiz' && practiceQuizList.length"
+          class="practice-quiz-fab-count"
+          :aria-label="'第 ' + (practiceQuizActiveIndex + 1) + ' 题，共 ' + practiceQuizList.length + ' 题'"
+        >
+          <span class="practice-quiz-fab-count__cur">{{ practiceQuizActiveIndex + 1 }}</span>
+          <span
+            class="practice-quiz-fab-count__line"
+            role="separator"
+            aria-hidden="true"
+          ></span>
+          <span class="practice-quiz-fab-count__total">{{ practiceQuizList.length }}</span>
+        </div>
         <button
           type="button"
           class="module-fab"
