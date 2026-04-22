@@ -1033,19 +1033,17 @@
                 <h3 class="font-display text-2xl font-semibold">{{ practicePanelTitle }} · 练习场</h3>
               </div>
               <div class="flex gap-2">
-                <template v-if="practiceLayer === 'domain'">
-                  <button
-                    class="density-toggle"
-                    :class="{ 'density-toggle-active': quizSubMode === 'quiz' }"
-                    @click="quizSubMode = 'quiz'"
-                  >题库</button>
-                  <button
-                    v-if="practiceLayer === 'domain'"
-                    class="density-toggle"
-                    :class="{ 'density-toggle-active': quizSubMode === 'matcher' }"
-                    @click="startMatcher"
-                  >连连看</button>
-                </template>
+                <button
+                  class="density-toggle"
+                  :class="{ 'density-toggle-active': quizSubMode === 'quiz' }"
+                  @click="quizSubMode = 'quiz'"
+                >题库</button>
+                <button
+                  v-if="practiceLayer === 'domain'"
+                  class="density-toggle"
+                  :class="{ 'density-toggle-active': quizSubMode === 'matcher' }"
+                  @click="startMatcher"
+                >连连看</button>
               </div>
             </div>
             <div v-if="quizSubMode === 'quiz'">
@@ -1069,32 +1067,6 @@
                         @click="setQuizAnswersGlobal(false)"
                       >收起答案</button>
                     </div>
-                    <!-- <div class="flex items-center gap-1.5">
-                      <span class="text-xs text-ink/40 shrink-0">朗读</span>
-                      <div class="quiz-ans-bar">
-                        <button
-                          type="button"
-                          class="quiz-ans-btn"
-                          :class="{ 'quiz-ans-btn-active': quizTtsRate === 1 }"
-                          title="正常语速"
-                          @click="setQuizTtsRate(1)"
-                        >1×</button>
-                        <button
-                          type="button"
-                          class="quiz-ans-btn"
-                          :class="{ 'quiz-ans-btn-active': quizTtsRate === 1.25 }"
-                          title="1.25 倍速"
-                          @click="setQuizTtsRate(1.25)"
-                        >1.25×</button>
-                        <button
-                          type="button"
-                          class="quiz-ans-btn"
-                          :class="{ 'quiz-ans-btn-active': quizTtsRate === 1.5 }"
-                          title="1.5 倍速"
-                          @click="setQuizTtsRate(1.5)"
-                        >1.5×</button>
-                      </div>
-                    </div> -->
                     <span
                       v-if="!quizAnswersGlobalShow"
                       class="text-xs text-ink/40"

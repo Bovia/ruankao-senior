@@ -1034,18 +1034,18 @@
               </div>
               <div class="flex gap-2">
                 <template v-if="practiceLayer === 'domain'">
-                  <button
-                    class="density-toggle"
-                    :class="{ 'density-toggle-active': quizSubMode === 'quiz' }"
-                    @click="quizSubMode = 'quiz'"
-                  >题库</button>
-                  <button
-                    v-if="practiceLayer === 'domain'"
-                    class="density-toggle"
-                    :class="{ 'density-toggle-active': quizSubMode === 'matcher' }"
-                    @click="startMatcher"
-                  >连连看</button>
-                </template>
+                  
+                <button
+                  class="density-toggle"
+                  :class="{ 'density-toggle-active': quizSubMode === 'quiz' }"
+                  @click="quizSubMode = 'quiz'"
+                >题库</button>
+                <button
+                  v-if="practiceLayer === 'domain'"
+                  class="density-toggle"
+                  :class="{ 'density-toggle-active': quizSubMode === 'matcher' }"
+                  @click="startMatcher"
+                >连连看</button>
               </div>
             </div>
             <div v-if="quizSubMode === 'quiz'">
