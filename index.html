@@ -1753,19 +1753,61 @@
             </button>
           </div>
         </transition>
-        <div
+        <button
           v-if="activeView === 'quiz' && quizSubMode === 'quiz' && practiceQuizList.length"
+          type="button"
           class="practice-quiz-fab-count"
-          :aria-label="'第 ' + (practiceQuizActiveIndex + 1) + ' 题，共 ' + practiceQuizList.length + ' 题'"
+          :class="{
+            'practice-quiz-fab-count--scrolling': practiceQuizShowFabProgress,
+            'practice-quiz-fab-count--idle': !practiceQuizShowFabProgress
+          }"
+          :aria-label="practiceQuizShowFabProgress
+            ? '第 ' + (practiceQuizActiveIndex + 1) + ' 题，共 ' + practiceQuizList.length + ' 题'
+            : '回顶部'"
+          @click="onPracticeQuizFabCountClick"
         >
-          <span class="practice-quiz-fab-count__cur">{{ practiceQuizActiveIndex + 1 }}</span>
-          <span
-            class="practice-quiz-fab-count__line"
-            role="separator"
-            aria-hidden="true"
-          ></span>
-          <span class="practice-quiz-fab-count__total">{{ practiceQuizList.length }}</span>
-        </div>
+          <div class="practice-quiz-fab-count__swap-wrap">
+            <transition
+              name="pq-fab-swap"
+              mode="out-in"
+            >
+              <div
+                v-if="practiceQuizShowFabProgress"
+                key="pq-progress"
+                class="practice-quiz-fab-count__swap"
+              >
+                <span class="practice-quiz-fab-count__cur">{{ practiceQuizActiveIndex + 1 }}</span>
+                <span
+                  class="practice-quiz-fab-count__line"
+                  role="separator"
+                  aria-hidden="true"
+                ></span>
+                <span class="practice-quiz-fab-count__total">{{ practiceQuizList.length }}</span>
+              </div>
+              <div
+                v-else
+                key="pq-top"
+                class="practice-quiz-fab-count__swap practice-quiz-fab-count__swap--arrow"
+              >
+                <svg
+                  class="practice-quiz-fab-count__top-icon"
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M12 19V5" />
+                  <path d="m5 12 7-7 7 7" />
+                </svg>
+              </div>
+            </transition>
+          </div>
+        </button>
         <button
           type="button"
           class="module-fab"
@@ -1808,6 +1850,32 @@
           </span>
         </button>
       </div>
+
+      <!-- 网页端：练习场题库固定「回顶部」（不随滚动切换题数） -->
+      <button
+        v-if="activeView === 'quiz' && quizSubMode === 'quiz' && practiceQuizList.length && activeModule !== 'essay'"
+        type="button"
+        class="practice-quiz-backtop-btn"
+        aria-label="回顶部"
+        @click="scrollToPracticeTop"
+      >
+        <svg
+          class="practice-quiz-backtop-btn__icon"
+          viewBox="0 0 24 24"
+          width="18"
+          height="18"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M12 19V5" />
+          <path d="m5 12 7-7 7 7" />
+        </svg>
+        <span>回顶部</span>
+      </button>
 
       <nav
         class="mobile-tab-bar md:hidden"

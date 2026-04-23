@@ -307,6 +307,12 @@ createApp({
       quizAnswerPeek: {},
       /** 练习场题库：与滚动/最近点击同步的题号（0-based，用于移动端题数徽标） */
       practiceQuizActiveIndex: 0,
+      /** 移动端：用户正在滚动页面时为 true，显示题数；静止后为 false，浮块变为「回顶部」 */
+      practiceQuizFabScrolling: false,
+      /** 当前视口下页面是否出现纵向滚动条 */
+      practiceQuizFabNeedsScroll: false,
+      /** 与练习场同步的视口滚动距离，用于判断「已离开页顶」才显示回顶 */
+      practiceQuizScrollY: 0,
       practiceSetCache: {},    // { [set.id]: quiz[] }，首次访问时同步解析并缓存
       quizTtsPlayingIndex: null, // 当前朗读中的题目索引（题库解析 TTS）
       quizTtsRate: 1 // 解析朗读倍速：1 / 1.25 / 1.5（Web Speech API utter.rate）
@@ -585,6 +591,17 @@ createApp({
         return this.activeMockSet.title;
       }
       return this.activeDomain.name;
+    },
+    /**
+     * 题数/回顶：正在滚动、无滚动条、或仍在页顶 → 题数；
+     * 有滚动条且已向下滚离页顶且手指停住 → 上箭头
+     */
+    practiceQuizShowFabProgress() {
+      if (this.practiceQuizFabScrolling) return true;
+      if (!this.practiceQuizFabNeedsScroll) return true;
+      const topPx = 10;
+      if (this.practiceQuizScrollY <= topPx) return true;
+      return false;
     },
     quizBundleKey() {
       return [this.activeView, this.practiceLayer, this.activeDomainId, this.activeComprehensiveId, this.activeMockId].join("|");
@@ -906,8 +923,21 @@ createApp({
         if (oldKey === undefined) return;
         this.quizAnswerPeek = {};
         this.practiceQuizActiveIndex = 0;
-        this.$nextTick(() => this._updatePracticeQuizActiveIndexFromLayout());
+        this.$nextTick(() => {
+          this._updatePracticeQuizActiveIndexFromLayout();
+          this._updatePracticeQuizFabNeedsScroll();
+        });
       }
+    },
+    quizAnswersGlobalShow() {
+      this.$nextTick(() => this._updatePracticeQuizFabNeedsScroll());
+    },
+    quizAnswerPeek: {
+      handler() {
+        if (this.activeView !== "quiz" || this.quizSubMode !== "quiz") return;
+        this.$nextTick(() => this._updatePracticeQuizFabNeedsScroll());
+      },
+      deep: true
     },
     navPersistSignature() {
       if (this._persistNavTimer) clearTimeout(this._persistNavTimer);
@@ -923,6 +953,10 @@ createApp({
     this._onResizeForDomainNav = () => {
       this.updateDomainNavMaxHeight();
       this._updatePracticeQuizActiveIndexFromLayout();
+      this._updatePracticeQuizFabNeedsScroll();
+      if (this.activeView === "quiz" && this.quizSubMode === "quiz") {
+        this.practiceQuizScrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+      }
     };
     window.addEventListener("resize", this._onResizeForDomainNav);
     this._onBeforeUnloadPersist = () => {
@@ -1277,6 +1311,12 @@ createApp({
         cancelAnimationFrame(this._practiceQuizRaf);
         this._practiceQuizRaf = null;
       }
+      if (this._practiceQuizScrollIdleTimer) {
+        clearTimeout(this._practiceQuizScrollIdleTimer);
+        this._practiceQuizScrollIdleTimer = null;
+      }
+      this.practiceQuizFabScrolling = false;
+      this.practiceQuizScrollY = 0;
     },
     _syncPracticeQuizScrollListener() {
       this._detachPracticeQuizScrollListener();
@@ -1284,6 +1324,16 @@ createApp({
         return;
       }
       this._practiceQuizOnScroll = () => {
+        this.practiceQuizScrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+        this.practiceQuizFabScrolling = true;
+        if (this._practiceQuizScrollIdleTimer) {
+          clearTimeout(this._practiceQuizScrollIdleTimer);
+        }
+        this._practiceQuizScrollIdleTimer = setTimeout(() => {
+          this._practiceQuizScrollIdleTimer = null;
+          this.practiceQuizFabScrolling = false;
+          this.practiceQuizScrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+        }, 200);
         if (this._practiceQuizRaf) return;
         this._practiceQuizRaf = requestAnimationFrame(() => {
           this._practiceQuizRaf = null;
@@ -1291,7 +1341,28 @@ createApp({
         });
       };
       window.addEventListener("scroll", this._practiceQuizOnScroll, { passive: true });
+      this.practiceQuizScrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
       this._updatePracticeQuizActiveIndexFromLayout();
+      this.$nextTick(() => this._updatePracticeQuizFabNeedsScroll());
+    },
+    _updatePracticeQuizFabNeedsScroll() {
+      if (this.activeView !== "quiz" || this.quizSubMode !== "quiz" || !this.practiceQuizList.length) {
+        this.practiceQuizFabNeedsScroll = true;
+        return;
+      }
+      const el = document.documentElement;
+      this.practiceQuizFabNeedsScroll = el.scrollHeight > el.clientHeight + 2;
+      this.practiceQuizScrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+    },
+    scrollToPracticeTop() {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      this.$nextTick(() => {
+        setTimeout(() => this._updatePracticeQuizFabNeedsScroll(), 350);
+      });
+    },
+    onPracticeQuizFabCountClick() {
+      if (this.practiceQuizShowFabProgress) return;
+      this.scrollToPracticeTop();
     },
     isQuizAnswerVisible(qi) {
       if (this.quizAnswersGlobalShow) return true;
