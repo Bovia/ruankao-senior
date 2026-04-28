@@ -52,7 +52,10 @@ function parsePracticeMarkdown(text) {
     // 考点（从解析首句提取，供 relatedProcess 用）
     const processMatch = analysis.match(/考点[^：:是]*[：:是]([^。\n]{2,25})/);
     const relatedProcess = processMatch
-      ? processMatch[1].replace(/[。.，,].*/, "").trim()
+      ? processMatch[1]
+          .replace(/[。.，,].*/, "")
+          .replace(/^(该题目考察的是|本题考察的是|题目考察的是|该题考察的是|考察的是)\s*/i, "")
+          .trim()
       : "";
 
     if (question && options.length > 0) {
@@ -268,7 +271,7 @@ createApp({
       activeProcessId: firstProcess.id || "",
       activeView: "study",
       quizMode: "single",
-      densityMode: "core",
+      densityMode: "full",
       learnedProcessIds: firstProcess.id ? [firstProcess.id] : [],
       examDate: new Date("2026-05-24T09:00:00"),
       nowTimestamp: Date.now(),

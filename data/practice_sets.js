@@ -15,6 +15,6 @@ window.practiceSets = {
     // 后续追加：{ id: "comp-2", title: "综合题2", summary: "...", key: "zonghe_2" }
   ],
   mock: [
-    // { id: "mock-1", title: "模考1", summary: "...", key: "mock_1" }
+    { id: "mock-1", title: "模拟题1", summary: "75道单选模拟题，覆盖项目管理、IT技术与法规等综合考点。", key: "moni_1" }
   ]
 };
