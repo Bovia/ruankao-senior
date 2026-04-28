@@ -1976,10 +1976,14 @@
           <button
             type="button"
             class="favorite-close-btn"
+            aria-label="关闭收藏夹"
             @click="closeFavorites"
-          >关闭</button>
+          >✕</button>
         </div>
-        <div class="favorite-note-box">
+        <div
+          v-if="favoritesFilter === 'all' || favoritesFilter === 'note'"
+          class="favorite-note-box"
+        >
           <textarea
             v-model="newFavoriteNote"
             class="favorite-note-input"
@@ -2011,6 +2015,10 @@
             <div class="favorite-item-head">
               <span class="favorite-item-type">{{ item.type }}</span>
               <strong>{{ item.title }}</strong>
+              <span
+                v-if="item.sourceTag"
+                class="favorite-source-tag"
+              >{{ item.sourceTag }}</span>
               <span class="favorite-item-time">{{ formatFavoriteTime(item.createdAt) }}</span>
               <button
                 type="button"
@@ -2026,12 +2034,6 @@
               v-else
               class="favorite-item-preview"
             >点击卡片查看内容</div>
-            <button
-              v-if="favoritesCompact && favoriteExpandedId === item.id"
-              type="button"
-              class="favorite-collapse-btn"
-              @click.stop="closeFavoriteItem"
-            >收起</button>
           </article>
         </div>
       </section>

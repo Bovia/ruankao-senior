@@ -1070,7 +1070,7 @@ createApp({
     },
     openFavoriteItem(id) {
       if (!this.favoritesCompact) return;
-      this.favoriteExpandedId = id;
+      this.favoriteExpandedId = this.favoriteExpandedId === id ? "" : id;
     },
     closeFavoriteItem() {
       this.favoriteExpandedId = "";
@@ -1106,12 +1106,18 @@ createApp({
       const title = `第${qi + 1}题`;
       const content = `${question.question}\n${(question.options || []).join("\n")}\n答案：${question.answer}\n解析：${question.analysis || ""}`.trim();
       const sourceKey = `${this.quizBundleKey}|q${qi}|${question.question || ""}`;
+      const sourceTag = this.practiceLayer === "mock"
+        ? "模拟"
+        : this.practiceLayer === "comprehensive"
+          ? "综合"
+          : "知识域";
       if (this._existsFavorite("question", content, sourceKey)) return;
       this.favorites.push({
         id: this._makeFavoriteId(),
         type: "question",
         title,
         content,
+        sourceTag,
         sourceKey,
         createdAt: Date.now()
       });
@@ -1138,12 +1144,18 @@ createApp({
       if (!content) return;
       const kind = meta && meta.kind ? meta.kind : "片段";
       const sourceKey = `${this.quizBundleKey}|snippet|${kind}|${meta && typeof meta.qi === "number" ? meta.qi : "x"}|${content.slice(0, 32)}`;
+      const sourceTag = this.practiceLayer === "mock"
+        ? "模拟"
+        : this.practiceLayer === "comprehensive"
+          ? "综合"
+          : "知识域";
       if (this._existsFavorite("snippet", content, sourceKey)) return;
       this.favorites.push({
         id: this._makeFavoriteId(),
         type: "snippet",
         title: `${kind}${meta && typeof meta.qi === "number" ? ` · 第${meta.qi + 1}题` : ""}`,
         content,
+        sourceTag,
         sourceKey,
         createdAt: Date.now()
       });
