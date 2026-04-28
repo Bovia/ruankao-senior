@@ -67,6 +67,7 @@ function parsePracticeMarkdown(text) {
 }
 
 const NAV_STORAGE_KEY = "jiyiqi-nav-v1";
+const FAVORITES_STORAGE_KEY = "jiyiqi-favorites-v1";
 
 function visibleViewIdsForModule(moduleId, knowledgeData, views) {
   const domains = Object.values(knowledgeData || {}).filter((d) => (d.module || "pm") === moduleId);
@@ -318,7 +319,15 @@ createApp({
       practiceQuizScrollY: 0,
       practiceSetCache: {},    // { [set.id]: quiz[] }，首次访问时同步解析并缓存
       quizTtsPlayingIndex: null, // 当前朗读中的题目索引（题库解析 TTS）
-      quizTtsRate: 1 // 解析朗读倍速：1 / 1.25 / 1.5（Web Speech API utter.rate）
+      quizTtsRate: 1, // 解析朗读倍速：1 / 1.25 / 1.5（Web Speech API utter.rate）
+      favoritesOpen: false,
+      favorites: [],
+      favoritesFilter: "all",
+      newFavoriteNote: "",
+      favoritingQuestionKey: "",
+      favoritesCompact: true,
+      favoriteExpandedId: "",
+      favoriteEntryAnimating: false
     };
 
     if (persisted) {
@@ -888,6 +897,14 @@ createApp({
         ...item,
         display: this.formatNumber(item.value)
       }));
+    },
+    favoriteCount() {
+      return this.favorites.length;
+    },
+    filteredFavorites() {
+      const list = [...this.favorites].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      if (this.favoritesFilter === "all") return list;
+      return list.filter((x) => x.type === this.favoritesFilter);
     }
   },
   watch: {
@@ -974,6 +991,7 @@ createApp({
       this.updateDomainNavMaxHeight();
       this._syncPracticeQuizScrollListener();
     });
+    this._loadFavorites();
   },
   beforeUnmount() {
     this._detachPracticeQuizScrollListener();
@@ -988,8 +1006,149 @@ createApp({
     clearInterval(this._countdownTimer);
     document.removeEventListener("click", this.handleGlobalClick);
     window.removeEventListener("resize", this._onResizeForDomainNav);
+    this._cancelSnippetPressTimer();
   },
   methods: {
+    _makeFavoriteId() {
+      return `fav-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    },
+    _persistFavorites() {
+      try {
+        localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify({
+          v: 1,
+          compact: this.favoritesCompact,
+          items: this.favorites.slice(-800)
+        }));
+      } catch (e) {
+        /* ignore */
+      }
+    },
+    _loadFavorites() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(FAVORITES_STORAGE_KEY) || "null");
+        if (!raw || raw.v !== 1 || !Array.isArray(raw.items)) return;
+        if (typeof raw.compact === "boolean") {
+          this.favoritesCompact = raw.compact;
+        }
+        this.favorites = raw.items
+          .filter((x) => x && typeof x === "object" && typeof x.id === "string" && typeof x.content === "string")
+          .slice(-800);
+      } catch (e) {
+        this.favorites = [];
+      }
+    },
+    _cancelSnippetPressTimer() {
+      if (this._snippetPressTimer) {
+        clearTimeout(this._snippetPressTimer);
+        this._snippetPressTimer = null;
+      }
+    },
+    _existsFavorite(type, content, sourceKey) {
+      return this.favorites.some((x) => x.type === type && x.content === content && x.sourceKey === sourceKey);
+    },
+    openFavorites() {
+      this.favoritesOpen = true;
+    },
+    openFavoritesFromEntry() {
+      this.favoriteEntryAnimating = true;
+      this.openFavorites();
+      setTimeout(() => {
+        this.favoriteEntryAnimating = false;
+      }, 750);
+    },
+    closeFavorites() {
+      this.favoritesOpen = false;
+    },
+    removeFavorite(id) {
+      this.favorites = this.favorites.filter((x) => x.id !== id);
+      if (this.favoriteExpandedId === id) this.favoriteExpandedId = "";
+      this._persistFavorites();
+    },
+    toggleFavoritesCompact() {
+      this.favoritesCompact = !this.favoritesCompact;
+      if (!this.favoritesCompact) this.favoriteExpandedId = "";
+    },
+    openFavoriteItem(id) {
+      if (!this.favoritesCompact) return;
+      this.favoriteExpandedId = id;
+    },
+    closeFavoriteItem() {
+      this.favoriteExpandedId = "";
+    },
+    formatFavoriteTime(ts) {
+      if (!ts) return "";
+      const d = new Date(ts);
+      if (Number.isNaN(d.getTime())) return "";
+      const now = new Date();
+      const sameDay = d.toDateString() === now.toDateString();
+      const pad = (n) => String(n).padStart(2, "0");
+      if (sameDay) {
+        return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      }
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    },
+    addFavoriteNote() {
+      const content = String(this.newFavoriteNote || "").trim();
+      if (!content) return;
+      this.favorites.push({
+        id: this._makeFavoriteId(),
+        type: "note",
+        title: "手动笔记",
+        content,
+        sourceKey: "manual-note",
+        createdAt: Date.now()
+      });
+      this.newFavoriteNote = "";
+      this._persistFavorites();
+      this.openFavorites();
+    },
+    addFavoriteQuestion(question, qi) {
+      const title = `第${qi + 1}题`;
+      const content = `${question.question}\n${(question.options || []).join("\n")}\n答案：${question.answer}\n解析：${question.analysis || ""}`.trim();
+      const sourceKey = `${this.quizBundleKey}|q${qi}|${question.question || ""}`;
+      if (this._existsFavorite("question", content, sourceKey)) return;
+      this.favorites.push({
+        id: this._makeFavoriteId(),
+        type: "question",
+        title,
+        content,
+        sourceKey,
+        createdAt: Date.now()
+      });
+      this._persistFavorites();
+      this.favoritingQuestionKey = sourceKey;
+      setTimeout(() => {
+        if (this.favoritingQuestionKey === sourceKey) this.favoritingQuestionKey = "";
+      }, 900);
+    },
+    startSnippetPress(text, meta) {
+      this._cancelSnippetPressTimer();
+      const payload = String(text || "").trim();
+      if (!payload) return;
+      this._snippetPressTimer = setTimeout(() => {
+        this._snippetPressTimer = null;
+        this.addFavoriteSnippet(payload, meta);
+      }, 550);
+    },
+    endSnippetPress() {
+      this._cancelSnippetPressTimer();
+    },
+    addFavoriteSnippet(text, meta) {
+      const content = String(text || "").trim();
+      if (!content) return;
+      const kind = meta && meta.kind ? meta.kind : "片段";
+      const sourceKey = `${this.quizBundleKey}|snippet|${kind}|${meta && typeof meta.qi === "number" ? meta.qi : "x"}|${content.slice(0, 32)}`;
+      if (this._existsFavorite("snippet", content, sourceKey)) return;
+      this.favorites.push({
+        id: this._makeFavoriteId(),
+        type: "snippet",
+        title: `${kind}${meta && typeof meta.qi === "number" ? ` · 第${meta.qi + 1}题` : ""}`,
+        content,
+        sourceKey,
+        createdAt: Date.now()
+      });
+      this._persistFavorites();
+    },
     normalizeQuizAnalysisPlain(text) {
       return String(text || "")
         .replace(/!\[[^\]]*\]\([^)]*\)/g, "")

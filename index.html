@@ -1120,17 +1120,48 @@
                   >
                     <div class="mb-2 flex items-center justify-between gap-3">
                       <div class="text-sm font-semibold text-ocean">第{{ qi + 1 }}题</div>
-                      <div class="rounded-full bg-mint/20 px-3 py-1 text-xs font-semibold text-lagoon">
-                        {{ question.relatedProcess }}</div>
+                      <div class="flex items-center gap-2">
+                        <div class="rounded-full bg-mint/20 px-3 py-1 text-xs font-semibold text-lagoon">
+                          {{ question.relatedProcess }}</div>
+                        <button
+                          type="button"
+                          class="fav-star-btn"
+                          :class="{ 'fav-star-btn-anim': favoritingQuestionKey === (quizBundleKey + '|q' + qi + '|' + (question.question || '')) }"
+                          title="收藏该题"
+                          @click.stop="addFavoriteQuestion(question, qi)"
+                        >
+                          ★
+                          <span class="spark s1"></span>
+                          <span class="spark s2"></span>
+                          <span class="spark s3"></span>
+                          <span class="spark s4"></span>
+                        </button>
+                      </div>
                     </div>
                     <h4 class="text-base font-semibold leading-7 text-ink">
-                      {{ question.question }}
+                      <span
+                        @mousedown.stop="startSnippetPress(question.question, { kind: '题干', qi })"
+                        @mouseup.stop="endSnippetPress"
+                        @mouseleave.stop="endSnippetPress"
+                        @touchstart.stop="startSnippetPress(question.question, { kind: '题干', qi })"
+                        @touchend.stop="endSnippetPress"
+                        @touchcancel.stop="endSnippetPress"
+                      >{{ question.question }}</span>
                     </h4>
                     <ul class="mt-3 space-y-2 text-sm leading-6 text-ink/80">
                       <li
                         v-for="option in question.options"
                         :key="option"
-                      >• {{ option }}</li>
+                      >
+                        <span
+                          @mousedown.stop="startSnippetPress(option, { kind: '选项', qi })"
+                          @mouseup.stop="endSnippetPress"
+                          @mouseleave.stop="endSnippetPress"
+                          @touchstart.stop="startSnippetPress(option, { kind: '选项', qi })"
+                          @touchend.stop="endSnippetPress"
+                          @touchcancel.stop="endSnippetPress"
+                        >• {{ option }}</span>
+                      </li>
                     </ul>
                     <p
                       v-if="!quizAnswersGlobalShow && !isQuizAnswerVisible(qi)"
@@ -1207,7 +1238,15 @@
                           >1.5×</button>
                         </div>
                       </div>
-                      <p class="mt-1 whitespace-pre-wrap">{{ question.analysis }}</p>
+                      <p
+                        class="mt-1 whitespace-pre-wrap"
+                        @mousedown.stop="startSnippetPress(question.analysis, { kind: '解析', qi })"
+                        @mouseup.stop="endSnippetPress"
+                        @mouseleave.stop="endSnippetPress"
+                        @touchstart.stop="startSnippetPress(question.analysis, { kind: '解析', qi })"
+                        @touchend.stop="endSnippetPress"
+                        @touchcancel.stop="endSnippetPress"
+                      >{{ question.analysis }}</p>
                     </div>
                   </article>
                 </div>
@@ -1736,7 +1775,23 @@
             class="module-fab-sheet"
             role="menu"
           >
-            <div class="module-fab-sheet-title">选择学科模块</div>
+            <div class="module-fab-sheet-head">
+              <div class="module-fab-sheet-title">选择学科模块</div>
+              <button
+                type="button"
+                class="module-fav-entry"
+                :class="{ 'module-fav-entry-anim': favoriteEntryAnimating }"
+                :aria-label="'打开收藏夹，共 ' + favoriteCount + ' 条'"
+                @click.stop="openFavoritesFromEntry"
+              >
+                <span>★</span>
+                <span class="module-fav-entry-count">{{ favoriteCount }}</span>
+                <span class="module-fav-spark s1"></span>
+                <span class="module-fav-spark s2"></span>
+                <span class="module-fav-spark s3"></span>
+                <span class="module-fav-spark s4"></span>
+              </button>
+            </div>
             <button
               v-for="mod in modules"
               :key="'fab-'+mod.id"
@@ -1878,6 +1933,108 @@
         </svg>
         <span>回顶部</span>
       </button>
+
+      <div
+        v-if="favoritesOpen"
+        class="favorite-modal-mask"
+        @click="closeFavorites"
+      ></div>
+      <section
+        v-if="favoritesOpen"
+        class="favorite-modal"
+      >
+        <div class="favorite-toolbar">
+          <button
+            class="density-toggle"
+            :class="{ 'density-toggle-active': favoritesFilter === 'all' }"
+            @click="favoritesFilter = 'all'"
+          >全部</button>
+          <button
+            class="density-toggle"
+            :class="{ 'density-toggle-active': favoritesFilter === 'question' }"
+            @click="favoritesFilter = 'question'"
+          >题目</button>
+          <button
+            class="density-toggle"
+            :class="{ 'density-toggle-active': favoritesFilter === 'snippet' }"
+            @click="favoritesFilter = 'snippet'"
+          >片段</button>
+          <button
+            class="density-toggle"
+            :class="{ 'density-toggle-active': favoritesFilter === 'note' }"
+            @click="favoritesFilter = 'note'"
+          >笔记</button>
+          <label class="favorite-compact-switch favorite-compact-switch-inline">
+            <input
+              type="checkbox"
+              :checked="favoritesCompact"
+              @change="toggleFavoritesCompact"
+            />
+            <span class="favorite-compact-track"></span>
+            <span class="favorite-compact-text">{{ favoritesCompact ? '展开' : '收起' }}</span>
+          </label>
+          <button
+            type="button"
+            class="favorite-close-btn"
+            @click="closeFavorites"
+          >关闭</button>
+        </div>
+        <div class="favorite-note-box">
+          <textarea
+            v-model="newFavoriteNote"
+            class="favorite-note-input"
+            placeholder="写点你自己的文案，点右侧加入收藏…"
+          ></textarea>
+          <button
+            type="button"
+            class="density-toggle density-toggle-active"
+            @click="addFavoriteNote"
+          >加入</button>
+        </div>
+        <div
+          v-if="!filteredFavorites.length"
+          class="panel-subtle"
+        >
+          <p class="eyebrow">暂无收藏</p>
+        </div>
+        <div
+          v-else
+          class="favorite-list"
+        >
+          <article
+            v-for="item in filteredFavorites"
+            :key="item.id"
+            class="favorite-item"
+            :class="{ 'favorite-item-clickable': favoritesCompact }"
+            @click="openFavoriteItem(item.id)"
+          >
+            <div class="favorite-item-head">
+              <span class="favorite-item-type">{{ item.type }}</span>
+              <strong>{{ item.title }}</strong>
+              <span class="favorite-item-time">{{ formatFavoriteTime(item.createdAt) }}</span>
+              <button
+                type="button"
+                class="favorite-del-btn"
+                @click.stop="removeFavorite(item.id)"
+              >删除</button>
+            </div>
+            <pre
+              v-if="!favoritesCompact || favoriteExpandedId === item.id"
+              class="favorite-item-content"
+            >{{ item.content }}</pre>
+            <div
+              v-else
+              class="favorite-item-preview"
+            >点击卡片查看内容</div>
+            <button
+              v-if="favoritesCompact && favoriteExpandedId === item.id"
+              type="button"
+              class="favorite-collapse-btn"
+              @click.stop="closeFavoriteItem"
+            >收起</button>
+          </article>
+        </div>
+      </section>
 
       <nav
         class="mobile-tab-bar md:hidden"
