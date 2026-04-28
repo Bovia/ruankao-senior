@@ -1640,6 +1640,178 @@ code {
   background: rgba(15, 76, 92, 0.06);
 }
 
+/* CSS 小猫（可拖拽/可关闭） */
+.cat-pet {
+  position: fixed;
+  left: 14px;
+  top: 220px;
+  z-index: 56;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(15, 76, 92, 0.14);
+  box-shadow: 0 8px 20px rgba(12, 55, 72, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  user-select: none;
+}
+.cat-pet--dragging {
+  cursor: grabbing;
+}
+.cat-pet--roam {
+  transition: left 80ms linear, top 80ms linear;
+}
+.cat-close {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  color: rgba(31, 41, 55, 0.6);
+  font-size: 0.66rem;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(12, 55, 72, 0.2);
+  cursor: pointer;
+}
+.cat-motion {
+  animation: catHop 0.52s ease-in-out infinite;
+}
+.cat-cute {
+  position: relative;
+  width: 34px;
+  height: 22px;
+  background: #111827;
+  border-radius: 14px 16px 13px 13px;
+  transform: scaleX(1);
+}
+.cat-face-left .cat-cute {
+  transform: scaleX(-1);
+}
+@keyframes catHop {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+.cat-ear {
+  position: absolute;
+  top: -5px;
+  width: 7px;
+  height: 8px;
+  background: #111827;
+  border-radius: 80% 80% 0 0;
+}
+.cat-ear-l { left: 4px; transform: rotate(-14deg); }
+.cat-ear-r { left: 12px; transform: rotate(10deg); }
+.cat-eye {
+  position: absolute;
+  top: 7px;
+  width: 6px;
+  height: 8px;
+  border: 2px solid #f59e0b;
+  border-radius: 50%;
+  background: transparent;
+}
+.cat-eye-l { left: 4px; }
+.cat-eye-r { left: 13px; }
+.cat-leg {
+  position: absolute;
+  bottom: -4px;
+  width: 5px;
+  height: 8px;
+  background: #111827;
+  border-radius: 3px;
+}
+.cat-leg-fl { left: 7px; animation: catLegA 0.46s ease-in-out infinite; }
+.cat-leg-fr { left: 13px; animation: catLegB 0.46s ease-in-out infinite; }
+.cat-leg-bl { left: 22px; animation: catLegB 0.46s ease-in-out infinite; }
+.cat-leg-br { left: 28px; animation: catLegA 0.46s ease-in-out infinite; }
+.cat-tail {
+  position: absolute;
+  right: -10px;
+  top: 7px;
+  width: 12px;
+  height: 4px;
+  background: #111827;
+  border-radius: 999px;
+  transform-origin: left center;
+  animation: catTail 0.7s ease-in-out infinite;
+}
+@keyframes catTail {
+  0%, 100% { transform: rotate(10deg); }
+  50% { transform: rotate(-12deg); }
+}
+@keyframes catLegA {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+@keyframes catLegB {
+  0%, 100% { transform: translateY(-2px); }
+  50% { transform: translateY(0); }
+}
+.cat-state-walk .cat-motion {
+  animation-duration: 0.64s;
+}
+.cat-state-walk .cat-leg {
+  animation-duration: 0.66s;
+}
+.cat-state-run .cat-motion {
+  animation-duration: 0.43s;
+}
+.cat-state-run .cat-leg {
+  animation-duration: 0.4s;
+}
+.cat-state-pounce .cat-motion {
+  animation: catPounceBody 0.28s ease-in-out infinite;
+}
+.cat-state-pounce .cat-leg {
+  animation-duration: 0.25s;
+}
+.cat-state-loaf .cat-motion {
+  animation: catBreath 1.2s ease-in-out infinite;
+}
+.cat-state-loaf .cat-leg {
+  height: 6px;
+  animation: none;
+}
+.cat-state-sit .cat-cute {
+  width: 28px;
+  height: 25px;
+  border-radius: 14px 14px 12px 12px;
+}
+.cat-state-sit .cat-leg {
+  height: 6px;
+  animation: none;
+}
+.cat-state-stretch .cat-cute {
+  width: 38px;
+  height: 20px;
+  border-radius: 12px 18px 11px 11px;
+}
+.cat-state-stretch .cat-motion {
+  animation: catStretch 0.95s ease-in-out infinite;
+}
+.cat-state-stretch .cat-leg {
+  animation: none;
+}
+@keyframes catBreath {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(0.5px) scale(1.03); }
+}
+@keyframes catStretch {
+  0%, 100% { transform: translateY(0) scaleX(1); }
+  50% { transform: translateY(-1px) scaleX(1.06); }
+}
+@keyframes catPounceBody {
+  0%, 100% { transform: translateY(0) scale(1); }
+  45% { transform: translateY(-5px) scale(1.05); }
+  70% { transform: translateY(1px) scale(0.97); }
+}
+
 .module-fab-item {
   width: 100%;
   justify-content: flex-start;

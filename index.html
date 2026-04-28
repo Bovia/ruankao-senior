@@ -1803,6 +1803,16 @@
                   <button
                     type="button"
                     class="module-config-item"
+                    @click="showCat"
+                  >开启小猫</button>
+                  <button
+                    type="button"
+                    class="module-config-item"
+                    @click="hideCat"
+                  >关闭小猫</button>
+                  <button
+                    type="button"
+                    class="module-config-item"
                     @click="exportProjectCacheToClipboard"
                   >导出项目缓存</button>
                   <button
@@ -1955,6 +1965,35 @@
         </svg>
         <span>回顶部</span>
       </button>
+
+      <div
+        v-if="catVisible"
+        class="cat-pet"
+        :class="['cat-state-' + catState, { 'cat-pet--roam': !catDocked && !catDragging, 'cat-pet--dragging': catDragging, 'cat-face-left': catFacing < 0, 'cat-face-right': catFacing >= 0 }]"
+        :style="{ left: catX + 'px', top: catY + 'px' }"
+        @mousedown.prevent="startCatDrag"
+        @touchstart.prevent="startCatDrag"
+      >
+        <button
+          type="button"
+          class="cat-close"
+          aria-label="关闭小猫"
+          @click.stop="hideCat"
+        >✕</button>
+        <div class="cat-motion">
+          <div class="cat-cute">
+            <span class="cat-ear cat-ear-l"></span>
+            <span class="cat-ear cat-ear-r"></span>
+            <span class="cat-eye cat-eye-l"></span>
+            <span class="cat-eye cat-eye-r"></span>
+            <span class="cat-leg cat-leg-fl"></span>
+            <span class="cat-leg cat-leg-fr"></span>
+            <span class="cat-leg cat-leg-bl"></span>
+            <span class="cat-leg cat-leg-br"></span>
+            <span class="cat-tail"></span>
+          </div>
+        </div>
+      </div>
 
       <div
         v-if="favoritesOpen"

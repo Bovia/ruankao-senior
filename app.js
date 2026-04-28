@@ -69,6 +69,7 @@ function parsePracticeMarkdown(text) {
 const NAV_STORAGE_KEY = "jiyiqi-nav-v1";
 const FAVORITES_STORAGE_KEY = "jiyiqi-favorites-v1";
 const PROJECT_CACHE_KEYS = [NAV_STORAGE_KEY, FAVORITES_STORAGE_KEY];
+const CAT_STORAGE_KEY = "jiyiqi-cat-v1";
 
 function visibleViewIdsForModule(moduleId, knowledgeData, views) {
   const domains = Object.values(knowledgeData || {}).filter((d) => (d.module || "pm") === moduleId);
@@ -330,7 +331,18 @@ createApp({
       favoriteExpandedId: "",
       favoriteEntryAnimating: false,
       favoritesMenuOpen: false,
-      projectConfigMenuOpen: false
+      projectConfigMenuOpen: false,
+      catVisible: true,
+      catDocked: false,
+      catDragging: false,
+      catX: 16,
+      catY: 220,
+      catTargetX: 16,
+      catTargetY: 220,
+      catSpeed: 90,
+      catPauseUntil: 0,
+      catState: "run",
+      catFacing: 1
     };
 
     if (persisted) {
@@ -995,6 +1007,17 @@ createApp({
       this._syncPracticeQuizScrollListener();
     });
     this._loadFavorites();
+    this._loadCatSettings();
+    this._onCatDragMove = (e) => this.handleCatDragMove(e);
+    this._onCatDragEnd = () => this.endCatDrag();
+    window.addEventListener("mousemove", this._onCatDragMove);
+    window.addEventListener("mouseup", this._onCatDragEnd);
+    window.addEventListener("touchmove", this._onCatDragMove, { passive: false });
+    window.addEventListener("touchend", this._onCatDragEnd);
+    window.addEventListener("touchcancel", this._onCatDragEnd);
+    this._catLastTs = 0;
+    this._planNextCatBehavior(performance.now(), false);
+    this._catRaf = requestAnimationFrame((ts) => this._tickCatRoam(ts));
   },
   beforeUnmount() {
     this._detachPracticeQuizScrollListener();
@@ -1010,6 +1033,12 @@ createApp({
     document.removeEventListener("click", this.handleGlobalClick);
     window.removeEventListener("resize", this._onResizeForDomainNav);
     this._cancelSnippetPressTimer();
+    window.removeEventListener("mousemove", this._onCatDragMove);
+    window.removeEventListener("mouseup", this._onCatDragEnd);
+    window.removeEventListener("touchmove", this._onCatDragMove);
+    window.removeEventListener("touchend", this._onCatDragEnd);
+    window.removeEventListener("touchcancel", this._onCatDragEnd);
+    if (this._catRaf) cancelAnimationFrame(this._catRaf);
   },
   methods: {
     _makeFavoriteId() {
@@ -1039,6 +1068,127 @@ createApp({
       } catch (e) {
         this.favorites = [];
       }
+    },
+    _loadCatSettings() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(CAT_STORAGE_KEY) || "null");
+        if (!raw || raw.v !== 1) return;
+        if (typeof raw.visible === "boolean") this.catVisible = raw.visible;
+      } catch (e) {
+        /* ignore */
+      }
+    },
+    _persistCatSettings() {
+      try {
+        localStorage.setItem(CAT_STORAGE_KEY, JSON.stringify({ v: 1, visible: this.catVisible }));
+      } catch (e) {
+        /* ignore */
+      }
+    },
+    hideCat() {
+      this.catVisible = false;
+      this.catDocked = true;
+      this._persistCatSettings();
+    },
+    showCat() {
+      this.catVisible = true;
+      this.catDocked = false;
+      this.catDragging = false;
+      this.projectConfigMenuOpen = false;
+      this._planNextCatBehavior(performance.now(), false);
+      this._persistCatSettings();
+    },
+    _catBounds() {
+      const w = 44;
+      const h = 44;
+      return {
+        minX: 4,
+        minY: 70,
+        maxX: Math.max(4, window.innerWidth - w - 4),
+        maxY: Math.max(70, window.innerHeight - h - 64)
+      };
+    },
+    _planNextCatBehavior(ts, arrived) {
+      const b = this._catBounds();
+      const r = Math.random();
+      if (arrived && r < 0.32) {
+        // 停留/伸懒腰/坐下
+        const pauseMs = 700 + Math.floor(Math.random() * 1900);
+        this.catPauseUntil = ts + pauseMs;
+        this.catState = r < 0.12 ? "sit" : (r < 0.22 ? "stretch" : "loaf");
+        return;
+      }
+      this.catPauseUntil = 0;
+      this.catTargetX = b.minX + Math.random() * (b.maxX - b.minX);
+      this.catTargetY = b.minY + Math.random() * (b.maxY - b.minY);
+      const m = Math.random();
+      if (m < 0.12) {
+        this.catSpeed = 190 + Math.random() * 90;
+        this.catState = "pounce";
+      } else if (m < 0.48) {
+        this.catSpeed = 120 + Math.random() * 80;
+        this.catState = "run";
+      } else {
+        this.catSpeed = 55 + Math.random() * 70;
+        this.catState = "walk";
+      }
+    },
+    _tickCatRoam(ts) {
+      const dt = this._catLastTs ? Math.min(0.045, Math.max(0.008, (ts - this._catLastTs) / 1000)) : 0.016;
+      this._catLastTs = ts;
+      if (this.catVisible && !this.catDocked && !this.catDragging) {
+        if (this.catPauseUntil && ts < this.catPauseUntil) {
+          // 停留状态：偶尔轻微抖动更像活物
+          if (Math.random() < 0.04) {
+            this.catX += (Math.random() - 0.5) * 1.2;
+            this.catY += (Math.random() - 0.5) * 1.2;
+          }
+        } else {
+          if (this.catPauseUntil && ts >= this.catPauseUntil) {
+            this._planNextCatBehavior(ts, false);
+          }
+          const dx = this.catTargetX - this.catX;
+          const dy = this.catTargetY - this.catY;
+          const dist = Math.hypot(dx, dy);
+          if (dist < 4) {
+            this._planNextCatBehavior(ts, true);
+          } else {
+            this.catFacing = dx >= 0 ? 1 : -1;
+            const step = Math.min(dist, this.catSpeed * dt);
+            this.catX += (dx / dist) * step;
+            this.catY += (dy / dist) * step;
+          }
+        }
+      }
+      this._catRaf = requestAnimationFrame((nextTs) => this._tickCatRoam(nextTs));
+    },
+    startCatDrag(e) {
+      this.catDragging = true;
+      this.catDocked = true;
+      this.catState = "sit";
+      const p = this._pointFromEvent(e);
+      this.catX = Math.max(0, p.x - 22);
+      this.catY = Math.max(0, p.y - 22);
+    },
+    _pointFromEvent(e) {
+      const t = e && e.touches && e.touches[0];
+      if (t) return { x: t.clientX, y: t.clientY };
+      return { x: e.clientX, y: e.clientY };
+    },
+    handleCatDragMove(e) {
+      if (!this.catDragging) return;
+      if (e.cancelable) e.preventDefault();
+      const p = this._pointFromEvent(e);
+      const w = 44;
+      const h = 44;
+      const maxX = Math.max(0, window.innerWidth - w);
+      const maxY = Math.max(0, window.innerHeight - h);
+      this.catX = Math.max(0, Math.min(maxX, p.x - w / 2));
+      this.catY = Math.max(0, Math.min(maxY, p.y - h / 2));
+    },
+    endCatDrag() {
+      if (!this.catDragging) return;
+      this.catDragging = false;
     },
     async _copyTextToClipboard(text) {
       const payload = String(text || "");
