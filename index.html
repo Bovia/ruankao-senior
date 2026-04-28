@@ -1766,7 +1766,7 @@
           <div
             v-if="moduleSheetOpen"
             class="module-fab-mask"
-            @click="moduleSheetOpen = false"
+            @click="moduleSheetOpen = false; projectConfigMenuOpen = false"
           ></div>
         </transition>
         <transition name="module-fab-pop">
@@ -1777,20 +1777,42 @@
           >
             <div class="module-fab-sheet-head">
               <div class="module-fab-sheet-title">选择学科模块</div>
-              <button
-                type="button"
-                class="module-fav-entry"
-                :class="{ 'module-fav-entry-anim': favoriteEntryAnimating }"
-                :aria-label="'打开收藏夹，共 ' + favoriteCount + ' 条'"
-                @click.stop="openFavoritesFromEntry"
-              >
-                <span>★</span>
-                <span class="module-fav-entry-count">{{ favoriteCount }}</span>
-                <span class="module-fav-spark s1"></span>
-                <span class="module-fav-spark s2"></span>
-                <span class="module-fav-spark s3"></span>
-                <span class="module-fav-spark s4"></span>
-              </button>
+              <div class="module-head-actions">
+                <button
+                  type="button"
+                  class="module-fav-entry"
+                  :class="{ 'module-fav-entry-anim': favoriteEntryAnimating }"
+                  :aria-label="'打开收藏夹，共 ' + favoriteCount + ' 条'"
+                  @click.stop="openFavoritesFromEntry"
+                >
+                  <span>★</span>
+                  <span class="module-fav-entry-count">{{ favoriteCount }}</span>
+                </button>
+                <div class="module-config-wrap">
+                <button
+                  type="button"
+                  class="module-config-entry"
+                  aria-label="项目配置"
+                  @click.stop="toggleProjectConfigMenu"
+                >⚙</button>
+                <div
+                  v-if="projectConfigMenuOpen"
+                  class="module-config-dropdown"
+                  @click.stop
+                >
+                  <button
+                    type="button"
+                    class="module-config-item"
+                    @click="exportProjectCacheToClipboard"
+                  >导出项目缓存</button>
+                  <button
+                    type="button"
+                    class="module-config-item"
+                    @click="importProjectCacheFromPrompt"
+                  >导入项目缓存</button>
+                </div>
+                </div>
+              </div>
             </div>
             <button
               v-for="mod in modules"
@@ -1870,7 +1892,7 @@
           class="module-fab"
           :class="{ 'module-fab--open': moduleSheetOpen }"
           :style="{ '--mod-accent': activeModuleMeta.color }"
-          @click="moduleSheetOpen = !moduleSheetOpen"
+          @click="moduleSheetOpen = !moduleSheetOpen; if (!moduleSheetOpen) projectConfigMenuOpen = false"
           :aria-expanded="moduleSheetOpen"
           :aria-label="'切换学科模块（当前：' + activeModuleMeta.name + '）'"
         >
@@ -1942,6 +1964,7 @@
       <section
         v-if="favoritesOpen"
         class="favorite-modal"
+        @click="favoritesMenuOpen = false"
       >
         <div class="favorite-toolbar">
           <button

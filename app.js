@@ -68,6 +68,7 @@ function parsePracticeMarkdown(text) {
 
 const NAV_STORAGE_KEY = "jiyiqi-nav-v1";
 const FAVORITES_STORAGE_KEY = "jiyiqi-favorites-v1";
+const PROJECT_CACHE_KEYS = [NAV_STORAGE_KEY, FAVORITES_STORAGE_KEY];
 
 function visibleViewIdsForModule(moduleId, knowledgeData, views) {
   const domains = Object.values(knowledgeData || {}).filter((d) => (d.module || "pm") === moduleId);
@@ -327,7 +328,9 @@ createApp({
       favoritingQuestionKey: "",
       favoritesCompact: true,
       favoriteExpandedId: "",
-      favoriteEntryAnimating: false
+      favoriteEntryAnimating: false,
+      favoritesMenuOpen: false,
+      projectConfigMenuOpen: false
     };
 
     if (persisted) {
@@ -1037,6 +1040,100 @@ createApp({
         this.favorites = [];
       }
     },
+    async _copyTextToClipboard(text) {
+      const payload = String(text || "");
+      if (!payload) return false;
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(payload);
+          return true;
+        }
+      } catch (e) {
+        /* fallback below */
+      }
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = payload;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    },
+    async exportFavoritesToClipboard() {
+      const payload = JSON.stringify({
+        v: 1,
+        compact: this.favoritesCompact,
+        exportedAt: Date.now(),
+        items: this.favorites
+      });
+      const ok = await this._copyTextToClipboard(payload);
+      this.favoritesMenuOpen = false;
+      window.alert(ok ? "已复制收藏数据到剪贴板" : "复制失败，请手动复制");
+    },
+    async exportProjectCacheToClipboard() {
+      const items = {};
+      PROJECT_CACHE_KEYS.forEach((k) => {
+        const val = localStorage.getItem(k);
+        if (val !== null) items[k] = val;
+      });
+      const payload = JSON.stringify({
+        v: 1,
+        exportedAt: Date.now(),
+        keys: PROJECT_CACHE_KEYS,
+        items
+      });
+      const ok = await this._copyTextToClipboard(payload);
+      this.projectConfigMenuOpen = false;
+      window.alert(ok ? "已复制项目缓存到剪贴板" : "复制失败，请手动复制");
+    },
+    importProjectCacheFromPrompt() {
+      this.projectConfigMenuOpen = false;
+      const raw = window.prompt("粘贴项目缓存 JSON：");
+      if (!raw || !raw.trim()) return;
+      try {
+        const parsed = JSON.parse(raw);
+        if (!parsed || parsed.v !== 1 || typeof parsed.items !== "object" || Array.isArray(parsed.items)) {
+          window.alert("导入失败：JSON 格式不正确");
+          return;
+        }
+        PROJECT_CACHE_KEYS.forEach((k) => {
+          if (Object.prototype.hasOwnProperty.call(parsed.items, k) && typeof parsed.items[k] === "string") {
+            localStorage.setItem(k, parsed.items[k]);
+          }
+        });
+        window.alert("导入成功，刷新页面后生效");
+      } catch (e) {
+        window.alert("导入失败：JSON 解析错误");
+      }
+    },
+    importFavoritesFromPrompt() {
+      this.favoritesMenuOpen = false;
+      const raw = window.prompt("粘贴导入的收藏 JSON：");
+      if (!raw || !raw.trim()) return;
+      try {
+        const parsed = JSON.parse(raw);
+        if (!parsed || parsed.v !== 1 || !Array.isArray(parsed.items)) {
+          window.alert("导入失败：JSON 格式不正确");
+          return;
+        }
+        const safeItems = parsed.items
+          .filter((x) => x && typeof x === "object" && typeof x.id === "string" && typeof x.content === "string")
+          .slice(-800);
+        this.favorites = safeItems;
+        if (typeof parsed.compact === "boolean") this.favoritesCompact = parsed.compact;
+        this.favoriteExpandedId = "";
+        this._persistFavorites();
+        window.alert(`导入成功，共 ${safeItems.length} 条`);
+      } catch (e) {
+        window.alert("导入失败：JSON 解析错误");
+      }
+    },
     _cancelSnippetPressTimer() {
       if (this._snippetPressTimer) {
         clearTimeout(this._snippetPressTimer);
@@ -1052,12 +1149,20 @@ createApp({
     openFavoritesFromEntry() {
       this.favoriteEntryAnimating = true;
       this.openFavorites();
+      this.projectConfigMenuOpen = false;
       setTimeout(() => {
         this.favoriteEntryAnimating = false;
       }, 750);
     },
     closeFavorites() {
       this.favoritesOpen = false;
+      this.favoritesMenuOpen = false;
+    },
+    toggleFavoritesMenu() {
+      this.favoritesMenuOpen = !this.favoritesMenuOpen;
+    },
+    toggleProjectConfigMenu() {
+      this.projectConfigMenuOpen = !this.projectConfigMenuOpen;
     },
     removeFavorite(id) {
       this.favorites = this.favorites.filter((x) => x.id !== id);
@@ -1301,6 +1406,7 @@ createApp({
     selectModuleFromFab(moduleId) {
       this.selectModule(moduleId);
       this.moduleSheetOpen = false;
+      this.projectConfigMenuOpen = false;
     },
     selectModule(moduleId) {
       this.activeModule = moduleId;

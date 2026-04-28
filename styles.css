@@ -1557,6 +1557,11 @@ code {
   align-items: center;
   justify-content: space-between;
 }
+.module-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
 .module-fav-entry {
   position: relative;
   width: 30px;
@@ -1571,7 +1576,6 @@ code {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  overflow: visible;
   box-shadow: 0 4px 12px rgba(12, 55, 72, 0.1);
 }
 .module-fav-entry-count {
@@ -1588,33 +1592,52 @@ code {
   line-height: 1.05rem;
   font-weight: 700;
 }
-.module-fav-spark {
+.module-config-wrap {
+  position: relative;
+}
+.module-config-entry {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(15, 76, 92, 0.12);
+  border-radius: 10px;
+  background: #fff;
+  color: #0f4c5c;
+  font-size: 1.34rem;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(12, 55, 72, 0.1);
+}
+.module-config-dropdown {
   position: absolute;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #fbbf24;
-  opacity: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 154px;
+  border: 1px solid rgba(15, 76, 92, 0.12);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(12, 55, 72, 0.16);
+  overflow: hidden;
+  z-index: 3;
 }
-.module-fav-spark.s1 { top: -2px; left: 50%; transform: translateX(-50%); }
-.module-fav-spark.s2 { top: 50%; right: -2px; transform: translateY(-50%); }
-.module-fav-spark.s3 { bottom: -2px; left: 50%; transform: translateX(-50%); }
-.module-fav-spark.s4 { top: 50%; left: -2px; transform: translateY(-50%); }
-.module-fav-entry-anim {
-  animation: moduleFavPop 0.45s ease;
+.module-config-item {
+  display: block;
+  width: 100%;
+  border: none;
+  background: #fff;
+  color: #16313f;
+  text-align: left;
+  padding: 0.45rem 0.62rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
 }
-.module-fav-entry-anim .module-fav-spark {
-  animation: moduleFavSparkle 0.62s ease-out;
-}
-@keyframes moduleFavPop {
-  0% { transform: scale(1); box-shadow: 0 0 0 rgba(251, 191, 36, 0); }
-  45% { transform: scale(1.22); box-shadow: 0 0 0.6rem rgba(251, 191, 36, 0.5); }
-  100% { transform: scale(1); box-shadow: 0 4px 12px rgba(12, 55, 72, 0.1); }
-}
-@keyframes moduleFavSparkle {
-  0% { opacity: 0; transform: scale(0.5); }
-  35% { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(1.8); }
+.module-config-item:hover {
+  background: rgba(15, 76, 92, 0.06);
 }
 
 .module-fab-item {
