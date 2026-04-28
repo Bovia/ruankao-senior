@@ -1189,6 +1189,10 @@ createApp({
     endCatDrag() {
       if (!this.catDragging) return;
       this.catDragging = false;
+      this.catDocked = false;
+      this.catTargetX = this.catX;
+      this.catTargetY = this.catY;
+      this._planNextCatBehavior(performance.now(), true);
     },
     async _copyTextToClipboard(text) {
       const payload = String(text || "");

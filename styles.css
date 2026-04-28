@@ -1640,7 +1640,7 @@ code {
   background: rgba(15, 76, 92, 0.06);
 }
 
-/* CSS 小猫（可拖拽/可关闭） */
+/* CSS 小猫（可拖拽） */
 .cat-pet {
   position: fixed;
   left: 14px;
@@ -1648,10 +1648,6 @@ code {
   z-index: 56;
   width: 44px;
   height: 44px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid rgba(15, 76, 92, 0.14);
-  box-shadow: 0 8px 20px rgba(12, 55, 72, 0.16);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1664,21 +1660,6 @@ code {
 .cat-pet--roam {
   transition: left 80ms linear, top 80ms linear;
 }
-.cat-close {
-  position: absolute;
-  top: -7px;
-  right: -7px;
-  width: 16px;
-  height: 16px;
-  border: none;
-  border-radius: 50%;
-  background: #fff;
-  color: rgba(31, 41, 55, 0.6);
-  font-size: 0.66rem;
-  line-height: 1;
-  box-shadow: 0 2px 6px rgba(12, 55, 72, 0.2);
-  cursor: pointer;
-}
 .cat-motion {
   animation: catHop 0.52s ease-in-out infinite;
 }
@@ -1688,10 +1669,10 @@ code {
   height: 22px;
   background: #111827;
   border-radius: 14px 16px 13px 13px;
-  transform: scaleX(1);
+  transform: scaleX(-1);
 }
 .cat-face-left .cat-cute {
-  transform: scaleX(-1);
+  transform: scaleX(1);
 }
 @keyframes catHop {
   0%, 100% { transform: translateY(0); }
