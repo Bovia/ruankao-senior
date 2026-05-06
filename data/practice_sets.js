@@ -11,8 +11,25 @@ window.practiceSets = {
       title: "综合题1",
       summary: "75道单选，覆盖整合、范围、进度、成本、质量、IT新技术等核心考点。",
       key: "zonghe_1"
+    },
+    {
+      id: "comp-2",
+      title: "综合题2",
+      summary: "75道单选，含详细解析与「你的作答」记录。",
+      key: "zonghe_2"
+    },
+    {
+      id: "comp-3",
+      title: "综合题3",
+      summary: "75道单选，含解析与作答对照。",
+      key: "zonghe_3"
+    },
+    {
+      id: "comp-4",
+      title: "综合题4",
+      summary: "74道单选，含解析与作答对照。",
+      key: "zonghe_4"
     }
-    // 后续追加：{ id: "comp-2", title: "综合题2", summary: "...", key: "zonghe_2" }
   ],
   mock: [
     { id: "mock-1", title: "模拟题1", summary: "75道单选模拟题，覆盖项目管理、IT技术与法规等综合考点。", key: "moni_1" }

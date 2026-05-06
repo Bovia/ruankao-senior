@@ -3,9 +3,9 @@ const { createApp } = Vue;
 /**
  * 将 zonghe_1.md 等格式的题库文本解析为 quiz 数组
  * 支持的格式：
- *   数字、 *[单选]* 题目内容
- *   -  A：选项
- *   正确答案：**X** 你的答案：**X**
+ *   数字、 *[单选]* 或 数字、[单选] 题目（题干可续到下一行，遇选项/答案/解析为止）
+ *   -  A： 或  A： 选项（行首空格 + 字母 + 全角/半角冒号）
+ *   正确答案：**X** 或 正确答案：X；可选 你的答案：**Y** / 你的答案：Y
  *   解析：解析内容…
  */
 function parsePracticeMarkdown(text) {
@@ -13,32 +13,57 @@ function parsePracticeMarkdown(text) {
   // 按题号切割：行首数字 + 顿号/逗号/点
   const blocks = text.split(/\n(?=\d+[、，,.]\s)/);
 
+  function stripTypeFromFirstLine(s) {
+    return s
+      .replace(/^\d+[、，,.]\s*/, "")
+      .replace(/\*\[[^\]]+\]\*\s*/, "")
+      .replace(/\[[^\]]+\]\s*/, "")
+      .trim();
+  }
+
+  function optionFromLine(line) {
+    const mDash = line.match(/^-+\s*([A-Za-z])[：:]\s*(.+)/);
+    if (mDash) return { letter: mDash[1], text: mDash[2].trim() };
+    const mSpace = line.match(/^\s+([A-Za-z])[：:]\s*(.+)/);
+    if (mSpace && !/^\s*正确答案[：:]/.test(line)) return { letter: mSpace[1], text: mSpace[2].trim() };
+    return null;
+  }
+
   for (const block of blocks) {
     const trimmed = block.trim();
     if (!trimmed || !/^\d+/.test(trimmed)) continue;
 
     const lines = trimmed.split("\n");
 
-    // 题型
-    const typeMatch = trimmed.match(/\*\[([^\]]+)\]\*/);
+    const typeMatch =
+      (lines[0] || "").match(/\*\[([^\]]+)\]\*/) || (lines[0] || "").match(/\[([^\]]+)\]/);
     const type = typeMatch ? typeMatch[1] + "题" : "单选题";
 
-    // 题干（第一行，去掉序号和 *[…]*）
-    const question = (lines[0] || "")
-      .replace(/^\d+[、，,.]\s*/, "")
-      .replace(/\*\[[^\]]+\]\*\s*/, "")
-      .trim();
+    let firstStem = stripTypeFromFirstLine(lines[0] || "");
+    const stemParts = [];
+    if (firstStem) stemParts.push(firstStem);
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i];
+      const t = line.trim();
+      if (/^正确答案[：:]/.test(t) || /^解析[：:]/.test(t)) break;
+      if (optionFromLine(line)) break;
+      stemParts.push(line.trimEnd());
+    }
+    const question = stemParts.join("\n").trim();
 
-    // 选项（以 "- 字母：" 开头的行）
     const options = [];
     for (const line of lines) {
-      const m = line.match(/^-+\s*([A-Za-z])[：:]\s*(.+)/);
-      if (m) options.push(`${m[1]}. ${m[2].trim()}`);
+      const o = optionFromLine(line);
+      if (o) options.push(`${o.letter}. ${o.text}`);
     }
 
-    // 正确答案（取第一个 **X**）
-    const ansMatch = trimmed.match(/正确答案[：:]\s*\*\*([^*]+)\*\*/);
-    const answer = ansMatch ? ansMatch[1].trim() : "";
+    const ansBold = trimmed.match(/正确答案[：:]\s*\*\*([^*]+)\*\*/);
+    const ansPlain = trimmed.match(/正确答案[：:]\s*([A-Za-z])(?=\s|你的答案|\n|$)/);
+    const answer = (ansBold ? ansBold[1] : ansPlain ? ansPlain[1] : "").trim();
+
+    const uaBold = trimmed.match(/你的答案[：:]\s*\*\*([^*]+)\*\*/);
+    const uaPlain = trimmed.match(/你的答案[：:]\s*([A-Za-z])(?=\s|\n|$|解析)/);
+    const userAnswer = (uaBold ? uaBold[1] : uaPlain ? uaPlain[1] : "").trim();
 
     // 解析（"解析：" 之后的所有内容，去掉行首的图片链接）
     const analysisMatch = trimmed.match(/解析[：:]([^]*)/);
@@ -59,7 +84,7 @@ function parsePracticeMarkdown(text) {
       : "";
 
     if (question && options.length > 0) {
-      questions.push({ question, type, options, answer, analysis, relatedProcess });
+      questions.push({ question, type, options, answer, userAnswer, analysis, relatedProcess });
     }
   }
 
@@ -1363,7 +1388,8 @@ createApp({
     },
     addFavoriteQuestion(question, qi) {
       const title = `第${qi + 1}题`;
-      const content = `${question.question}\n${(question.options || []).join("\n")}\n答案：${question.answer}\n解析：${question.analysis || ""}`.trim();
+      const uaLine = question.userAnswer ? `\n你的作答：${question.userAnswer}` : "";
+      const content = `${question.question}\n${(question.options || []).join("\n")}\n答案：${question.answer}${uaLine}\n解析：${question.analysis || ""}`.trim();
       const sourceKey = `${this.quizBundleKey}|q${qi}|${question.question || ""}`;
       const sourceTag = this.practiceLayer === "mock"
         ? "模拟"
