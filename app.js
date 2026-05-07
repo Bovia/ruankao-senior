@@ -120,6 +120,8 @@ const PROJECT_CACHE_KEYS = [NAV_STORAGE_KEY, FAVORITES_STORAGE_KEY, QUIZ_TTS_VOI
 const COMPREHENSIVE_WRONG_BOOK_ID = "__wrongbook__";
 /** 模拟题侧栏「错题集」虚拟套卷 id（非 practiceSets 配置项） */
 const MOCK_WRONG_BOOK_ID = "__mock_wrongbook__";
+/** 知识域侧栏「错题集」虚拟 id */
+const DOMAIN_WRONG_BOOK_ID = "__domain_wrongbook__";
 
 function normalizeTtsLang(lang) {
   return String(lang || "").replace("_", "-").toLowerCase();
@@ -274,7 +276,8 @@ function loadPersistedNavState(ctx) {
   const domainList = Object.values(knowledgeData || {}).filter((d) => (d.module || "pm") === activeModule);
   const domainIds = new Set(domainList.map((d) => d.id));
   let activeDomainId = raw.activeDomainId;
-  if (!domainIds.has(activeDomainId)) {
+  const persistedDomainWrongBook = activeDomainId === DOMAIN_WRONG_BOOK_ID;
+  if (!persistedDomainWrongBook && !domainIds.has(activeDomainId)) {
     activeDomainId = domainList[0]?.id || defaults.activeDomainId;
   }
   const domain = knowledgeData[activeDomainId] || domainList[0] || { processes: [] };
@@ -467,9 +470,11 @@ createApp({
       practiceQuizFabNeedsScroll: false,
       /** 与练习场同步的视口滚动距离，用于判断「已离开页顶」才显示回顶 */
       practiceQuizScrollY: 0,
+      domainWrongBookId: DOMAIN_WRONG_BOOK_ID,
       comprehensiveWrongBookId: COMPREHENSIVE_WRONG_BOOK_ID,
       mockWrongBookId: MOCK_WRONG_BOOK_ID,
       /** 错题集：进入时打乱后的题目快照（不含 _originIndex，由 practiceQuizBaseRows 统一编号） */
+      practiceDomainWrongBookSnapshot: null,
       practiceWrongBookSnapshot: null,
       practiceMockWrongBookSnapshot: null,
       /** 再做一次·只做错题：交卷用的题单子集（为 null 表示整套） */
@@ -579,6 +584,16 @@ createApp({
       return Array.from(map.values());
     },
     activeDomain() {
+      if (this.practiceLayer === "domain" && this.activeDomainId === this.domainWrongBookId) {
+        return {
+          id: this.domainWrongBookId,
+          name: "错题集",
+          processes: [],
+          formulas: [],
+          comparisons: [],
+          quiz: []
+        };
+      }
       return this.knowledgeData[this.activeDomainId] || this.visibleDomains[0] || this.domains[0] || { processes: [], formulas: [], comparisons: [], quiz: [] };
     },
     activeProcess() {
@@ -807,9 +822,16 @@ createApp({
           list = this._resolveSetQuiz(this.activeMockSet);
         }
       } else {
-        list = this.activeDomain.quiz || [];
+        if (this.activeDomainId === this.domainWrongBookId) {
+          list = Array.isArray(this.practiceDomainWrongBookSnapshot) ? this.practiceDomainWrongBookSnapshot : [];
+        } else {
+          list = this.activeDomain.quiz || [];
+        }
       }
       return list.map((q, idx) => ({ ...q, _originIndex: idx }));
+    },
+    isDomainWrongBook() {
+      return this.practiceLayer === "domain" && this.activeDomainId === this.domainWrongBookId;
     },
     /** 当前是否为「综合题 · 错题集」模式 */
     isComprehensiveWrongBook() {
@@ -824,6 +846,9 @@ createApp({
     },
     mockWrongBookCount() {
       return this._collectMockWrongBookCandidatesNoShuffle().length;
+    },
+    domainWrongBookCount() {
+      return this._collectWrongBookCandidatesNoShuffleByLayer("domain").length;
     },
     /** 顶部练习条：有题或已在考试流程中则显示 */
     practiceQuizExamBarVisible() {
@@ -1355,6 +1380,13 @@ createApp({
     this._loadPracticeActiveUser();
     this._loadPracticeAttemptLog();
     this._loadPracticeUserAnswers();
+    if (
+      this.activeView === "quiz" &&
+      this.practiceLayer === "domain" &&
+      this.activeDomainId === this.domainWrongBookId
+    ) {
+      this.practiceDomainWrongBookSnapshot = this._buildWrongBookCandidatesShuffledByLayer("domain");
+    }
     if (
       this.activeView === "quiz" &&
       this.practiceLayer === "comprehensive" &&
@@ -2417,6 +2449,17 @@ createApp({
           this.practiceWrongBookSnapshot = this._buildWrongBookCandidatesShuffled();
         }
       }
+      if (layer === "domain") {
+        const idOk =
+          this.activeDomainId === this.domainWrongBookId ||
+          this.visibleDomains.some((d) => d.id === this.activeDomainId);
+        if (!idOk) {
+          this.activeDomainId = this.visibleDomains[0]?.id || "";
+        }
+        if (this.activeDomainId === this.domainWrongBookId) {
+          this.practiceDomainWrongBookSnapshot = this._buildWrongBookCandidatesShuffledByLayer("domain");
+        }
+      }
       if (layer === "mock") {
         const list = this.mockSets;
         const idOk =
@@ -2578,10 +2621,11 @@ createApp({
     _collectWrongBookCandidatesNoShuffleByLayer(layer) {
       const out = [];
       const seen = new Set();
+      const isDomainLayer = layer === "domain";
       const isMockLayer = layer === "mock";
-      const sets = isMockLayer ? this.mockSets : this.comprehensiveSets;
-      const wrongBookId = isMockLayer ? this.mockWrongBookId : this.comprehensiveWrongBookId;
-      const setIdIndex = isMockLayer ? 4 : 3;
+      const sets = isDomainLayer ? this.visibleDomains : (isMockLayer ? this.mockSets : this.comprehensiveSets);
+      const wrongBookId = isDomainLayer ? this.domainWrongBookId : (isMockLayer ? this.mockWrongBookId : this.comprehensiveWrongBookId);
+      const setIdIndex = isDomainLayer ? 2 : (isMockLayer ? 4 : 3);
       const setById = Object.fromEntries(sets.map((s) => [s.id, s]));
       const latestBySet = {};
       const log = this.practiceAttemptLog || {};
@@ -2604,7 +2648,7 @@ createApp({
       }
       for (const [setId, latest] of Object.entries(latestBySet)) {
         const set = setById[setId];
-        const quiz = this._resolveSetQuiz(set);
+        const quiz = isDomainLayer ? (Array.isArray(set.quiz) ? set.quiz : []) : this._resolveSetQuiz(set);
         if (!Array.isArray(quiz) || !quiz.length) continue;
         const wrongIndices = this._extractAnsweredWrongIndicesFromAttempt(latest);
         for (const oi of wrongIndices) {
@@ -2615,7 +2659,7 @@ createApp({
           seen.add(dedupe);
           out.push({
             ...q,
-            _wrongBookSource: { setId, setTitle: set.title, originIndex: oi }
+            _wrongBookSource: { setId, setTitle: isDomainLayer ? (set.name || set.title || setId) : set.title, originIndex: oi }
           });
         }
       }
@@ -2718,6 +2762,9 @@ createApp({
       this.practiceRestartPickerOpen = false;
       this.practiceQuizActiveIndex = 0;
       this.practiceHistoryPickerOpen = false;
+      if (this.practiceLayer === "domain" && this.activeDomainId === this.domainWrongBookId) {
+        this.practiceDomainWrongBookSnapshot = this._buildWrongBookCandidatesShuffledByLayer("domain");
+      }
       if (this.practiceLayer === "comprehensive" && this.activeComprehensiveId === this.comprehensiveWrongBookId) {
         this.practiceWrongBookSnapshot = this._buildWrongBookCandidatesShuffled();
       }
@@ -3134,6 +3181,12 @@ createApp({
     },
     selectDomain(domainId) {
       this.activeDomainId = domainId;
+      if (domainId === this.domainWrongBookId) {
+        this.practiceBrowseResultFilter = "all";
+        this.resetQuizMatcherState();
+        this.practiceDomainWrongBookSnapshot = this._buildWrongBookCandidatesShuffledByLayer("domain");
+        return;
+      }
       const nextProcess = this.activeDomain.processes[0];
       this.activeProcessId = nextProcess ? nextProcess.id : "";
       if (nextProcess) {

@@ -1,4 +1,4 @@
-window.__PRACTICE_SEED_DATA__ = {
+{
   "v": 1,
   "exportedAt": 1778136021233,
   "keys": [
@@ -16,7 +16,7 @@ window.__PRACTICE_SEED_DATA__ = {
           {
             "id": "seed-domain-integration-1",
             "bundleKey": "quiz|domain|integration||",
-            "ts": 1778146732746,
+            "ts": 1778145601628,
             "title": "integration知识域",
             "total": 50,
             "correct": 27,
@@ -160,7 +160,7 @@ window.__PRACTICE_SEED_DATA__ = {
           {
             "id": "seed-domain-scope-1",
             "bundleKey": "quiz|domain|scope||",
-            "ts": 1778146732746,
+            "ts": 1778145601629,
             "title": "scope知识域",
             "total": 50,
             "correct": 35,
@@ -296,7 +296,7 @@ window.__PRACTICE_SEED_DATA__ = {
           {
             "id": "seed-domain-schedule-1",
             "bundleKey": "quiz|domain|schedule||",
-            "ts": 1778146732746,
+            "ts": 1778145601629,
             "title": "schedule知识域",
             "total": 49,
             "correct": 49,
@@ -414,7 +414,7 @@ window.__PRACTICE_SEED_DATA__ = {
           {
             "id": "seed-domain-cost-1",
             "bundleKey": "quiz|domain|cost||",
-            "ts": 1778146732746,
+            "ts": 1778145601630,
             "title": "cost知识域",
             "total": 49,
             "correct": 23,
@@ -559,7 +559,7 @@ window.__PRACTICE_SEED_DATA__ = {
           {
             "id": "seed-domain-quality-1",
             "bundleKey": "quiz|domain|quality||",
-            "ts": 1778146732746,
+            "ts": 1778145601630,
             "title": "quality知识域",
             "total": 45,
             "correct": 25,
@@ -690,7 +690,7 @@ window.__PRACTICE_SEED_DATA__ = {
           {
             "id": "seed-domain-resource-1",
             "bundleKey": "quiz|domain|resource||",
-            "ts": 1778146732746,
+            "ts": 1778145601631,
             "title": "resource知识域",
             "total": 50,
             "correct": 36,
@@ -825,7 +825,7 @@ window.__PRACTICE_SEED_DATA__ = {
           {
             "id": "seed-domain-communications-1",
             "bundleKey": "quiz|domain|communications||",
-            "ts": 1778146732746,
+            "ts": 1778145601631,
             "title": "communications知识域",
             "total": 37,
             "correct": 26,
@@ -931,7 +931,7 @@ window.__PRACTICE_SEED_DATA__ = {
           {
             "id": "seed-domain-risk-1",
             "bundleKey": "quiz|domain|risk||",
-            "ts": 1778146732746,
+            "ts": 1778145601631,
             "title": "risk知识域",
             "total": 49,
             "correct": 31,
@@ -1068,7 +1068,7 @@ window.__PRACTICE_SEED_DATA__ = {
           {
             "id": "seed-domain-procurement-1",
             "bundleKey": "quiz|domain|procurement||",
-            "ts": 1778146732746,
+            "ts": 1778145601632,
             "title": "procurement知识域",
             "total": 38,
             "correct": 24,
@@ -1179,7 +1179,7 @@ window.__PRACTICE_SEED_DATA__ = {
           {
             "id": "seed-domain-stakeholder-1",
             "bundleKey": "quiz|domain|stakeholder||",
-            "ts": 1778146732746,
+            "ts": 1778145601632,
             "title": "stakeholder知识域",
             "total": 48,
             "correct": 21,
@@ -1329,4 +1329,4 @@ window.__PRACTICE_SEED_DATA__ = {
     },
     "defaultActiveUser": "bovia"
   }
-};
+}

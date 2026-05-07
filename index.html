@@ -265,6 +265,14 @@
                 :style="{ '--domain-accent': domain.themeColor }"
                 :data-domain-id="domain.id"
               >{{ domain.name }}</button>
+              <button
+                v-if="activeView === 'quiz'"
+                type="button"
+                @click="selectDomain(domainWrongBookId)"
+                class="domain-pill domain-pill--wrongbook"
+                :class="{ 'domain-pill-active': activeDomainId === domainWrongBookId }"
+                :data-domain-id="domainWrongBookId"
+              >错题集</button>
             </div>
             <div class="domain-nav domain-nav-scroll hidden gap-4 lg:flex lg:flex-col">
               <div
@@ -290,6 +298,20 @@
                       <span class="domain-badge">{{ domain.processes.length }}</span>
                     </div>
                     <p class="line-clamp-2 text-sm leading-6 text-ink/70">{{ domain.summary }}</p>
+                  </button>
+                  <button
+                    v-if="activeView === 'quiz' && group.category === (domainGroups[0] && domainGroups[0].category)"
+                    type="button"
+                    @click="selectDomain(domainWrongBookId)"
+                    class="domain-card domain-card--wrongbook"
+                    :class="{ 'domain-card-active': activeDomainId === domainWrongBookId }"
+                    style="--domain-accent: #b45309"
+                  >
+                    <div class="mb-2 flex items-center justify-between gap-3">
+                      <span class="domain-name">错题集</span>
+                      <span class="domain-badge">{{ domainWrongBookCount }}</span>
+                    </div>
+                    <p class="line-clamp-2 text-sm leading-6 text-ink/70">全部知识域交卷中的错题，本地去重并随机排序。</p>
                   </button>
                 </div>
               </div>
@@ -1263,7 +1285,7 @@
                       type="button"
                       class="process-nav-btn shrink-0"
                       @click="submitPracticeExam"
-                    >{{ (isComprehensiveWrongBook || isMockWrongBook) ? '完成' : '交卷' }}</button>
+                    >{{ (isComprehensiveWrongBook || isMockWrongBook || isDomainWrongBook) ? '完成' : '交卷' }}</button>
                     <!-- <button
                       type="button"
                       class="practice-exam-ghost-btn shrink-0"
@@ -1388,15 +1410,15 @@
                     <p class="mt-2 text-sm leading-7 text-ink/80">当前筛选下没有题目。可切回「全部」，或换一条做题记录再看。</p>
                   </div>
                   <div
-                    v-if="!practiceQuizBaseRows.length && ((practiceLayer === 'comprehensive' && activeComprehensiveId === comprehensiveWrongBookId) || (practiceLayer === 'mock' && activeMockId === mockWrongBookId))"
+                    v-if="!practiceQuizBaseRows.length && ((practiceLayer === 'domain' && activeDomainId === domainWrongBookId) || (practiceLayer === 'comprehensive' && activeComprehensiveId === comprehensiveWrongBookId) || (practiceLayer === 'mock' && activeMockId === mockWrongBookId))"
                     class="panel-subtle"
                   >
                     <p class="eyebrow">错题集还是空的</p>
                     <p class="mt-2 text-sm leading-7 text-ink/80">
-                      请先在各套<strong>{{ practiceLayer === 'mock' ? '模拟题' : '综合题' }}</strong>里做题并<strong>交卷</strong>，错题会按题去重后出现在这里。重新进入本页会重新打乱顺序。</p>
+                      请先在各套<strong>{{ practiceLayer === 'mock' ? '模拟题' : (practiceLayer === 'domain' ? '知识域' : '综合题') }}</strong>里做题并<strong>交卷</strong>，错题会按题去重后出现在这里。重新进入本页会重新打乱顺序。</p>
                   </div>
                   <div
-                    v-if="!practiceQuizBaseRows.length && activePracticeSet && !(practiceLayer === 'comprehensive' && activeComprehensiveId === comprehensiveWrongBookId) && !(practiceLayer === 'mock' && activeMockId === mockWrongBookId)"
+                    v-if="!practiceQuizBaseRows.length && activePracticeSet && !(practiceLayer === 'domain' && activeDomainId === domainWrongBookId) && !(practiceLayer === 'comprehensive' && activeComprehensiveId === comprehensiveWrongBookId) && !(practiceLayer === 'mock' && activeMockId === mockWrongBookId)"
                     class="panel-subtle"
                   >
                     <p class="eyebrow">暂无题目</p>
@@ -1606,7 +1628,7 @@
                   <ul class="mt-3 space-y-2 text-sm leading-7 text-ink/80">
                     <li v-if="practiceExamRunning">• 做题模式下不显示答案；交卷后可看分数、切换历史记录与解析。</li>
                     <li v-if="practiceExamInReview">• 阅卷结果来自本地交卷快照；可切换「历史」对比。阅卷模式下可「再做 · 本记录错题」只练该次错题。</li>
-                    <li v-if="(isComprehensiveWrongBook || isMockWrongBook) && !practiceExamActive">• 错题集来自各套{{ isMockWrongBook ? '模拟题' : '综合题' }}交卷记录，已去重；每次点进侧栏「错题集」会重新打乱。
+                    <li v-if="(isComprehensiveWrongBook || isMockWrongBook || isDomainWrongBook) && !practiceExamActive">• 错题集来自各套{{ isDomainWrongBook ? '知识域' : (isMockWrongBook ? '模拟题' : '综合题') }}交卷记录，已去重；每次点进侧栏「错题集」会重新打乱。
                     </li>
                     <li v-if="!practiceExamActive">• 用「收起/展开全部答案」批量控制；收起后点单题查看解析。</li>
                     <li v-if="practiceLayer !== 'domain' && !practiceExamActive && !isComprehensiveWrongBook">• 用「全部 /
@@ -2653,6 +2675,16 @@
   <script src="./data/practice/zonghe_3.js"></script>
   <script src="./data/practice/zonghe_4.js"></script>
   <script src="./data/practice/moni_1.js"></script>
+  <script src="./data/practice/zhishiyu_integration.js"></script>
+  <script src="./data/practice/zhishiyu_scope.js"></script>
+  <script src="./data/practice/zhishiyu_schedule.js"></script>
+  <script src="./data/practice/zhishiyu_cost.js"></script>
+  <script src="./data/practice/zhishiyu_quality.js"></script>
+  <script src="./data/practice/zhishiyu_resource.js"></script>
+  <script src="./data/practice/zhishiyu_communications.js"></script>
+  <script src="./data/practice/zhishiyu_risk.js"></script>
+  <script src="./data/practice/zhishiyu_procurement.js"></script>
+  <script src="./data/practice/zhishiyu_stakeholder.js"></script>
   <script src="./data/export_my_answers_and_history.js"></script>
   <script src="./app.js"></script>
 </body>
