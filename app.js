@@ -473,6 +473,8 @@ createApp({
       practiceRestartPickerOpen: false,
       /** 历史记录选择弹窗 */
       practiceHistoryPickerOpen: false,
+      /** 做题中：题号概览面板 */
+      practiceExamNavOpen: false,
       /** 做题模式：在浏览之上套一层考试流程；交卷写入 practiceAttemptLog */
       practiceExamActive: false,
       practiceExamRunning: false,
@@ -845,6 +847,15 @@ createApp({
     practiceQuizCardsForRender() {
       if (this.practiceExamActive) return this.practiceQuizBaseRowsForExam;
       return this.practiceQuizList;
+    },
+    practiceExamCardStates() {
+      const cards = this.practiceQuizCardsForRender || [];
+      const choices = this.practiceExamChoices && typeof this.practiceExamChoices === "object" ? this.practiceExamChoices : {};
+      return cards.map((q, idx) => {
+        const k = String(q._originIndex);
+        const picked = normalizeQuizAnswerKey(choices[k] || "");
+        return { idx, originIndex: q._originIndex, picked };
+      });
     },
     practiceExamInReview() {
       return this.practiceExamActive && !this.practiceExamRunning;
@@ -2252,6 +2263,8 @@ createApp({
       this.practiceExamRunning = true;
       this.practiceExamChoices = {};
       this.practiceExamSelectedHistoryId = "";
+      this.practiceQuizActiveIndex = 0;
+      this.practiceExamNavOpen = false;
       this.$nextTick(() => {
         this._syncPracticeQuizScrollListener();
         this._updatePracticeQuizFabNeedsScroll();
@@ -2265,8 +2278,11 @@ createApp({
       this.practiceExamRunning = false;
       this.practiceExamChoices = {};
       this.practiceExamSelectedHistoryId = "";
+      this.practiceQuizActiveIndex = 0;
+      this.practiceExamNavOpen = false;
       this.practiceExamSubsetRows = null;
       this.practiceRestartPickerOpen = false;
+      this.practiceQuizActiveIndex = 0;
       this.practiceHistoryPickerOpen = false;
       if (this.practiceLayer === "comprehensive" && this.activeComprehensiveId === this.comprehensiveWrongBookId) {
         this.practiceWrongBookSnapshot = this._buildWrongBookCandidatesShuffled();
@@ -2282,12 +2298,43 @@ createApp({
     closePracticeRestartPicker() {
       this.practiceRestartPickerOpen = false;
       this.practiceHistoryPickerOpen = false;
+      this.practiceExamNavOpen = false;
     },
     openPracticeHistoryPicker() {
       this.practiceHistoryPickerOpen = true;
     },
     closePracticeHistoryPicker() {
       this.practiceHistoryPickerOpen = false;
+    },
+    openPracticeExamNav() {
+      if (!this.practiceExamRunning) return;
+      this.practiceExamNavOpen = true;
+    },
+    closePracticeExamNav() {
+      this.practiceExamNavOpen = false;
+    },
+    goPracticeExamCard(delta) {
+      if (!this.practiceExamRunning) return;
+      const n = (this.practiceQuizCardsForRender || []).length;
+      if (!n) return;
+      const next = Math.max(0, Math.min(n - 1, (this.practiceQuizActiveIndex || 0) + delta));
+      this.practiceQuizActiveIndex = next;
+      this.$nextTick(() => {
+        const el = document.getElementById(`practice-quiz-card-${next}`);
+        if (el) el.scrollIntoView({ block: "start", behavior: "smooth" });
+      });
+    },
+    jumpToPracticeExamCard(idx) {
+      if (!this.practiceExamRunning) return;
+      const n = (this.practiceQuizCardsForRender || []).length;
+      const i = Number(idx);
+      if (!Number.isInteger(i) || i < 0 || i >= n) return;
+      this.practiceExamNavOpen = false;
+      this.practiceQuizActiveIndex = i;
+      this.$nextTick(() => {
+        const el = document.getElementById(`practice-quiz-card-${i}`);
+        if (el) el.scrollIntoView({ block: "start", behavior: "smooth" });
+      });
     },
     selectPracticeHistoryAndOpen(selectValue) {
       this.practiceHistoryPickerOpen = false;
@@ -2299,6 +2346,7 @@ createApp({
     restartPracticeExam(type) {
       this.practiceRestartPickerOpen = false;
       this.practiceHistoryPickerOpen = false;
+      this.practiceExamNavOpen = false;
       if (type === "wrong") {
         this.startPracticeExam({ onlyWrongFromAttempt: true, attempt: this.practiceExamDisplayAttempt });
         return;
@@ -2377,12 +2425,21 @@ createApp({
         this._updatePracticeQuizFabNeedsScroll();
       });
     },
-    setPracticeExamOption(originIndex, optionLine) {
+    setPracticeExamOption(originIndex, cardIndex, optionLine) {
       if (!this.practiceExamRunning) return;
       const letter = extractQuizOptionLetter(optionLine);
       if (!letter) return;
       const k = String(originIndex);
       this.practiceExamChoices = { ...this.practiceExamChoices, [k]: letter };
+      const total = this.practiceQuizCardsForRender.length;
+      const i = Number(cardIndex);
+      if (Number.isInteger(i) && i >= 0 && i < total - 1) {
+        this.practiceQuizActiveIndex = i + 1;
+        this.$nextTick(() => {
+          const el = document.getElementById(`practice-quiz-card-${this.practiceQuizActiveIndex}`);
+          if (el) el.scrollIntoView({ block: "start", behavior: "smooth" });
+        });
+      }
     },
     practiceExamRunningOptionClass(question, optionLine) {
       const letter = extractQuizOptionLetter(optionLine);
@@ -2435,6 +2492,8 @@ createApp({
       this.toggleQuizAnswerPeek(qi);
     },
     _updatePracticeQuizActiveIndexFromLayout() {
+      // 做题卡片模式下：题号只由「上一题/下一题/跳转」控制，禁止滚动自动改题号（会抖动/跳号）
+      if (this.practiceExamRunning) return;
       const cards = this.practiceQuizCardsForRender;
       if (this.activeView !== "quiz" || this.quizSubMode !== "quiz" || !cards || !cards.length) {
         return;
@@ -2473,6 +2532,13 @@ createApp({
     },
     _syncPracticeQuizScrollListener() {
       this._detachPracticeQuizScrollListener();
+      // 做题卡片模式：不绑定滚动监听，避免 scrollIntoView/手势滚动引发题号抖动
+      if (this.practiceExamRunning) {
+        this.practiceQuizFabScrolling = false;
+        this.practiceQuizScrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+        this.$nextTick(() => this._updatePracticeQuizFabNeedsScroll());
+        return;
+      }
       const cards = this.practiceQuizCardsForRender;
       if (this.activeView !== "quiz" || this.quizSubMode !== "quiz" || !cards || !cards.length) {
         return;

@@ -1107,6 +1107,45 @@
                 </div>
               </div>
             </teleport>
+            <teleport to="body">
+              <div
+                v-if="practiceExamNavOpen"
+                class="practice-restart-modal-backdrop"
+                @click="closePracticeExamNav"
+              >
+                <div
+                  class="practice-restart-modal"
+                  @click.stop
+                >
+                  <p class="practice-restart-modal__title">答题情况</p>
+                  <div class="practice-nav-grid">
+                    <button
+                      v-for="st in practiceExamCardStates"
+                      :key="'nav-'+st.idx"
+                      type="button"
+                      class="practice-nav-cell"
+                      :class="{
+                        'practice-nav-cell--active': st.idx === practiceQuizActiveIndex,
+                        'practice-nav-cell--answered': !!st.picked
+                      }"
+                      @click="jumpToPracticeExamCard(st.idx)"
+                    >
+                      <span class="practice-nav-cell__num">{{ st.idx + 1 }}</span>
+                      <span
+                        v-if="st.picked"
+                        class="practice-nav-cell__pick"
+                      >{{ st.picked }}</span>
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    class="practice-exam-ghost-btn"
+                    @click="closePracticeExamNav"
+                  >关闭</button>
+                </div>
+              </div>
+            </teleport>
+
             <div class="mb-3 flex flex-wrap items-end justify-between gap-3">
               <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Practice Mode</p>
@@ -1146,6 +1185,20 @@
                     >开始练习</button>
                   </template>
                   <template v-else-if="practiceExamRunning">
+                    <button
+                      type="button"
+                      class="practice-exam-icon-btn"
+                      title="查看答题情况"
+                      aria-label="查看答题情况"
+                      @click="openPracticeExamNav"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="4" y="4" width="6" height="6" rx="1" />
+                        <rect x="14" y="4" width="6" height="6" rx="1" />
+                        <rect x="4" y="14" width="6" height="6" rx="1" />
+                        <rect x="14" y="14" width="6" height="6" rx="1" />
+                      </svg>
+                    </button>
                     <button
                       type="button"
                       class="process-nav-btn shrink-0"
@@ -1292,6 +1345,7 @@
                     class="quiz-card"
                     :class="{ 'is-peekable cursor-pointer': !quizAnswersGlobalShow && !practiceExamActive }"
                     @click="onPracticeQuizCardShellClick(question._originIndex ?? qi)"
+                    v-show="!practiceExamRunning || qi === practiceQuizActiveIndex"
                   >
                     <div class="mb-2 flex items-center justify-between gap-3">
                       <div class="flex flex-wrap items-center gap-2">
@@ -1303,7 +1357,10 @@
                         >{{ practiceExamReviewVerdict(question) }}</span>
                       </div>
                       <div class="flex items-center gap-2">
-                        <div class="rounded-full bg-mint/20 px-3 py-1 text-xs font-semibold text-lagoon">
+                        <div
+                          v-if="!practiceExamRunning"
+                          class="rounded-full bg-mint/20 px-3 py-1 text-xs font-semibold text-lagoon"
+                        >
                           <template v-if="question._wrongBookSource">{{ question._wrongBookSource.setTitle }} · 原第{{ question._wrongBookSource.originIndex + 1 }}题</template>
                           <template v-else>{{ question.relatedProcess }}</template>
                         </div>
@@ -1342,7 +1399,7 @@
                           v-if="practiceExamRunning"
                           type="button"
                           :class="practiceExamRunningOptionClass(question, option)"
-                          @click.stop="setPracticeExamOption(question._originIndex ?? qi, option)"
+                          @click.stop="setPracticeExamOption(question._originIndex ?? qi, qi, option)"
                         >{{ option }}</button>
                         <span
                           v-else-if="practiceExamInReview"
@@ -1359,7 +1416,29 @@
                           @touchcancel.stop="endSnippetPress"
                         >• {{ option }}</span>
                       </li>
-                    </ul>
+                    <div
+                      v-if="practiceExamRunning"
+                      class="practice-card-nav"
+                    >
+                      <button
+                        type="button"
+                        class="practice-card-nav-btn"
+                        :disabled="practiceQuizActiveIndex <= 0"
+                        @click.stop="goPracticeExamCard(-1)"
+                      >上一题</button>
+                      <button
+                        type="button"
+                        class="practice-card-nav-btn practice-card-nav-btn--primary"
+                        :disabled="practiceQuizActiveIndex >= practiceQuizCardsForRender.length - 1"
+                        @click.stop="goPracticeExamCard(1)"
+                      >下一题</button>
+                      <button
+                        type="button"
+                        class="practice-card-nav-link"
+                        @click.stop="openPracticeExamNav"
+                      >题号</button>
+                    </div>
+
                     <p
                       v-if="!practiceExamActive && !quizAnswersGlobalShow && !isQuizAnswerVisible(question._originIndex ?? qi)"
                       class="quiz-peek-hint"

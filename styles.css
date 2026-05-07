@@ -523,6 +523,122 @@ code {
 
 
 
+
+.practice-exam-icon-btn {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 76, 92, 0.14);
+  background: rgba(255, 255, 255, 0.9);
+  color: rgba(15, 76, 92, 0.72);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: 140ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.practice-exam-icon-btn svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.practice-exam-icon-btn:hover {
+  color: #0f4c5c;
+  border-color: rgba(31, 122, 140, 0.35);
+  box-shadow: 0 0 0 2px rgba(101, 195, 186, 0.18);
+}
+
+.practice-card-nav {
+  margin-top: 0.7rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.practice-card-nav-btn {
+  border-radius: 999px;
+  border: 1px solid rgba(15, 76, 92, 0.12);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0.42rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #0f4c5c;
+  cursor: pointer;
+  transition: 140ms ease;
+}
+
+.practice-card-nav-btn:disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.practice-card-nav-btn--primary {
+  border-color: rgba(28, 124, 125, 0.22);
+  background: rgba(101, 195, 186, 0.18);
+}
+
+.practice-card-nav-link {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: rgba(15, 76, 92, 0.55);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.practice-nav-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.4rem;
+  max-height: 52vh;
+  overflow: auto;
+  padding-right: 0.15rem;
+}
+
+.practice-nav-cell {
+  border-radius: 12px;
+  border: 1px solid rgba(15, 76, 92, 0.12);
+  background: #fff;
+  padding: 0.45rem 0.35rem;
+  display: grid;
+  gap: 0.1rem;
+  text-align: center;
+  cursor: pointer;
+}
+
+.practice-nav-cell--answered {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.28);
+}
+
+.practice-nav-cell--active {
+  border-color: rgba(31, 122, 140, 0.5);
+  box-shadow: 0 0 0 2px rgba(101, 195, 186, 0.22);
+}
+
+.practice-nav-cell__num {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #16313f;
+}
+
+.practice-nav-cell__pick {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: rgba(15, 76, 92, 0.55);
+}
+
+@media (max-width: 767px) {
+  .practice-nav-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 .practice-history-trigger {
   border: none;
   background: transparent;
