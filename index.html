@@ -1441,7 +1441,7 @@
                           v-else-if="practiceExamInReview"
                           :class="practiceExamReviewOptionClass(question, option)"
                           class="quiz-option-review-line"
-                        >• {{ option }}</span>
+                        >{{ option }}</span>
                         <span
                           v-else
                           @mousedown.stop="startSnippetPress(option, { kind: '选项', qi: question._originIndex ?? qi })"
@@ -1450,7 +1450,7 @@
                           @touchstart.stop="startSnippetPress(option, { kind: '选项', qi: question._originIndex ?? qi })"
                           @touchend.stop="endSnippetPress"
                           @touchcancel.stop="endSnippetPress"
-                        >• {{ option }}</span>
+                        >{{ option }}</span>
                       </li>
                       <div
                         v-if="practiceExamRunning"
