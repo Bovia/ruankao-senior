@@ -1096,7 +1096,10 @@
                         >1.5×</button>
                       </div>
                     </div> -->
-                    <div class="quiz-ans-bar quiz-ans-bar--compact">
+                    <div
+                      v-if="practiceLayer !== 'domain'"
+                      class="quiz-ans-bar quiz-ans-bar--compact"
+                    >
                       <button
                         type="button"
                         class="quiz-ans-btn"
@@ -1118,7 +1121,7 @@
                     </div>
                   </div>
                   <div
-                    v-if="practiceQuizBaseRows.length && !practiceQuizList.length"
+                    v-if="practiceLayer !== 'domain' && practiceQuizBaseRows.length && !practiceQuizList.length"
                     class="panel-subtle"
                   >
                     <p class="eyebrow">暂无匹配</p>
@@ -1284,7 +1287,7 @@
                   <p class="eyebrow">练习提示</p>
                   <ul class="mt-3 space-y-2 text-sm leading-7 text-ink/80">
                     <li>• 用「收起/展开全部答案」批量控制；收起后点单题查看解析。</li>
-                    <li>• 用「全部 / 只看错题 / 只对题」按「你的答案」筛选（综合题 Markdown 需含你的答案行）。</li>
+                    <li v-if="practiceLayer !== 'domain'">• 用「全部 / 只看错题 / 只对题」按「你的答案」筛选（综合题 / 模考 Markdown 需含你的答案行）。</li>
                     <li>• 切「连连看」配对输出与过程。</li>
                     <li>• 学习卡开「盲填」主动回忆。</li>
                   </ul>

@@ -737,7 +737,7 @@ createApp({
     },
     practiceQuizList() {
       const rows = this.practiceQuizBaseRows;
-      const f = this.practiceBrowseResultFilter;
+      const f = this.practiceLayer === "domain" ? "all" : this.practiceBrowseResultFilter;
       if (f === "all") return rows;
       return rows.filter((q) => {
         const u = String(q.userAnswer || "").trim().toUpperCase();
