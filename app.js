@@ -143,6 +143,55 @@ function pickQuizZhVoice(synth, savedUri) {
   })[0];
 }
 
+/** 单条 utterance 过长时部分浏览器会卡顿或中断，按标点切成多段队列播放 */
+const QUIZ_TTS_CHUNK_MAX = 200;
+const QUIZ_TTS_CHUNK_MIN_BREAK = 28;
+
+function buildQuizTtsChunks(plain) {
+  const t = String(plain || "").trim();
+  if (!t) return { chunks: [], starts: [] };
+  if (t.length <= QUIZ_TTS_CHUNK_MAX) {
+    return { chunks: [t], starts: [0] };
+  }
+  const chunks = [];
+  let i = 0;
+  const n = t.length;
+  while (i < n) {
+    let end = Math.min(i + QUIZ_TTS_CHUNK_MAX, n);
+    if (end < n) {
+      const win = t.slice(i, end);
+      let cut = -1;
+      for (const delim of ["。", "！", "？", "…"]) {
+        const pos = win.lastIndexOf(delim);
+        if (pos >= QUIZ_TTS_CHUNK_MIN_BREAK) cut = Math.max(cut, pos);
+      }
+      if (cut >= 0) {
+        end = i + cut + 1;
+      } else {
+        const comma = win.lastIndexOf("，");
+        if (comma >= QUIZ_TTS_CHUNK_MIN_BREAK) {
+          end = i + comma + 1;
+        } else {
+          const semi = win.lastIndexOf("；");
+          if (semi >= QUIZ_TTS_CHUNK_MIN_BREAK) end = i + semi + 1;
+        }
+      }
+    }
+    chunks.push(t.slice(i, end));
+    i = end;
+  }
+  let acc = 0;
+  const starts = chunks.map((c) => {
+    const s = acc;
+    acc += c.length;
+    return s;
+  });
+  if (acc !== t.length) {
+    return { chunks: [t], starts: [0] };
+  }
+  return { chunks, starts };
+}
+
 function visibleViewIdsForModule(moduleId, knowledgeData, views) {
   const domains = Object.values(knowledgeData || {}).filter((d) => (d.module || "pm") === moduleId);
   const has = (field) => domains.some((d) => {
@@ -1538,14 +1587,34 @@ createApp({
         .replace(/\s+/g, " ")
         .trim();
     },
+    /** 播报专用：减少怪异停顿与引擎吃字 */
+    normalizeQuizAnalysisForTts(text) {
+      let s = this.normalizeQuizAnalysisPlain(text);
+      s = s
+        .replace(/\.{3,}/g, "…")
+        .replace(/[`]{2,}/g, "")
+        .replace(/\s*·\s*/g, "，")
+        .replace(/\s*•\s*/g, "，")
+        .replace(/[()（）【】\[\]]/g, " ")
+        .replace(/[，,]{2,}/g, "，")
+        .replace(/[。.]{2,}/g, "。")
+        .replace(/\s+/g, " ")
+        .trim();
+      return s;
+    },
     _clearQuizTtsUi() {
       this.quizTtsPlayingIndex = null;
       this._quizTtsFullPlain = null;
       this._quizTtsProgressAbs = 0;
       this._quizTtsSegmentStart = 0;
+      this._quizTtsChunkList = null;
+      this._quizTtsChunkStarts = null;
+      this._quizTtsChunkIndex = 0;
+      this._quizTtsPendingChunkPlay = null;
     },
     _bumpQuizTtsGenAndCancel() {
       this._quizTtsGen = (this._quizTtsGen || 0) + 1;
+      this._quizTtsPendingChunkPlay = null;
       if (window.speechSynthesis) window.speechSynthesis.cancel();
     },
     _pickQuizTtsVoiceForUtter(synth) {
@@ -1565,36 +1634,71 @@ createApp({
       }
       return v;
     },
-    _playQuizTtsSegment(fullPlain, absOffset, qi) {
+    _mapQuizTtsAbsToChunk(chunks, starts, abs) {
+      if (!chunks || !starts || !chunks.length) return { chunkIdx: 0, offsetInChunk: 0 };
+      const n = starts[starts.length - 1] + chunks[chunks.length - 1].length;
+      let a = typeof abs === "number" ? abs : 0;
+      if (a < 0) a = 0;
+      if (a > n) a = n;
+      for (let i = starts.length - 1; i >= 0; i--) {
+        if (a >= starts[i]) {
+          const off = Math.min(a - starts[i], chunks[i].length);
+          return { chunkIdx: i, offsetInChunk: off };
+        }
+      }
+      return { chunkIdx: 0, offsetInChunk: 0 };
+    },
+    _playQuizTtsSequence(plain, chunks, starts, qi, chunkIdx, offsetInChunk) {
       const synth = window.speechSynthesis;
-      if (!synth) return;
-      const segment = fullPlain.slice(absOffset).trim();
-      if (!segment) {
+      if (!synth || !chunks.length) {
         this._clearQuizTtsUi();
         return;
       }
       const gen = this._quizTtsGen;
       if (!synth.getVoices().length) {
+        this._quizTtsPendingChunkPlay = { plain, chunks, starts, qi, chunkIdx, offsetInChunk };
         const onVoices = () => {
           synth.removeEventListener("voiceschanged", onVoices);
           if (gen !== this._quizTtsGen) return;
-          this._playQuizTtsSegment(fullPlain, absOffset, qi);
+          const p = this._quizTtsPendingChunkPlay;
+          if (!p) return;
+          this._quizTtsPendingChunkPlay = null;
+          this._playQuizTtsSequence(p.plain, p.chunks, p.starts, p.qi, p.chunkIdx, p.offsetInChunk);
         };
         synth.addEventListener("voiceschanged", onVoices);
-        this._quizTtsFullPlain = fullPlain;
-        this._quizTtsSegmentStart = absOffset;
-        this._quizTtsProgressAbs = absOffset;
+        this._quizTtsFullPlain = plain;
+        this._quizTtsChunkList = chunks;
+        this._quizTtsChunkStarts = starts;
         this.quizTtsPlayingIndex = qi;
         return;
       }
-      this._quizTtsFullPlain = fullPlain;
-      this._quizTtsSegmentStart = absOffset;
-      this._quizTtsProgressAbs = absOffset;
+      this._quizTtsPendingChunkPlay = null;
+      if (chunkIdx >= chunks.length) {
+        this._clearQuizTtsUi();
+        return;
+      }
+      let piece = chunks[chunkIdx].slice(offsetInChunk);
+      const trimStartLen = piece.length - piece.trimStart().length;
+      piece = piece.trimStart();
+      const baseStart = starts[chunkIdx] + offsetInChunk + trimStartLen;
+      if (!piece) {
+        this.$nextTick(() => {
+          if (gen !== this._quizTtsGen) return;
+          this._playQuizTtsSequence(plain, chunks, starts, qi, chunkIdx + 1, 0);
+        });
+        return;
+      }
+      this._quizTtsFullPlain = plain;
+      this._quizTtsChunkList = chunks;
+      this._quizTtsChunkStarts = starts;
+      this._quizTtsChunkIndex = chunkIdx;
+      this._quizTtsSegmentStart = baseStart;
+      this._quizTtsProgressAbs = baseStart;
       this.quizTtsPlayingIndex = qi;
 
-      const utter = new SpeechSynthesisUtterance(segment);
+      const utter = new SpeechSynthesisUtterance(piece);
       utter.volume = 1;
-      utter.pitch = 1;
+      utter.pitch = 0.98;
       utter.rate = this.quizTtsRate;
       const zh = this._pickQuizTtsVoiceForUtter(synth);
       if (zh) {
@@ -1608,18 +1712,24 @@ createApp({
         if (gen !== this._quizTtsGen) return;
         if (this.quizTtsPlayingIndex !== qi) return;
         if (typeof e.charIndex === "number") {
-          this._quizTtsProgressAbs = this._quizTtsSegmentStart + e.charIndex;
+          this._quizTtsProgressAbs = baseStart + e.charIndex;
         }
       };
       utter.onend = () => {
         if (gen !== this._quizTtsGen) return;
         if (this.quizTtsPlayingIndex !== qi) return;
-        this._clearQuizTtsUi();
+        this.$nextTick(() => {
+          if (gen !== this._quizTtsGen) return;
+          this._playQuizTtsSequence(plain, chunks, starts, qi, chunkIdx + 1, 0);
+        });
       };
       utter.onerror = () => {
         if (gen !== this._quizTtsGen) return;
         if (this.quizTtsPlayingIndex !== qi) return;
-        this._clearQuizTtsUi();
+        this.$nextTick(() => {
+          if (gen !== this._quizTtsGen) return;
+          this._playQuizTtsSequence(plain, chunks, starts, qi, chunkIdx + 1, 0);
+        });
       };
       synth.speak(utter);
     },
@@ -1630,20 +1740,24 @@ createApp({
       if (prev === r) return;
       if (this.quizTtsPlayingIndex == null || !this._quizTtsFullPlain) return;
       const full = this._quizTtsFullPlain;
+      const chunks = this._quizTtsChunkList;
+      const starts = this._quizTtsChunkStarts;
+      if (!chunks || !starts || !chunks.length) return;
       const qi = this.quizTtsPlayingIndex;
       let off = this._quizTtsProgressAbs;
       if (typeof off !== "number" || off < 0 || off > full.length) {
         off = this._quizTtsSegmentStart || 0;
       }
+      const { chunkIdx, offsetInChunk } = this._mapQuizTtsAbsToChunk(chunks, starts, off);
       this._bumpQuizTtsGenAndCancel();
       this.$nextTick(() => {
-        this._playQuizTtsSegment(full, off, qi);
+        this._playQuizTtsSequence(full, chunks, starts, qi, chunkIdx, offsetInChunk);
       });
     },
     speakQuizAnalysis(text, qi) {
       const synth = window.speechSynthesis;
       if (!synth) return;
-      const plain = this.normalizeQuizAnalysisPlain(text);
+      const plain = this.normalizeQuizAnalysisForTts(text);
       if (!plain) return;
 
       if (this.quizTtsPlayingIndex === qi) {
@@ -1652,9 +1766,12 @@ createApp({
         return;
       }
 
+      const { chunks, starts } = buildQuizTtsChunks(plain);
+      if (!chunks.length) return;
+
       this._bumpQuizTtsGenAndCancel();
       this.$nextTick(() => {
-        this._playQuizTtsSegment(plain, 0, qi);
+        this._playQuizTtsSequence(plain, chunks, starts, qi, 0, 0);
       });
     },
     persistNavState() {

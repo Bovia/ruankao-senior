@@ -2108,7 +2108,7 @@ code {
 .domain-aside-sticky {
   --domain-nav-max-height: 78vh;
   position: sticky;
-  top: -80px;
+  top: -40px;
   z-index: 30;
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(16px);
@@ -2116,6 +2116,11 @@ code {
   border-left: 3px solid #1c7c7d;
   box-shadow: 0 6px 24px rgba(12, 55, 72, 0.13);
   padding: 5px 5px !important;
+}
+
+/* 练习场：侧栏吸顶偏移更大，避免与顶栏/练习分段重叠 */
+.domain-aside-sticky.domain-aside-sticky--quiz {
+  top: -80px;
 }
 
 .domain-aside-sticky h2 {
@@ -2133,6 +2138,9 @@ code {
     border-left: none;
     box-shadow: unset;
     padding: unset !important;
+  }
+  .domain-aside-sticky.domain-aside-sticky--quiz {
+    top: 90px;
   }
   .domain-aside-sticky h2 {
     font-size: unset;

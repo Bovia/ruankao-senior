@@ -214,6 +214,7 @@
         <aside
           v-if="activeView !== 'processGroup'"
           class="domain-aside-sticky panel p-3 md:p-4 min-w-0"
+          :class="{ 'domain-aside-sticky--quiz': activeView === 'quiz' }"
         >
           <div
             v-if="activeView === 'quiz'"
