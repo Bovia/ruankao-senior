@@ -820,6 +820,24 @@ createApp({
         return true;
       });
     },
+    /** 阅卷态：筛选对象来自当前选择的历史记录（attempt），而不是题库字段 */
+    practiceQuizReviewList() {
+      const rows = this.practiceQuizBaseRows;
+      const f = this.practiceLayer === "domain" ? "all" : this.practiceBrowseResultFilter;
+      if (f === "all") return rows;
+      const att = this.practiceExamDisplayAttempt;
+      const answerMap = att && att.answerMap && typeof att.answerMap === "object" ? att.answerMap : {};
+      const choices = att && att.choices && typeof att.choices === "object" ? att.choices : {};
+      return rows.filter((q) => {
+        const k = String(q._originIndex);
+        const ans = normalizeQuizAnswerKey(answerMap[k] || q.answer || "");
+        const user = normalizeQuizAnswerKey(choices[k] || "");
+        if (!user || !ans) return false;
+        if (f === "wrong") return user !== ans;
+        if (f === "correct") return user === ans;
+        return true;
+      });
+    },
     practiceHasUserAnswersForActiveSet() {
       const set = this.activePracticeSet;
       if (!set || !set.key) return false;
@@ -856,7 +874,8 @@ createApp({
     },
     /** 练习场当前展示的题单：考试模式用 base 或子集；浏览用筛选列表 */
     practiceQuizCardsForRender() {
-      if (this.practiceExamActive) return this.practiceQuizBaseRowsForExam;
+      if (this.practiceExamRunning) return this.practiceQuizBaseRowsForExam;
+      if (this.practiceExamInReview) return this.practiceQuizReviewList;
       return this.practiceQuizList;
     },
     practiceExamCardStates() {
@@ -2530,7 +2549,7 @@ createApp({
       return "text-ink/45";
     },
     toggleQuizAnswerPeek(qi) {
-      if (this.practiceExamActive || this.quizAnswersGlobalShow) return;
+      if (this.practiceExamRunning || this.quizAnswersGlobalShow) return;
       const key = String(qi);
       const next = { ...this.quizAnswerPeek };
       if (next[key]) delete next[key];
@@ -2538,7 +2557,7 @@ createApp({
       this.quizAnswerPeek = next;
     },
     onPracticeQuizCardShellClick(qi) {
-      if (this.practiceExamActive) return;
+      if (this.practiceExamRunning) return;
       this.toggleQuizAnswerPeek(qi);
     },
     _updatePracticeQuizActiveIndexFromLayout() {
