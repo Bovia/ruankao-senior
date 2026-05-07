@@ -382,13 +382,6 @@
                 :class="{ 'domain-pill-active': activeMockId === set.id }"
                 :data-domain-id="set.id"
               >{{ set.title }}</button>
-              <button
-                type="button"
-                @click="selectMockSet(mockWrongBookId)"
-                class="domain-pill domain-pill--wrongbook"
-                :class="{ 'domain-pill-active': activeMockId === mockWrongBookId }"
-                :data-domain-id="mockWrongBookId"
-              >错题集</button>
             </div>
             <div class="domain-nav domain-nav-scroll hidden gap-4 lg:flex lg:flex-col">
               <div class="flex flex-col gap-2">
@@ -406,19 +399,6 @@
                     <span class="domain-badge">{{ (set.quiz || []).length }}</span>
                   </div>
                   <p class="line-clamp-2 text-sm leading-6 text-ink/70">{{ set.summary }}</p>
-                </button>
-                <button
-                  type="button"
-                  @click="selectMockSet(mockWrongBookId)"
-                  class="domain-card domain-card--wrongbook"
-                  :class="{ 'domain-card-active': activeMockId === mockWrongBookId }"
-                  style="--domain-accent: #b45309"
-                >
-                  <div class="mb-2 flex items-center justify-between gap-3">
-                    <span class="domain-name">错题集</span>
-                    <span class="domain-badge">{{ mockWrongBookCount }}</span>
-                  </div>
-                  <p class="line-clamp-2 text-sm leading-6 text-ink/70">全部模拟题交卷中的错题，本地去重并随机排序。</p>
                 </button>
               </div>
             </div>
@@ -1263,7 +1243,7 @@
                       type="button"
                       class="process-nav-btn shrink-0"
                       @click="submitPracticeExam"
-                    >{{ (isComprehensiveWrongBook || isMockWrongBook) ? '完成' : '交卷' }}</button>
+                    >{{ isComprehensiveWrongBook ? '完成' : '交卷' }}</button>
                     <!-- <button
                       type="button"
                       class="practice-exam-ghost-btn shrink-0"
@@ -1388,15 +1368,15 @@
                     <p class="mt-2 text-sm leading-7 text-ink/80">当前筛选下没有题目。可切回「全部」，或换一条做题记录再看。</p>
                   </div>
                   <div
-                    v-if="!practiceQuizBaseRows.length && ((practiceLayer === 'comprehensive' && activeComprehensiveId === comprehensiveWrongBookId) || (practiceLayer === 'mock' && activeMockId === mockWrongBookId))"
+                    v-if="!practiceQuizBaseRows.length && practiceLayer === 'comprehensive' && activeComprehensiveId === comprehensiveWrongBookId"
                     class="panel-subtle"
                   >
                     <p class="eyebrow">错题集还是空的</p>
                     <p class="mt-2 text-sm leading-7 text-ink/80">
-                      请先在各套<strong>{{ practiceLayer === 'mock' ? '模拟题' : '综合题' }}</strong>里做题并<strong>交卷</strong>，错题会按题去重后出现在这里。重新进入本页会重新打乱顺序。</p>
+                      请先在各套<strong>综合题</strong>里做题并<strong>交卷</strong>，错题会按题去重后出现在这里。重新进入本页会重新打乱顺序。</p>
                   </div>
                   <div
-                    v-if="!practiceQuizBaseRows.length && activePracticeSet && !(practiceLayer === 'comprehensive' && activeComprehensiveId === comprehensiveWrongBookId) && !(practiceLayer === 'mock' && activeMockId === mockWrongBookId)"
+                    v-if="!practiceQuizBaseRows.length && activePracticeSet && activeComprehensiveId !== comprehensiveWrongBookId"
                     class="panel-subtle"
                   >
                     <p class="eyebrow">暂无题目</p>
@@ -1606,7 +1586,7 @@
                   <ul class="mt-3 space-y-2 text-sm leading-7 text-ink/80">
                     <li v-if="practiceExamRunning">• 做题模式下不显示答案；交卷后可看分数、切换历史记录与解析。</li>
                     <li v-if="practiceExamInReview">• 阅卷结果来自本地交卷快照；可切换「历史」对比。阅卷模式下可「再做 · 本记录错题」只练该次错题。</li>
-                    <li v-if="(isComprehensiveWrongBook || isMockWrongBook) && !practiceExamActive">• 错题集来自各套{{ isMockWrongBook ? '模拟题' : '综合题' }}交卷记录，已去重；每次点进侧栏「错题集」会重新打乱。
+                    <li v-if="isComprehensiveWrongBook && !practiceExamActive">• 错题集来自各套综合题交卷记录，已去重；每次点进侧栏「错题集」会重新打乱。
                     </li>
                     <li v-if="!practiceExamActive">• 用「收起/展开全部答案」批量控制；收起后点单题查看解析。</li>
                     <li v-if="practiceLayer !== 'domain' && !practiceExamActive && !isComprehensiveWrongBook">• 用「全部 /

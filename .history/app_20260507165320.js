@@ -2575,21 +2575,18 @@ createApp({
       }
       return [];
     },
-    _collectWrongBookCandidatesNoShuffleByLayer(layer) {
+    _collectWrongBookCandidatesNoShuffle() {
       const out = [];
       const seen = new Set();
-      const isMockLayer = layer === "mock";
-      const sets = isMockLayer ? this.mockSets : this.comprehensiveSets;
-      const wrongBookId = isMockLayer ? this.mockWrongBookId : this.comprehensiveWrongBookId;
-      const setIdIndex = isMockLayer ? 4 : 3;
+      const sets = this.comprehensiveSets;
       const setById = Object.fromEntries(sets.map((s) => [s.id, s]));
       const latestBySet = {};
       const log = this.practiceAttemptLog || {};
       for (const [bundleKey, attempts] of Object.entries(log)) {
         const parts = bundleKey.split("|");
-        if (parts.length < 5 || parts[0] !== "quiz" || parts[1] !== layer) continue;
-        const setId = parts[setIdIndex];
-        if (setId === wrongBookId || !setById[setId]) continue;
+        if (parts.length < 5 || parts[0] !== "quiz" || parts[1] !== "comprehensive") continue;
+        const compId = parts[3];
+        if (compId === this.comprehensiveWrongBookId || !setById[compId]) continue;
         if (!Array.isArray(attempts) || !attempts.length) continue;
         let latest = null;
         for (const att of attempts) {
@@ -2598,24 +2595,24 @@ createApp({
           if (!latest || (att.ts || 0) > (latest.ts || 0)) latest = att;
         }
         if (!latest) continue;
-        if (!latestBySet[setId] || (latest.ts || 0) > (latestBySet[setId].ts || 0)) {
-          latestBySet[setId] = latest;
+        if (!latestBySet[compId] || (latest.ts || 0) > (latestBySet[compId].ts || 0)) {
+          latestBySet[compId] = latest;
         }
       }
-      for (const [setId, latest] of Object.entries(latestBySet)) {
-        const set = setById[setId];
+      for (const [compId, latest] of Object.entries(latestBySet)) {
+        const set = setById[compId];
         const quiz = this._resolveSetQuiz(set);
         if (!Array.isArray(quiz) || !quiz.length) continue;
         const wrongIndices = this._extractAnsweredWrongIndicesFromAttempt(latest);
         for (const oi of wrongIndices) {
-          const dedupe = `${setId}|${oi}`;
+          const dedupe = `${compId}|${oi}`;
           if (seen.has(dedupe)) continue;
           const q = quiz[oi];
           if (!q) continue;
           seen.add(dedupe);
           out.push({
             ...q,
-            _wrongBookSource: { setId, setTitle: set.title, originIndex: oi }
+            _wrongBookSource: { setId: compId, setTitle: set.title, originIndex: oi }
           });
         }
       }
@@ -2626,25 +2623,69 @@ createApp({
       });
       return out;
     },
-    _collectWrongBookCandidatesNoShuffle() {
-      return this._collectWrongBookCandidatesNoShuffleByLayer("comprehensive");
-    },
     _collectMockWrongBookCandidatesNoShuffle() {
-      return this._collectWrongBookCandidatesNoShuffleByLayer("mock");
+      const out = [];
+      const seen = new Set();
+      const sets = this.mockSets;
+      const setById = Object.fromEntries(sets.map((s) => [s.id, s]));
+      const latestBySet = {};
+      const log = this.practiceAttemptLog || {};
+      for (const [bundleKey, attempts] of Object.entries(log)) {
+        const parts = bundleKey.split("|");
+        if (parts.length < 5 || parts[0] !== "quiz" || parts[1] !== "mock") continue;
+        const mockId = parts[4];
+        if (mockId === this.mockWrongBookId || !setById[mockId]) continue;
+        if (!Array.isArray(attempts) || !attempts.length) continue;
+        let latest = null;
+        for (const att of attempts) {
+          if (!att || typeof att !== "object") continue;
+          if (att.isDraft) continue;
+          if (!latest || (att.ts || 0) > (latest.ts || 0)) latest = att;
+        }
+        if (!latest) continue;
+        if (!latestBySet[mockId] || (latest.ts || 0) > (latestBySet[mockId].ts || 0)) {
+          latestBySet[mockId] = latest;
+        }
+      }
+      for (const [mockId, latest] of Object.entries(latestBySet)) {
+        const set = setById[mockId];
+        const quiz = this._resolveSetQuiz(set);
+        if (!Array.isArray(quiz) || !quiz.length) continue;
+        const wrongIndices = this._extractAnsweredWrongIndicesFromAttempt(latest);
+        for (const oi of wrongIndices) {
+          const dedupe = `${mockId}|${oi}`;
+          if (seen.has(dedupe)) continue;
+          const q = quiz[oi];
+          if (!q) continue;
+          seen.add(dedupe);
+          out.push({
+            ...q,
+            _wrongBookSource: { setId: mockId, setTitle: set.title, originIndex: oi }
+          });
+        }
+      }
+      out.sort((a, b) => {
+        const sa = `${a._wrongBookSource.setId}|${a._wrongBookSource.originIndex}`;
+        const sb = `${b._wrongBookSource.setId}|${b._wrongBookSource.originIndex}`;
+        return sa.localeCompare(sb, "en");
+      });
+      return out;
     },
-    _buildWrongBookCandidatesShuffledByLayer(layer) {
-      const arr = this._collectWrongBookCandidatesNoShuffleByLayer(layer).map((q) => ({ ...q }));
+    _buildWrongBookCandidatesShuffled() {
+      const arr = this._collectWrongBookCandidatesNoShuffle().map((q) => ({ ...q }));
       for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [arr[i], arr[j]] = [arr[j], arr[i]];
       }
       return arr;
     },
-    _buildWrongBookCandidatesShuffled() {
-      return this._buildWrongBookCandidatesShuffledByLayer("comprehensive");
-    },
     _buildMockWrongBookCandidatesShuffled() {
-      return this._buildWrongBookCandidatesShuffledByLayer("mock");
+      const arr = this._collectMockWrongBookCandidatesNoShuffle().map((q) => ({ ...q }));
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
     },
     startPracticeExam(options) {
       const opts = options || {};
