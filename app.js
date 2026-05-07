@@ -5,7 +5,7 @@ const { createApp } = Vue;
  * 支持的格式：
  *   数字、 *[单选]* 或 数字、[单选] 题目（题干可续到下一行，遇选项/答案/解析为止）
  *   -  A： 或  A： 选项（行首空格 + 字母 + 全角/半角冒号）
- *   正确答案：**X** 或 正确答案：X；可选 你的答案：**Y** / 你的答案：Y
+ *   正确答案：**X** 或 正确答案：X
  *   解析：解析内容…
  */
 function parsePracticeMarkdown(text) {
@@ -58,12 +58,8 @@ function parsePracticeMarkdown(text) {
     }
 
     const ansBold = trimmed.match(/正确答案[：:]\s*\*\*([^*]+)\*\*/);
-    const ansPlain = trimmed.match(/正确答案[：:]\s*([A-Za-z])(?=\s|你的答案|\n|$)/);
+    const ansPlain = trimmed.match(/正确答案[：:]\s*([A-Za-z])(?=\s|\n|$)/);
     const answer = (ansBold ? ansBold[1] : ansPlain ? ansPlain[1] : "").trim();
-
-    const uaBold = trimmed.match(/你的答案[：:]\s*\*\*([^*]+)\*\*/);
-    const uaPlain = trimmed.match(/你的答案[：:]\s*([A-Za-z])(?=\s|\n|$|解析)/);
-    const userAnswer = (uaBold ? uaBold[1] : uaPlain ? uaPlain[1] : "").trim();
 
     // 解析（"解析：" 之后的所有内容，去掉行首的图片链接）
     const analysisMatch = trimmed.match(/解析[：:]([^]*)/);
@@ -84,7 +80,7 @@ function parsePracticeMarkdown(text) {
       : "";
 
     if (question && options.length > 0) {
-      questions.push({ question, type, options, answer, userAnswer, analysis, relatedProcess });
+      questions.push({ question, type, options, answer, analysis, relatedProcess });
     }
   }
 
@@ -115,7 +111,9 @@ const CAT_STORAGE_KEY = "jiyiqi-cat-v1";
 const QUIZ_TTS_VOICE_STORAGE_KEY = "jiyiqi-quiz-tts-voice-uri-v1";
 /** 练习场按套卷记录的交卷历史（分数、选项快照），供阅卷与后续错题聚合 */
 const PRACTICE_ATTEMPTS_STORAGE_KEY = "jiyiqi-practice-attempts-v1";
-const PROJECT_CACHE_KEYS = [NAV_STORAGE_KEY, FAVORITES_STORAGE_KEY, QUIZ_TTS_VOICE_STORAGE_KEY, PRACTICE_ATTEMPTS_STORAGE_KEY];
+/** 练习场：外部导入的“我的答案”配置（不写进题库 Markdown，避免影响解析阅读） */
+const PRACTICE_USER_ANS_STORAGE_KEY = "jiyiqi-practice-user-answers-v1";
+const PROJECT_CACHE_KEYS = [NAV_STORAGE_KEY, FAVORITES_STORAGE_KEY, QUIZ_TTS_VOICE_STORAGE_KEY, PRACTICE_ATTEMPTS_STORAGE_KEY, PRACTICE_USER_ANS_STORAGE_KEY];
 /** 综合题侧栏「错题集」虚拟套卷 id（非 practiceSets 配置项） */
 const COMPREHENSIVE_WRONG_BOOK_ID = "__wrongbook__";
 
@@ -483,6 +481,8 @@ createApp({
       practiceExamSelectedHistoryId: "",
       /** { [quizBundleKey]: Attempt[] } */
       practiceAttemptLog: {},
+      /** 外部导入的我的答案：{ [setKey]: { [originIndex]: 'A'|'B'|'C'|'D' } } */
+      practiceUserAnswers: {},
       practiceSetCache: {},    // { [set.id]: quiz[] }，首次访问时同步解析并缓存
       quizTtsPlayingIndex: null, // 当前朗读中的题目索引（题库解析 TTS）
       quizTtsRate: 1, // 解析朗读倍速：1 / 1.25 / 1.5（Web Speech API utter.rate）
@@ -820,6 +820,13 @@ createApp({
         return true;
       });
     },
+    practiceHasUserAnswersForActiveSet() {
+      const set = this.activePracticeSet;
+      if (!set || !set.key) return false;
+      const bySet = this.practiceUserAnswers && typeof this.practiceUserAnswers === "object" ? this.practiceUserAnswers[set.key] : null;
+      if (!bySet || typeof bySet !== "object" || Array.isArray(bySet)) return false;
+      return Object.keys(bySet).length > 0;
+    },
     practicePanelTitle() {
       if (this.practiceLayer === "comprehensive" && this.activeComprehensiveSet) {
         return this.activeComprehensiveSet.title;
@@ -841,7 +848,11 @@ createApp({
       return false;
     },
     quizBundleKey() {
-      return [this.activeView, this.practiceLayer, this.activeDomainId, this.activeComprehensiveId, this.activeMockId].join("|");
+      // 练习历史按“题单来源”唯一归档，避免切知识域/切套卷导致历史丢失
+      const domainId = this.practiceLayer === "domain" ? this.activeDomainId : "";
+      const compId = this.practiceLayer === "comprehensive" ? this.activeComprehensiveId : "";
+      const mockId = this.practiceLayer === "mock" ? this.activeMockId : "";
+      return [this.activeView, this.practiceLayer, domainId, compId, mockId].join("|");
     },
     /** 练习场当前展示的题单：考试模式用 base 或子集；浏览用筛选列表 */
     practiceQuizCardsForRender() {
@@ -880,9 +891,12 @@ createApp({
     },
     practicePanelLiveLabel() {
       if (this.practiceExamRunning) return "做题中ing";
-      const att = this.practiceExamDisplayAttempt;
-      if (att) return this.practiceAttemptRecordName(att.id);
-      if (this.practiceExamAttemptsForBundle.length) return "做题记录1";
+      // 只在“阅卷/历史查看”状态展示记录名；普通浏览永远叫「练习场」
+      if (this.practiceExamInReview) {
+        const att = this.practiceExamDisplayAttempt;
+        if (att) return this.practiceAttemptRecordName(att.id);
+        return "做题记录";
+      }
       return "练习场";
     },
     practiceExamHistorySelectModel: {
@@ -1291,6 +1305,7 @@ createApp({
     });
     this._loadFavorites();
     this._loadPracticeAttemptLog();
+    this._loadPracticeUserAnswers();
     if (
       this.activeView === "quiz" &&
       this.practiceLayer === "comprehensive" &&
@@ -2073,10 +2088,45 @@ createApp({
       const raw = set.key && window.practiceMarkdown && window.practiceMarkdown[set.key];
       if (raw) {
         const quiz = parsePracticeMarkdown(raw);
-        this.practiceSetCache = { ...this.practiceSetCache, [set.id]: quiz };
-        return quiz;
+        const ua = this._resolveUserAnswersForSetKey(set.key);
+        const merged = this._applyUserAnswersToQuiz(quiz, ua);
+        this.practiceSetCache = { ...this.practiceSetCache, [set.id]: merged };
+        return merged;
       }
       return set.quiz || [];
+    },
+    _loadPracticeUserAnswers() {
+      try {
+        const raw = localStorage.getItem(PRACTICE_USER_ANS_STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+          this.practiceUserAnswers = {};
+          return;
+        }
+        // 兼容两种格式：
+        // 1) { v:1, bySetKey: { zonghe_1: { "0":"D" } } }
+        // 2) 直接 { zonghe_1: { "0":"D" } }
+        const bySetKey = parsed.bySetKey && typeof parsed.bySetKey === "object" ? parsed.bySetKey : parsed;
+        this.practiceUserAnswers = bySetKey && typeof bySetKey === "object" && !Array.isArray(bySetKey) ? bySetKey : {};
+      } catch (e) {
+        this.practiceUserAnswers = {};
+      }
+    },
+    _resolveUserAnswersForSetKey(setKey) {
+      const k = String(setKey || "");
+      const ua = this.practiceUserAnswers && typeof this.practiceUserAnswers === "object" ? this.practiceUserAnswers[k] : null;
+      if (!ua || typeof ua !== "object" || Array.isArray(ua)) return {};
+      return ua;
+    },
+    _applyUserAnswersToQuiz(quiz, ua) {
+      if (!Array.isArray(quiz) || !quiz.length) return quiz || [];
+      if (!ua || typeof ua !== "object") return quiz;
+      return quiz.map((q, idx) => {
+        const hit = ua[String(idx)];
+        const picked = normalizeQuizAnswerKey(hit || "");
+        if (!picked) return q;
+        return { ...q, userAnswer: picked };
+      });
     },
     selectPracticeLayer(layer) {
       this.practiceLayer = layer;

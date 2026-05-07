@@ -1247,7 +1247,7 @@
               <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] min-w-0">
                 <div class="space-y-4">
                   <div
-                    v-if="practiceQuizCardsForRender.length && !practiceExamActive"
+                    v-if="practiceQuizCardsForRender.length && !practiceExamRunning"
                     class="flex flex-wrap items-center gap-3"
                   >
                     <div class="quiz-ans-bar">
@@ -1291,7 +1291,7 @@
                       </div>
                     </div> -->
                     <div
-                      v-if="practiceLayer !== 'domain' && !practiceExamActive && !isComprehensiveWrongBook"
+                      v-if="practiceExamInReview && practiceLayer !== 'domain' && !isComprehensiveWrongBook"
                       class="quiz-ans-bar quiz-ans-bar--compact"
                     >
                       <button
@@ -1315,11 +1315,11 @@
                     </div>
                   </div>
                   <div
-                    v-if="practiceLayer !== 'domain' && practiceQuizBaseRows.length && !practiceQuizList.length && !practiceExamActive"
+                    v-if="practiceLayer !== 'domain' && practiceQuizBaseRows.length && !practiceQuizList.length"
                     class="panel-subtle"
                   >
                     <p class="eyebrow">暂无匹配</p>
-                    <p class="mt-2 text-sm leading-7 text-ink/80">当前筛选下没有题目。综合题需 Markdown 中含「你的答案」才能区分对错；或先选「全部」。</p>
+                    <p class="mt-2 text-sm leading-7 text-ink/80">当前筛选下没有题目。请先导入“我的答案”或完成一次交卷以生成历史记录；或先选「全部」。</p>
                   </div>
                   <div
                     v-if="!practiceQuizBaseRows.length && practiceLayer === 'comprehensive' && activeComprehensiveId === comprehensiveWrongBookId"
@@ -1467,10 +1467,6 @@
                     >
                       <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                         <span><strong>答案：</strong>{{ question.answer }}</span>
-                        <span
-                          v-if="!practiceExamInReview && question.userAnswer"
-                          class="text-ink/70"
-                        ><strong>你的作答：</strong>{{ question.userAnswer }}</span>
                         <span
                           v-if="practiceExamInReview && practiceExamDisplayAttempt"
                           class="text-ink/70"
