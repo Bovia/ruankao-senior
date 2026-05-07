@@ -319,6 +319,13 @@
                 :class="{ 'domain-pill-active': activeComprehensiveId === set.id }"
                 :data-domain-id="set.id"
               >{{ set.title }}</button>
+              <button
+                type="button"
+                @click="selectComprehensiveSet(comprehensiveWrongBookId)"
+                class="domain-pill domain-pill--wrongbook"
+                :class="{ 'domain-pill-active': activeComprehensiveId === comprehensiveWrongBookId }"
+                :data-domain-id="comprehensiveWrongBookId"
+              >错题集</button>
             </div>
             <div class="domain-nav domain-nav-scroll hidden gap-4 lg:flex lg:flex-col">
               <div class="flex flex-col gap-2">
@@ -336,6 +343,19 @@
                     <span class="domain-badge">{{ (set.quiz || []).length }}</span>
                   </div>
                   <p class="line-clamp-2 text-sm leading-6 text-ink/70">{{ set.summary }}</p>
+                </button>
+                <button
+                  type="button"
+                  @click="selectComprehensiveSet(comprehensiveWrongBookId)"
+                  class="domain-card domain-card--wrongbook"
+                  :class="{ 'domain-card-active': activeComprehensiveId === comprehensiveWrongBookId }"
+                  style="--domain-accent: #b45309"
+                >
+                  <div class="mb-2 flex items-center justify-between gap-3">
+                    <span class="domain-name">错题集</span>
+                    <span class="domain-badge">{{ comprehensiveWrongBookCount }}</span>
+                  </div>
+                  <p class="line-clamp-2 text-sm leading-6 text-ink/70">全部综合题交卷中的错题，本地去重并随机排序。</p>
                 </button>
               </div>
             </div>
@@ -1028,32 +1048,153 @@
             v-else
             class="panel p-4 md:p-5 min-w-0"
           >
-            <div class="mb-4 flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+            <teleport to="body">
+              <div
+                v-if="practiceRestartPickerOpen"
+                class="practice-restart-modal-backdrop"
+                @click="closePracticeRestartPicker"
+              >
+                <div
+                  class="practice-restart-modal"
+                  @click.stop
+                >
+                  <p class="practice-restart-modal__title">选择再做方式</p>
+                  <button
+                    type="button"
+                    class="process-nav-btn w-full justify-center"
+                    @click="restartPracticeExam('all')"
+                  >全套重做</button>
+                  <button
+                    type="button"
+                    class="process-nav-btn process-nav-btn--soft w-full justify-center"
+                    :disabled="!(practiceExamDisplayAttempt && practiceExamDisplayAttempt.wrongOriginIndices && practiceExamDisplayAttempt.wrongOriginIndices.length)"
+                    @click="restartPracticeExam('wrong')"
+                  >只做本记录错题</button>
+                  <button
+                    type="button"
+                    class="practice-exam-ghost-btn"
+                    @click="closePracticeRestartPicker"
+                  >取消</button>
+                </div>
+              </div>
+            </teleport>
+            <teleport to="body">
+              <div
+                v-if="practiceHistoryPickerOpen"
+                class="practice-restart-modal-backdrop"
+                @click="closePracticeHistoryPicker"
+              >
+                <div
+                  class="practice-restart-modal"
+                  @click.stop
+                >
+                  <p class="practice-restart-modal__title">历史记录</p>
+                  <div class="practice-history-list">
+                    <button
+                      v-for="a in practiceExamAttemptsForBundle"
+                      :key="'hp-'+a.id"
+                      type="button"
+                      class="practice-history-list-item"
+                      :class="{ 'practice-history-list-item--active': isPracticeHistoryItemActive(a.id) }"
+                      @click="selectPracticeHistoryAndOpen(a.id)"
+                    >{{ formatPracticeAttemptLabel(a) }}</button>
+                  </div>
+                  <button
+                    type="button"
+                    class="practice-exam-ghost-btn"
+                    @click="closePracticeHistoryPicker"
+                  >取消</button>
+                </div>
+              </div>
+            </teleport>
+            <div class="mb-3 flex flex-wrap items-end justify-between gap-3">
               <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Practice Mode</p>
-                <h3 class="font-display text-2xl font-semibold">{{ practicePanelTitle }} · 练习场</h3>
+                <h3 class="font-display text-2xl font-semibold">{{ practicePanelTitle }} · {{ practicePanelLiveLabel }}</h3>
               </div>
-              <div class="flex gap-2">
-                <template v-if="practiceLayer === 'domain'">
+              <div class="flex flex-wrap items-center justify-end gap-2">
+                <div
+                  v-if="practiceLayer === 'domain'"
+                  class="flex gap-2 justify-end"
+                >
                   <button
                     class="density-toggle"
                     :class="{ 'density-toggle-active': quizSubMode === 'quiz' }"
                     @click="quizSubMode = 'quiz'"
                   >题库</button>
                   <button
-                    v-if="practiceLayer === 'domain'"
                     class="density-toggle"
                     :class="{ 'density-toggle-active': quizSubMode === 'matcher' }"
                     @click="startMatcher"
                   >连连看</button>
-                </template>
+                </div>
+                <div
+                  v-if="practiceQuizExamBarVisible"
+                  class="practice-exam-bar practice-exam-bar--compact"
+                >
+                  <template v-if="!practiceExamActive">
+                    <button
+                      v-if="practiceExamAttemptsForBundle.length"
+                      type="button"
+                      class="practice-history-trigger"
+                      @click="openPracticeHistoryPicker"
+                    >记录</button>
+                    <button
+                      type="button"
+                      class="process-nav-btn"
+                      @click="startPracticeExam({})"
+                    >开始练习</button>
+                  </template>
+                  <template v-else-if="practiceExamRunning">
+                    <button
+                      type="button"
+                      class="process-nav-btn shrink-0"
+                      @click="submitPracticeExam"
+                    >{{ isComprehensiveWrongBook ? '完成' : '交卷' }}</button>
+                    <button
+                      type="button"
+                      class="practice-exam-ghost-btn shrink-0"
+                      @click="exitPracticeExam"
+                    >退出</button>
+                  </template>
+                  <template v-else>
+                    <div
+                      v-if="practiceExamDisplayAttempt"
+                      class="practice-exam-score shrink-0 text-xs font-semibold"
+                      :class="isComprehensiveWrongBook ? 'text-lagoon' : 'text-ocean'"
+                    >
+                      <template v-if="isComprehensiveWrongBook">
+                        正确率 {{ practiceExamDisplayAttempt.percent }}%
+                      </template>
+                      <template v-else>
+                        得分 {{ practiceExamDisplayAttempt.correct }} / {{ practiceExamDisplayAttempt.total }}（{{ practiceExamDisplayAttempt.percent }}%）
+                      </template>
+                    </div>
+                    <button
+                      v-if="practiceExamAttemptsForBundle.length"
+                      type="button"
+                      class="practice-history-trigger"
+                      @click="openPracticeHistoryPicker"
+                    >历史</button>
+                    <button
+                      type="button"
+                      class="process-nav-btn"
+                      @click="openPracticeRestartPicker"
+                    >再做</button>
+                    <button
+                      type="button"
+                      class="practice-exam-ghost-btn"
+                      @click="exitPracticeExam"
+                    >返回浏览</button>
+                  </template>
+                </div>
               </div>
             </div>
             <div v-if="quizSubMode === 'quiz'">
               <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] min-w-0">
                 <div class="space-y-4">
                   <div
-                    v-if="practiceQuizList.length"
+                    v-if="practiceQuizCardsForRender.length && !practiceExamActive"
                     class="flex flex-wrap items-center gap-3"
                   >
                     <div class="quiz-ans-bar">
@@ -1097,7 +1238,7 @@
                       </div>
                     </div> -->
                     <div
-                      v-if="practiceLayer !== 'domain'"
+                      v-if="practiceLayer !== 'domain' && !practiceExamActive && !isComprehensiveWrongBook"
                       class="quiz-ans-bar quiz-ans-bar--compact"
                     >
                       <button
@@ -1121,14 +1262,21 @@
                     </div>
                   </div>
                   <div
-                    v-if="practiceLayer !== 'domain' && practiceQuizBaseRows.length && !practiceQuizList.length"
+                    v-if="practiceLayer !== 'domain' && practiceQuizBaseRows.length && !practiceQuizList.length && !practiceExamActive"
                     class="panel-subtle"
                   >
                     <p class="eyebrow">暂无匹配</p>
                     <p class="mt-2 text-sm leading-7 text-ink/80">当前筛选下没有题目。综合题需 Markdown 中含「你的答案」才能区分对错；或先选「全部」。</p>
                   </div>
                   <div
-                    v-if="!practiceQuizBaseRows.length && activePracticeSet"
+                    v-if="!practiceQuizBaseRows.length && practiceLayer === 'comprehensive' && activeComprehensiveId === comprehensiveWrongBookId"
+                    class="panel-subtle"
+                  >
+                    <p class="eyebrow">错题集还是空的</p>
+                    <p class="mt-2 text-sm leading-7 text-ink/80">请先在各套<strong>综合题</strong>里做题并<strong>交卷</strong>，错题会按题去重后出现在这里。重新进入本页会重新打乱顺序。</p>
+                  </div>
+                  <div
+                    v-if="!practiceQuizBaseRows.length && activePracticeSet && activeComprehensiveId !== comprehensiveWrongBookId"
                     class="panel-subtle"
                   >
                     <p class="eyebrow">暂无题目</p>
@@ -1138,19 +1286,29 @@
                     </p>
                   </div>
                   <article
-                    v-for="(question, qi) in practiceQuizList"
+                    v-for="(question, qi) in practiceQuizCardsForRender"
                     :key="'pq-'+(question._originIndex ?? qi)+'-'+(question.question || qi)"
                     :id="'practice-quiz-card-'+qi"
                     class="quiz-card"
-                    :class="{ 'is-peekable cursor-pointer': !quizAnswersGlobalShow }"
-                    @click="toggleQuizAnswerPeek(question._originIndex ?? qi)"
+                    :class="{ 'is-peekable cursor-pointer': !quizAnswersGlobalShow && !practiceExamActive }"
+                    @click="onPracticeQuizCardShellClick(question._originIndex ?? qi)"
                   >
                     <div class="mb-2 flex items-center justify-between gap-3">
-                      <div class="text-sm font-semibold text-ocean">第{{ (question._originIndex ?? qi) + 1 }}题</div>
+                      <div class="flex flex-wrap items-center gap-2">
+                        <div class="text-sm font-semibold text-ocean">第{{ (question._originIndex ?? qi) + 1 }}题</div>
+                        <span
+                          v-if="practiceExamInReview"
+                          class="text-xs font-semibold"
+                          :class="practiceExamVerdictClass(question)"
+                        >{{ practiceExamReviewVerdict(question) }}</span>
+                      </div>
                       <div class="flex items-center gap-2">
                         <div class="rounded-full bg-mint/20 px-3 py-1 text-xs font-semibold text-lagoon">
-                          {{ question.relatedProcess }}</div>
+                          <template v-if="question._wrongBookSource">{{ question._wrongBookSource.setTitle }} · 原第{{ question._wrongBookSource.originIndex + 1 }}题</template>
+                          <template v-else>{{ question.relatedProcess }}</template>
+                        </div>
                         <button
+                          v-if="!practiceExamRunning"
                           type="button"
                           class="fav-star-btn"
                           :class="{ 'fav-star-btn-anim': favoritingQuestionKey === (quizBundleKey + '|q' + (question._originIndex ?? qi) + '|' + (question.question || '')) }"
@@ -1180,7 +1338,19 @@
                         v-for="option in question.options"
                         :key="option"
                       >
+                        <button
+                          v-if="practiceExamRunning"
+                          type="button"
+                          :class="practiceExamRunningOptionClass(question, option)"
+                          @click.stop="setPracticeExamOption(question._originIndex ?? qi, option)"
+                        >{{ option }}</button>
                         <span
+                          v-else-if="practiceExamInReview"
+                          :class="practiceExamReviewOptionClass(question, option)"
+                          class="quiz-option-review-line"
+                        >• {{ option }}</span>
+                        <span
+                          v-else
                           @mousedown.stop="startSnippetPress(option, { kind: '选项', qi: question._originIndex ?? qi })"
                           @mouseup.stop="endSnippetPress"
                           @mouseleave.stop="endSnippetPress"
@@ -1191,7 +1361,7 @@
                       </li>
                     </ul>
                     <p
-                      v-if="!quizAnswersGlobalShow && !isQuizAnswerVisible(question._originIndex ?? qi)"
+                      v-if="!practiceExamActive && !quizAnswersGlobalShow && !isQuizAnswerVisible(question._originIndex ?? qi)"
                       class="quiz-peek-hint"
                     >
                       <svg
@@ -1213,19 +1383,24 @@
                       点击查看答案与解析
                     </p>
                     <div
-                      v-show="isQuizAnswerVisible(question._originIndex ?? qi)"
+                      v-show="!practiceExamRunning && (practiceExamInReview || isQuizAnswerVisible(question._originIndex ?? qi))"
                       class="mb-1 ml-[-11px] mr-[-11px] mt-4 rounded-2xl bg-sand px-4 py-3 text-sm leading-7 text-ink/80"
                     >
                       <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                         <span><strong>答案：</strong>{{ question.answer }}</span>
                         <span
-                          v-if="question.userAnswer"
+                          v-if="!practiceExamInReview && question.userAnswer"
                           class="text-ink/70"
                         ><strong>你的作答：</strong>{{ question.userAnswer }}</span>
+                        <span
+                          v-if="practiceExamInReview && practiceExamDisplayAttempt"
+                          class="text-ink/70"
+                        ><strong>本次作答：</strong>{{ (practiceExamDisplayAttempt.choices && practiceExamDisplayAttempt.choices[String(question._originIndex ?? qi)]) || '—' }}</span>
                       </div>
                       <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
                         <strong>解析：</strong>
                         <button
+                          v-if="!practiceExamRunning"
                           type="button"
                           class="quiz-tts-btn"
                           :class="{ 'quiz-tts-btn-active': quizTtsPlayingIndex === (question._originIndex ?? qi) }"
@@ -1286,10 +1461,13 @@
                 <aside class="panel-subtle h-fit">
                   <p class="eyebrow">练习提示</p>
                   <ul class="mt-3 space-y-2 text-sm leading-7 text-ink/80">
-                    <li>• 用「收起/展开全部答案」批量控制；收起后点单题查看解析。</li>
-                    <li v-if="practiceLayer !== 'domain'">• 用「全部 / 只看错题 / 只对题」按「你的答案」筛选（综合题 / 模考 Markdown 需含你的答案行）。</li>
-                    <li>• 切「连连看」配对输出与过程。</li>
-                    <li>• 学习卡开「盲填」主动回忆。</li>
+                    <li v-if="practiceExamRunning">• 做题模式下不显示答案；交卷后可看分数、切换历史记录与解析。</li>
+                    <li v-if="practiceExamInReview">• 阅卷结果来自本地交卷快照；可切换「历史」对比。阅卷模式下可「再做 · 本记录错题」只练该次错题。</li>
+                    <li v-if="isComprehensiveWrongBook && !practiceExamActive">• 错题集来自各套综合题交卷记录，已去重；每次点进侧栏「错题集」会重新打乱。</li>
+                    <li v-if="!practiceExamActive">• 用「收起/展开全部答案」批量控制；收起后点单题查看解析。</li>
+                    <li v-if="practiceLayer !== 'domain' && !practiceExamActive && !isComprehensiveWrongBook">• 用「全部 / 只看错题 / 只对题」按「你的答案」筛选（综合题 / 模考 Markdown 需含你的答案行）。</li>
+                    <li v-if="!practiceExamRunning">• 切「连连看」配对输出与过程。</li>
+                    <li v-if="!practiceExamRunning">• 学习卡开「盲填」主动回忆。</li>
                   </ul>
                 </aside>
               </div>
@@ -1793,7 +1971,7 @@
         class="module-fab-wrapper md:hidden"
         :class="{
           'module-fab-wrapper--no-tabbar': activeModule === 'essay',
-          'module-fab-wrapper--with-quiz-count': activeView === 'quiz' && quizSubMode === 'quiz' && practiceQuizList.length
+          'module-fab-wrapper--with-quiz-count': activeView === 'quiz' && quizSubMode === 'quiz' && practiceQuizCardsForRender.length
         }"
       >
         <transition name="module-fab-fade">
@@ -1877,7 +2055,7 @@
           </div>
         </transition>
         <button
-          v-if="activeView === 'quiz' && quizSubMode === 'quiz' && practiceQuizList.length"
+          v-if="activeView === 'quiz' && quizSubMode === 'quiz' && practiceQuizCardsForRender.length"
           type="button"
           class="practice-quiz-fab-count"
           :class="{
@@ -1885,7 +2063,7 @@
             'practice-quiz-fab-count--idle': !practiceQuizShowFabProgress
           }"
           :aria-label="practiceQuizShowFabProgress
-            ? '第 ' + (practiceQuizActiveIndex + 1) + ' 题，共 ' + practiceQuizList.length + ' 题'
+            ? '第 ' + (practiceQuizActiveIndex + 1) + ' 题，共 ' + practiceQuizCardsForRender.length + ' 题'
             : '回顶部'"
           @click="onPracticeQuizFabCountClick"
         >
@@ -1905,7 +2083,7 @@
                   role="separator"
                   aria-hidden="true"
                 ></span>
-                <span class="practice-quiz-fab-count__total">{{ practiceQuizList.length }}</span>
+                <span class="practice-quiz-fab-count__total">{{ practiceQuizCardsForRender.length }}</span>
               </div>
               <div
                 v-else
@@ -1976,7 +2154,7 @@
 
       <!-- 网页端：练习场题库固定「回顶部」（不随滚动切换题数） -->
       <button
-        v-if="activeView === 'quiz' && quizSubMode === 'quiz' && practiceQuizList.length && activeModule !== 'essay'"
+        v-if="activeView === 'quiz' && quizSubMode === 'quiz' && practiceQuizCardsForRender.length && activeModule !== 'essay'"
         type="button"
         class="practice-quiz-backtop-btn"
         aria-label="回顶部"

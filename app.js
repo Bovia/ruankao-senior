@@ -91,12 +91,33 @@ function parsePracticeMarkdown(text) {
   return questions;
 }
 
+function normalizeQuizAnswerKey(s) {
+  const t = String(s || "").trim().toUpperCase();
+  if (!t) return "";
+  const m = t.match(/[A-Z]/);
+  return m ? m[0] : "";
+}
+
+function extractQuizOptionLetter(optionLine) {
+  const m = String(optionLine || "").match(/^([A-Za-z])[.．:：\s]/);
+  return m ? m[1].toUpperCase() : "";
+}
+
+function newPracticeAttemptId() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  return "at-" + Date.now() + "-" + Math.random().toString(36).slice(2, 9);
+}
+
 const NAV_STORAGE_KEY = "jiyiqi-nav-v1";
 const FAVORITES_STORAGE_KEY = "jiyiqi-favorites-v1";
 const CAT_STORAGE_KEY = "jiyiqi-cat-v1";
 /** 解析朗读：锁定同一中文声线，避免 getVoices() 顺序变化导致男声/女声乱跳 */
 const QUIZ_TTS_VOICE_STORAGE_KEY = "jiyiqi-quiz-tts-voice-uri-v1";
-const PROJECT_CACHE_KEYS = [NAV_STORAGE_KEY, FAVORITES_STORAGE_KEY, QUIZ_TTS_VOICE_STORAGE_KEY];
+/** 练习场按套卷记录的交卷历史（分数、选项快照），供阅卷与后续错题聚合 */
+const PRACTICE_ATTEMPTS_STORAGE_KEY = "jiyiqi-practice-attempts-v1";
+const PROJECT_CACHE_KEYS = [NAV_STORAGE_KEY, FAVORITES_STORAGE_KEY, QUIZ_TTS_VOICE_STORAGE_KEY, PRACTICE_ATTEMPTS_STORAGE_KEY];
+/** 综合题侧栏「错题集」虚拟套卷 id（非 practiceSets 配置项） */
+const COMPREHENSIVE_WRONG_BOOK_ID = "__wrongbook__";
 
 function normalizeTtsLang(lang) {
   return String(lang || "").replace("_", "-").toLowerCase();
@@ -272,7 +293,8 @@ function loadPersistedNavState(ctx) {
   const comp = practiceSets.comprehensive || [];
   const mock = practiceSets.mock || [];
   let activeComprehensiveId = raw.activeComprehensiveId;
-  if (!comp.some((s) => s.id === activeComprehensiveId)) {
+  const persistedWrongBook = activeComprehensiveId === COMPREHENSIVE_WRONG_BOOK_ID;
+  if (!persistedWrongBook && !comp.some((s) => s.id === activeComprehensiveId)) {
     activeComprehensiveId = comp[0]?.id || defaults.activeComprehensiveId;
   }
   let activeMockId = raw.activeMockId;
@@ -442,6 +464,23 @@ createApp({
       practiceQuizFabNeedsScroll: false,
       /** 与练习场同步的视口滚动距离，用于判断「已离开页顶」才显示回顶 */
       practiceQuizScrollY: 0,
+      comprehensiveWrongBookId: COMPREHENSIVE_WRONG_BOOK_ID,
+      /** 错题集：进入时打乱后的题目快照（不含 _originIndex，由 practiceQuizBaseRows 统一编号） */
+      practiceWrongBookSnapshot: null,
+      /** 再做一次·只做错题：交卷用的题单子集（为 null 表示整套） */
+      practiceExamSubsetRows: null,
+      /** 再做方式选择弹窗 */
+      practiceRestartPickerOpen: false,
+      /** 历史记录选择弹窗 */
+      practiceHistoryPickerOpen: false,
+      /** 做题模式：在浏览之上套一层考试流程；交卷写入 practiceAttemptLog */
+      practiceExamActive: false,
+      practiceExamRunning: false,
+      practiceExamChoices: {},
+      /** 阅卷查看：空字符串表示该套卷「最新一次」记录 */
+      practiceExamSelectedHistoryId: "",
+      /** { [quizBundleKey]: Attempt[] } */
+      practiceAttemptLog: {},
       practiceSetCache: {},    // { [set.id]: quiz[] }，首次访问时同步解析并缓存
       quizTtsPlayingIndex: null, // 当前朗读中的题目索引（题库解析 TTS）
       quizTtsRate: 1, // 解析朗读倍速：1 / 1.25 / 1.5（Web Speech API utter.rate）
@@ -710,6 +749,14 @@ createApp({
       return this.practiceSetsRoot.mock || [];
     },
     activeComprehensiveSet() {
+      if (this.practiceLayer === "comprehensive" && this.activeComprehensiveId === this.comprehensiveWrongBookId) {
+        return {
+          id: this.comprehensiveWrongBookId,
+          title: "错题集",
+          summary: "汇总各套综合题交卷中的错题（去重），每次进入随机打乱。",
+          quiz: []
+        };
+      }
       const list = this.comprehensiveSets;
       const hit = list.find((s) => s.id === this.activeComprehensiveId);
       return hit || list[0] || null;
@@ -727,13 +774,36 @@ createApp({
     practiceQuizBaseRows() {
       let list = [];
       if (this.practiceLayer === "comprehensive") {
-        list = this._resolveSetQuiz(this.activeComprehensiveSet);
+        if (this.activeComprehensiveId === this.comprehensiveWrongBookId) {
+          list = Array.isArray(this.practiceWrongBookSnapshot) ? this.practiceWrongBookSnapshot : [];
+        } else {
+          list = this._resolveSetQuiz(this.activeComprehensiveSet);
+        }
       } else if (this.practiceLayer === "mock") {
         list = this._resolveSetQuiz(this.activeMockSet);
       } else {
         list = this.activeDomain.quiz || [];
       }
       return list.map((q, idx) => ({ ...q, _originIndex: idx }));
+    },
+    /** 当前是否为「综合题 · 错题集」模式 */
+    isComprehensiveWrongBook() {
+      return this.practiceLayer === "comprehensive" && this.activeComprehensiveId === this.comprehensiveWrongBookId;
+    },
+    /** 错题集去重后的题目数量（侧栏角标） */
+    comprehensiveWrongBookCount() {
+      return this._collectWrongBookCandidatesNoShuffle().length;
+    },
+    /** 顶部练习条：有题或已在考试流程中则显示 */
+    practiceQuizExamBarVisible() {
+      return this.quizSubMode === "quiz" && (this.practiceQuizBaseRows.length > 0 || this.practiceExamActive);
+    },
+    /** 考试/交卷使用的题单（支持「只做本次错题」子集） */
+    practiceQuizBaseRowsForExam() {
+      if (this.practiceExamActive && Array.isArray(this.practiceExamSubsetRows) && this.practiceExamSubsetRows.length) {
+        return this.practiceExamSubsetRows;
+      }
+      return this.practiceQuizBaseRows;
     },
     practiceQuizList() {
       const rows = this.practiceQuizBaseRows;
@@ -770,6 +840,49 @@ createApp({
     },
     quizBundleKey() {
       return [this.activeView, this.practiceLayer, this.activeDomainId, this.activeComprehensiveId, this.activeMockId].join("|");
+    },
+    /** 练习场当前展示的题单：考试模式用 base 或子集；浏览用筛选列表 */
+    practiceQuizCardsForRender() {
+      if (this.practiceExamActive) return this.practiceQuizBaseRowsForExam;
+      return this.practiceQuizList;
+    },
+    practiceExamInReview() {
+      return this.practiceExamActive && !this.practiceExamRunning;
+    },
+    practiceExamAttemptsForBundle() {
+      const list = this.practiceAttemptLog[this.quizBundleKey];
+      if (!Array.isArray(list)) return [];
+      return list.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0));
+    },
+    practiceExamResolvedAttemptId() {
+      const list = this.practiceExamAttemptsForBundle;
+      if (!list.length) return null;
+      const sel = this.practiceExamSelectedHistoryId;
+      if (sel && list.some((a) => a.id === sel)) return sel;
+      return list[0].id;
+    },
+    practiceExamDisplayAttempt() {
+      const list = this.practiceExamAttemptsForBundle;
+      const id = this.practiceExamResolvedAttemptId;
+      if (!id) return null;
+      return list.find((a) => a.id === id) || null;
+    },
+    practicePanelLiveLabel() {
+      if (this.practiceExamRunning) return "做题中ing";
+      const att = this.practiceExamDisplayAttempt;
+      if (att) return this.practiceAttemptRecordName(att.id);
+      if (this.practiceExamAttemptsForBundle.length) return "做题记录1";
+      return "练习场";
+    },
+    practiceExamHistorySelectModel: {
+      get() {
+        const sel = this.practiceExamSelectedHistoryId;
+        if (!sel) return "__latest__";
+        return sel;
+      },
+      set(v) {
+        this.practiceExamSelectedHistoryId = v === "__latest__" ? "" : v;
+      }
     },
     navPersistSignature() {
       return JSON.stringify({
@@ -1062,15 +1175,19 @@ createApp({
   },
   watch: {
     activeView() {
-      if (this.activeView !== "quiz" && window.speechSynthesis) {
-        this._bumpQuizTtsGenAndCancel();
-        this._clearQuizTtsUi();
+      if (this.activeView !== "quiz") {
+        if (this.practiceExamActive) this.exitPracticeExam();
+        if (window.speechSynthesis) {
+          this._bumpQuizTtsGenAndCancel();
+          this._clearQuizTtsUi();
+        }
       }
       if (window.innerWidth < 768) window.scrollTo({ top: 0, behavior: "smooth" });
       this.$nextTick(() => this.updateDomainNavMaxHeight());
       this._syncPracticeQuizScrollListener();
     },
     quizSubMode() {
+      if (this.quizSubMode !== "quiz" && this.practiceExamActive) this.exitPracticeExam();
       this._syncPracticeQuizScrollListener();
     },
     practiceLayer() {
@@ -1094,6 +1211,7 @@ createApp({
     quizBundleKey: {
       handler(_newKey, oldKey) {
         if (oldKey === undefined) return;
+        if (this.practiceExamActive) this.exitPracticeExam();
         this.quizAnswerPeek = {};
         this.practiceQuizActiveIndex = 0;
         this.$nextTick(() => {
@@ -1161,6 +1279,14 @@ createApp({
       this._syncPracticeQuizScrollListener();
     });
     this._loadFavorites();
+    this._loadPracticeAttemptLog();
+    if (
+      this.activeView === "quiz" &&
+      this.practiceLayer === "comprehensive" &&
+      this.activeComprehensiveId === this.comprehensiveWrongBookId
+    ) {
+      this.practiceWrongBookSnapshot = this._buildWrongBookCandidatesShuffled();
+    }
     this._loadCatSettings();
     this._onCatDragMove = (e) => this.handleCatDragMove(e);
     this._onCatDragEnd = () => this.endCatDrag();
@@ -1947,8 +2073,14 @@ createApp({
       this.resetQuizMatcherState();
       if (layer === "comprehensive") {
         const list = this.comprehensiveSets;
-        if (list.length && !list.some((s) => s.id === this.activeComprehensiveId)) {
+        const idOk =
+          this.activeComprehensiveId === this.comprehensiveWrongBookId ||
+          list.some((s) => s.id === this.activeComprehensiveId);
+        if (list.length && !idOk) {
           this.activeComprehensiveId = list[0].id;
+        }
+        if (this.activeComprehensiveId === this.comprehensiveWrongBookId) {
+          this.practiceWrongBookSnapshot = this._buildWrongBookCandidatesShuffled();
         }
       }
       if (layer === "mock") {
@@ -1962,6 +2094,11 @@ createApp({
       this.activeComprehensiveId = id;
       this.practiceBrowseResultFilter = "all";
       this.resetQuizMatcherState();
+      if (id === this.comprehensiveWrongBookId) {
+        this.practiceWrongBookSnapshot = this._buildWrongBookCandidatesShuffled();
+      } else {
+        this.practiceWrongBookSnapshot = null;
+      }
     },
     selectMockSet(id) {
       this.activeMockId = id;
@@ -1972,19 +2109,337 @@ createApp({
       this.quizAnswersGlobalShow = show;
       this.quizAnswerPeek = {};
     },
+    _loadPracticeAttemptLog() {
+      try {
+        const raw = localStorage.getItem(PRACTICE_ATTEMPTS_STORAGE_KEY);
+        const o = raw ? JSON.parse(raw) : {};
+        this.practiceAttemptLog = o && typeof o === "object" && !Array.isArray(o) ? o : {};
+      } catch (e) {
+        this.practiceAttemptLog = {};
+      }
+    },
+    _persistPracticeAttemptLog() {
+      try {
+        localStorage.setItem(PRACTICE_ATTEMPTS_STORAGE_KEY, JSON.stringify(this.practiceAttemptLog));
+      } catch (e) {
+        /* ignore quota */
+      }
+    },
+    practiceAttemptRecordName(attemptId) {
+      const list = this.practiceExamAttemptsForBundle;
+      const idx = list.findIndex((a) => a.id === attemptId);
+      if (idx < 0) return "做题记录";
+      return `做题记录${idx + 1}`;
+    },
+    formatPracticeAttemptLabel(a) {
+      const d = new Date(a.ts || 0);
+      const pad = (n) => (n < 10 ? "0" + n : "" + n);
+      const mon = pad(d.getMonth() + 1);
+      const day = pad(d.getDate());
+      const hh = pad(d.getHours());
+      const mm = pad(d.getMinutes());
+      const pct =
+        typeof a.percent === "number"
+          ? a.percent
+          : a.total
+            ? Math.round((a.correct / a.total) * 100)
+            : 0;
+      const name = this.practiceAttemptRecordName(a.id);
+      return `${name} · ${mon}/${day} ${hh}:${mm} · ${a.correct}/${a.total}（${pct}%）`;
+    },
+    isPracticeHistoryItemActive(attemptId) {
+      return this.practiceExamResolvedAttemptId === attemptId;
+    },
+    _extractAnsweredWrongIndicesFromAttempt(attempt) {
+      if (!attempt || typeof attempt !== "object") return [];
+      const answerMap = attempt.answerMap && typeof attempt.answerMap === "object" ? attempt.answerMap : {};
+      const choices = attempt.choices && typeof attempt.choices === "object" ? attempt.choices : {};
+      const out = [];
+      for (const [k, ansRaw] of Object.entries(answerMap)) {
+        const ans = normalizeQuizAnswerKey(ansRaw);
+        const user = normalizeQuizAnswerKey(choices[k] || "");
+        if (!ans || !user) continue;
+        if (user !== ans) {
+          const oi = Number(k);
+          if (Number.isInteger(oi)) out.push(oi);
+        }
+      }
+      if (out.length) return [...new Set(out)];
+      if (Array.isArray(attempt.wrongOriginIndices)) {
+        return [...new Set(attempt.wrongOriginIndices.filter((x) => Number.isInteger(x)))];
+      }
+      return [];
+    },
+    _collectWrongBookCandidatesNoShuffle() {
+      const out = [];
+      const seen = new Set();
+      const sets = this.comprehensiveSets;
+      const setById = Object.fromEntries(sets.map((s) => [s.id, s]));
+      const latestBySet = {};
+      const log = this.practiceAttemptLog || {};
+      for (const [bundleKey, attempts] of Object.entries(log)) {
+        const parts = bundleKey.split("|");
+        if (parts.length < 5 || parts[0] !== "quiz" || parts[1] !== "comprehensive") continue;
+        const compId = parts[3];
+        if (compId === this.comprehensiveWrongBookId || !setById[compId]) continue;
+        if (!Array.isArray(attempts) || !attempts.length) continue;
+        let latest = null;
+        for (const att of attempts) {
+          if (!att || typeof att !== "object") continue;
+          if (!latest || (att.ts || 0) > (latest.ts || 0)) latest = att;
+        }
+        if (!latest) continue;
+        if (!latestBySet[compId] || (latest.ts || 0) > (latestBySet[compId].ts || 0)) {
+          latestBySet[compId] = latest;
+        }
+      }
+      for (const [compId, latest] of Object.entries(latestBySet)) {
+        const set = setById[compId];
+        const quiz = this._resolveSetQuiz(set);
+        if (!Array.isArray(quiz) || !quiz.length) continue;
+        const wrongIndices = this._extractAnsweredWrongIndicesFromAttempt(latest);
+        for (const oi of wrongIndices) {
+          const dedupe = `${compId}|${oi}`;
+          if (seen.has(dedupe)) continue;
+          const q = quiz[oi];
+          if (!q) continue;
+          seen.add(dedupe);
+          out.push({
+            ...q,
+            _wrongBookSource: { setId: compId, setTitle: set.title, originIndex: oi }
+          });
+        }
+      }
+      out.sort((a, b) => {
+        const sa = `${a._wrongBookSource.setId}|${a._wrongBookSource.originIndex}`;
+        const sb = `${b._wrongBookSource.setId}|${b._wrongBookSource.originIndex}`;
+        return sa.localeCompare(sb, "en");
+      });
+      return out;
+    },
+    _buildWrongBookCandidatesShuffled() {
+      const arr = this._collectWrongBookCandidatesNoShuffle().map((q) => ({ ...q }));
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    },
+    startPracticeExam(options) {
+      const opts = options || {};
+      if (opts.onlyWrongFromAttempt === true) {
+        const attempt = opts.attempt || this.practiceExamDisplayAttempt;
+        const wrongOnly = this._extractAnsweredWrongIndicesFromAttempt(attempt);
+        if (!wrongOnly.length) {
+          window.alert("该次记录中没有可重做错题");
+          return;
+        }
+        const allow = new Set(wrongOnly);
+        const filtered = this.practiceQuizBaseRows.filter((q) => allow.has(q._originIndex));
+        if (!filtered.length) {
+          window.alert("无法在现题库中匹配该次错题，请返回浏览后重试。");
+          return;
+        }
+        this.practiceExamSubsetRows = filtered;
+      } else {
+        this.practiceExamSubsetRows = null;
+      }
+      const rows = this.practiceQuizBaseRowsForExam;
+      if (!rows.length) return;
+      this._bumpQuizTtsGenAndCancel();
+      this._clearQuizTtsUi();
+      this.practiceExamActive = true;
+      this.practiceExamRunning = true;
+      this.practiceExamChoices = {};
+      this.practiceExamSelectedHistoryId = "";
+      this.$nextTick(() => {
+        this._syncPracticeQuizScrollListener();
+        this._updatePracticeQuizFabNeedsScroll();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    },
+    exitPracticeExam() {
+      this._bumpQuizTtsGenAndCancel();
+      this._clearQuizTtsUi();
+      this.practiceExamActive = false;
+      this.practiceExamRunning = false;
+      this.practiceExamChoices = {};
+      this.practiceExamSelectedHistoryId = "";
+      this.practiceExamSubsetRows = null;
+      this.practiceRestartPickerOpen = false;
+      this.practiceHistoryPickerOpen = false;
+      if (this.practiceLayer === "comprehensive" && this.activeComprehensiveId === this.comprehensiveWrongBookId) {
+        this.practiceWrongBookSnapshot = this._buildWrongBookCandidatesShuffled();
+      }
+      this.$nextTick(() => {
+        this._syncPracticeQuizScrollListener();
+        this._updatePracticeQuizFabNeedsScroll();
+      });
+    },
+    openPracticeRestartPicker() {
+      this.practiceRestartPickerOpen = true;
+    },
+    closePracticeRestartPicker() {
+      this.practiceRestartPickerOpen = false;
+      this.practiceHistoryPickerOpen = false;
+    },
+    openPracticeHistoryPicker() {
+      this.practiceHistoryPickerOpen = true;
+    },
+    closePracticeHistoryPicker() {
+      this.practiceHistoryPickerOpen = false;
+    },
+    selectPracticeHistoryAndOpen(selectValue) {
+      this.practiceHistoryPickerOpen = false;
+      this.openPracticeExamReview(selectValue);
+    },
+    hasWrongForAttempt(attempt) {
+      return this._extractAnsweredWrongIndicesFromAttempt(attempt).length > 0;
+    },
+    restartPracticeExam(type) {
+      this.practiceRestartPickerOpen = false;
+      this.practiceHistoryPickerOpen = false;
+      if (type === "wrong") {
+        this.startPracticeExam({ onlyWrongFromAttempt: true, attempt: this.practiceExamDisplayAttempt });
+        return;
+      }
+      this.startPracticeExam({});
+    },
+    openPracticeExamReview(selectValue) {
+      if (!selectValue) return;
+      this.practiceExamSelectedHistoryId = selectValue;
+      this._bumpQuizTtsGenAndCancel();
+      this._clearQuizTtsUi();
+      this.practiceExamActive = true;
+      this.practiceExamRunning = false;
+      this.$nextTick(() => {
+        this._syncPracticeQuizScrollListener();
+        this._updatePracticeQuizFabNeedsScroll();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    },
+    onPracticeExamBrowseHistorySelect(ev) {
+      const el = ev && ev.target;
+      const v = el ? el.value : "";
+      if (el) el.value = "";
+      if (!v) return;
+      this.openPracticeExamReview(v);
+    },
+    submitPracticeExam() {
+      const rows = this.practiceQuizBaseRowsForExam;
+      if (!rows.length || !this.practiceExamRunning) return;
+      const choices = { ...this.practiceExamChoices };
+      let correct = 0;
+      const answerMap = {};
+      const wrongOriginIndices = [];
+      for (const q of rows) {
+        const idx = q._originIndex;
+        const k = String(idx);
+        answerMap[k] = normalizeQuizAnswerKey(q.answer);
+        const user = normalizeQuizAnswerKey(choices[k] || "");
+        const ans = answerMap[k];
+        if (user && ans && user === ans) {
+          correct++;
+        } else if (user && ans && user !== ans) {
+          // 未作答不计入错题集；只记录已作答但答错的题
+          wrongOriginIndices.push(idx);
+        }
+      }
+      const total = rows.length;
+      const percent = total ? Math.round((correct / total) * 100) : 0;
+      const attempt = {
+        id: newPracticeAttemptId(),
+        bundleKey: this.quizBundleKey,
+        ts: Date.now(),
+        title: this.practicePanelTitle,
+        total,
+        correct,
+        percent,
+        choices,
+        answerMap,
+        /** 供后续错题本：按套卷内题序去重后再练 */
+        wrongOriginIndices,
+        practiceLayer: this.practiceLayer,
+        activeComprehensiveId: this.activeComprehensiveId,
+        activeMockId: this.activeMockId,
+        activeDomainId: this.activeDomainId
+      };
+      const bk = this.quizBundleKey;
+      const prev = Array.isArray(this.practiceAttemptLog[bk]) ? this.practiceAttemptLog[bk].slice() : [];
+      prev.push(attempt);
+      const trimmed = prev.slice(-80);
+      this.practiceAttemptLog = { ...this.practiceAttemptLog, [bk]: trimmed };
+      this._persistPracticeAttemptLog();
+      this.practiceExamRunning = false;
+      this.practiceExamSelectedHistoryId = "";
+      this.$nextTick(() => {
+        this._syncPracticeQuizScrollListener();
+        this._updatePracticeQuizFabNeedsScroll();
+      });
+    },
+    setPracticeExamOption(originIndex, optionLine) {
+      if (!this.practiceExamRunning) return;
+      const letter = extractQuizOptionLetter(optionLine);
+      if (!letter) return;
+      const k = String(originIndex);
+      this.practiceExamChoices = { ...this.practiceExamChoices, [k]: letter };
+    },
+    practiceExamRunningOptionClass(question, optionLine) {
+      const letter = extractQuizOptionLetter(optionLine);
+      const k = String(question._originIndex);
+      const sel = normalizeQuizAnswerKey(this.practiceExamChoices[k] || "");
+      const base = "quiz-option-btn";
+      if (sel && letter === sel) return base + " quiz-option-btn--selected";
+      return base;
+    },
+    practiceExamReviewOptionClass(question, optionLine) {
+      const att = this.practiceExamDisplayAttempt;
+      if (!att || !att.answerMap) return "quiz-option-review";
+      const letter = extractQuizOptionLetter(optionLine);
+      const k = String(question._originIndex);
+      const ans = att.answerMap[k] || "";
+      const user = normalizeQuizAnswerKey((att.choices && att.choices[k]) || "");
+      const parts = ["quiz-option-review"];
+      if (letter && letter === ans) parts.push("quiz-option-review--truth");
+      if (user && letter === user) {
+        parts.push(user === ans ? "quiz-option-review--picked-ok" : "quiz-option-review--picked-bad");
+      }
+      return parts.join(" ");
+    },
+    practiceExamReviewVerdict(question) {
+      const att = this.practiceExamDisplayAttempt;
+      if (!att || !att.answerMap) return "";
+      const k = String(question._originIndex);
+      const user = normalizeQuizAnswerKey((att.choices && att.choices[k]) || "");
+      const ans = att.answerMap[k] || "";
+      if (!ans) return "—";
+      if (!user) return "未作答";
+      return user === ans ? "正确" : "错误";
+    },
+    practiceExamVerdictClass(question) {
+      const v = this.practiceExamReviewVerdict(question);
+      if (v === "正确") return "text-emerald-600";
+      if (v === "错误" || v === "未作答") return "text-rose-600";
+      return "text-ink/45";
+    },
     toggleQuizAnswerPeek(qi) {
-      if (this.quizAnswersGlobalShow) return;
+      if (this.practiceExamActive || this.quizAnswersGlobalShow) return;
       const key = String(qi);
       const next = { ...this.quizAnswerPeek };
       if (next[key]) delete next[key];
       else next[key] = true;
       this.quizAnswerPeek = next;
     },
+    onPracticeQuizCardShellClick(qi) {
+      if (this.practiceExamActive) return;
+      this.toggleQuizAnswerPeek(qi);
+    },
     _updatePracticeQuizActiveIndexFromLayout() {
-      if (this.activeView !== "quiz" || this.quizSubMode !== "quiz" || !this.practiceQuizList || !this.practiceQuizList.length) {
+      const cards = this.practiceQuizCardsForRender;
+      if (this.activeView !== "quiz" || this.quizSubMode !== "quiz" || !cards || !cards.length) {
         return;
       }
-      const n = this.practiceQuizList.length;
+      const n = cards.length;
       if (this.practiceQuizActiveIndex > n - 1) {
         this.practiceQuizActiveIndex = Math.max(0, n - 1);
       }
@@ -2018,7 +2473,8 @@ createApp({
     },
     _syncPracticeQuizScrollListener() {
       this._detachPracticeQuizScrollListener();
-      if (this.activeView !== "quiz" || this.quizSubMode !== "quiz" || !this.practiceQuizList || !this.practiceQuizList.length) {
+      const cards = this.practiceQuizCardsForRender;
+      if (this.activeView !== "quiz" || this.quizSubMode !== "quiz" || !cards || !cards.length) {
         return;
       }
       this._practiceQuizOnScroll = () => {
@@ -2044,7 +2500,7 @@ createApp({
       this.$nextTick(() => this._updatePracticeQuizFabNeedsScroll());
     },
     _updatePracticeQuizFabNeedsScroll() {
-      if (this.activeView !== "quiz" || this.quizSubMode !== "quiz" || !this.practiceQuizList.length) {
+      if (this.activeView !== "quiz" || this.quizSubMode !== "quiz" || !this.practiceQuizCardsForRender.length) {
         this.practiceQuizFabNeedsScroll = true;
         return;
       }

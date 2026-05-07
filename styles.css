@@ -365,6 +365,274 @@ code {
   height: 1.05rem;
 }
 
+/* 练习场 · 做题模式选项 */
+.quiz-option-btn {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0.45rem 0.65rem;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 76, 92, 0.12);
+  background: rgba(255, 255, 255, 0.92);
+  text-align: left;
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: rgba(15, 76, 92, 0.88);
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.quiz-option-btn:hover {
+  border-color: rgba(31, 122, 140, 0.35);
+  background: #fff;
+}
+
+.quiz-option-btn--selected {
+  border-color: rgba(28, 124, 125, 0.55);
+  background: rgba(101, 195, 186, 0.2);
+  box-shadow: 0 0 0 2px rgba(101, 195, 186, 0.18);
+  font-weight: 600;
+}
+
+.quiz-option-review-line {
+  display: block;
+  padding: 0.35rem 0.5rem;
+  margin: 0 -0.5rem;
+  border-radius: 10px;
+}
+
+.quiz-option-review--truth {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.quiz-option-review--picked-ok {
+  box-shadow: inset 0 0 0 2px rgba(16, 185, 129, 0.45);
+}
+
+.quiz-option-review--picked-bad {
+  box-shadow: inset 0 0 0 2px rgba(244, 63, 94, 0.45);
+  background: rgba(244, 63, 94, 0.06);
+}
+
+.practice-exam-bar {
+  border-radius: 18px;
+}
+
+.practice-exam-bar--compact {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  align-self: flex-end;
+  gap: 0.45rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  max-width: min(100%, 680px);
+}
+
+.practice-history-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+}
+
+.practice-history-field__label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(15, 76, 92, 0.45);
+  white-space: nowrap;
+}
+
+.practice-history-field__control {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: min(100%, 11rem);
+}
+
+.practice-exam-select--fancy {
+  width: 100%;
+  max-width: 16rem;
+  appearance: none;
+  padding: 0.5rem 2.1rem 0.5rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 76, 92, 0.12);
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230f4c5c' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #16313f;
+  box-shadow: 0 1px 3px rgba(15, 76, 92, 0.06);
+  cursor: pointer;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.practice-exam-select--fancy:hover {
+  border-color: rgba(31, 122, 140, 0.35);
+}
+
+.practice-exam-select--fancy:focus {
+  outline: none;
+  border-color: rgba(28, 124, 125, 0.55);
+  box-shadow: 0 0 0 3px rgba(101, 195, 186, 0.22);
+}
+
+.practice-exam-ghost-btn {
+  border: none;
+  background: transparent;
+  padding: 0.45rem 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(15, 76, 92, 0.5);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.practice-exam-ghost-btn:hover {
+  color: #0f4c5c;
+}
+
+.process-nav-btn--soft {
+  background: rgba(101, 195, 186, 0.14);
+  border-color: rgba(28, 124, 125, 0.28);
+  color: #115e59;
+}
+
+.domain-pill--wrongbook {
+  border-color: rgba(180, 83, 9, 0.3);
+  color: #9a3412;
+}
+
+.domain-pill--wrongbook.domain-pill-active {
+  --domain-accent: #b45309;
+}
+
+.domain-card--wrongbook {
+  border-color: rgba(180, 83, 9, 0.15);
+}
+
+
+
+.practice-history-trigger {
+  border: none;
+  background: transparent;
+  padding: 0.35rem 0.2rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: rgba(15, 76, 92, 0.62);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.practice-history-trigger:hover {
+  color: #0f4c5c;
+}
+
+.practice-history-list {
+  max-height: 48vh;
+  overflow: auto;
+  display: grid;
+  gap: 0.35rem;
+  padding-right: 0.15rem;
+}
+
+.practice-history-list-item {
+  border: 1px solid rgba(15, 76, 92, 0.12);
+  background: #fff;
+  border-radius: 10px;
+  text-align: left;
+  font-size: 0.8rem;
+  color: #16313f;
+  padding: 0.45rem 0.55rem;
+  cursor: pointer;
+}
+
+.practice-history-list-item:hover {
+  border-color: rgba(31, 122, 140, 0.35);
+  background: rgba(101, 195, 186, 0.08);
+}
+
+.practice-history-list-item--active {
+  border-color: rgba(31, 122, 140, 0.45);
+  background: rgba(101, 195, 186, 0.16);
+  font-weight: 700;
+}
+
+
+.practice-restart-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 76, 92, 0.34);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 120;
+}
+
+.practice-restart-modal {
+  width: min(92vw, 320px);
+  border-radius: 16px;
+  border: 1px solid rgba(15, 76, 92, 0.12);
+  background: #fff;
+  box-shadow: 0 22px 48px rgba(12, 55, 72, 0.24);
+  padding: 0.85rem;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.practice-restart-modal__title {
+  margin: 0 0 0.1rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #16313f;
+}
+
+@media (max-width: 767px) {
+  .practice-exam-bar--compact {
+    justify-content: flex-end;
+    gap: 0.35rem;
+    padding: 0.32rem 0.36rem;
+  }
+
+  .practice-exam-bar--compact .process-nav-btn {
+    padding: 0.44rem 0.7rem;
+    font-size: 0.76rem;
+  }
+
+  .practice-exam-bar--compact .practice-exam-ghost-btn {
+    padding: 0.35rem 0.2rem;
+    font-size: 0.75rem;
+  }
+
+  .practice-history-field {
+    flex: 1 1 100%;
+    gap: 0.3rem 0.45rem;
+  }
+
+  .practice-history-field__label {
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+  }
+
+  .practice-exam-select--fancy {
+    max-width: 100%;
+    font-size: 0.76rem;
+    padding: 0.42rem 1.95rem 0.42rem 0.62rem;
+  }
+}
+
 .domain-brief-mini {
   border-left: 3px solid var(--ocean);
 }
