@@ -2138,6 +2138,11 @@
                     <button
                       type="button"
                       class="module-config-item"
+                      @click="initPracticeUserFromSeedPrompt"
+                    >初始化题目缓存（mtt/bovia，覆盖）</button>
+                    <button
+                      type="button"
+                      class="module-config-item"
                       @click="exportProjectCacheToClipboard"
                     >导出项目缓存</button>
                     <button
@@ -2616,6 +2621,7 @@
   <script src="./data/practice/zonghe_3.js"></script>
   <script src="./data/practice/zonghe_4.js"></script>
   <script src="./data/practice/moni_1.js"></script>
+  <script src="./data/export_my_answers_and_history.js"></script>
   <script src="./app.js"></script>
 </body>
 

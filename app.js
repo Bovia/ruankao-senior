@@ -113,7 +113,9 @@ const QUIZ_TTS_VOICE_STORAGE_KEY = "jiyiqi-quiz-tts-voice-uri-v1";
 const PRACTICE_ATTEMPTS_STORAGE_KEY = "jiyiqi-practice-attempts-v1";
 /** 练习场：外部导入的“我的答案”配置（不写进题库 Markdown，避免影响解析阅读） */
 const PRACTICE_USER_ANS_STORAGE_KEY = "jiyiqi-practice-user-answers-v1";
-const PROJECT_CACHE_KEYS = [NAV_STORAGE_KEY, FAVORITES_STORAGE_KEY, QUIZ_TTS_VOICE_STORAGE_KEY, PRACTICE_ATTEMPTS_STORAGE_KEY, PRACTICE_USER_ANS_STORAGE_KEY];
+const PRACTICE_ACTIVE_USER_STORAGE_KEY = "jiyiqi-practice-active-user-v1";
+const PRACTICE_PROFILES_SEED_URL = "data/export_my_answers_and_history.json";
+const PROJECT_CACHE_KEYS = [NAV_STORAGE_KEY, FAVORITES_STORAGE_KEY, QUIZ_TTS_VOICE_STORAGE_KEY, PRACTICE_ATTEMPTS_STORAGE_KEY, PRACTICE_USER_ANS_STORAGE_KEY, PRACTICE_ACTIVE_USER_STORAGE_KEY];
 /** 综合题侧栏「错题集」虚拟套卷 id（非 practiceSets 配置项） */
 const COMPREHENSIVE_WRONG_BOOK_ID = "__wrongbook__";
 
@@ -483,6 +485,8 @@ createApp({
       practiceAttemptLog: {},
       /** 外部导入的我的答案：{ [setKey]: { [originIndex]: 'A'|'B'|'C'|'D' } } */
       practiceUserAnswers: {},
+      /** 当前练习用户（用于初始化入口展示与导入落位） */
+      activePracticeUserId: "bovia",
       practiceSetCache: {},    // { [set.id]: quiz[] }，首次访问时同步解析并缓存
       quizTtsPlayingIndex: null, // 当前朗读中的题目索引（题库解析 TTS）
       quizTtsRate: 1, // 解析朗读倍速：1 / 1.25 / 1.5（Web Speech API utter.rate）
@@ -1323,6 +1327,7 @@ createApp({
       this._syncPracticeQuizScrollListener();
     });
     this._loadFavorites();
+    this._loadPracticeActiveUser();
     this._loadPracticeAttemptLog();
     this._loadPracticeUserAnswers();
     if (
@@ -1574,6 +1579,128 @@ createApp({
       const ok = await this._copyTextToClipboard(payload);
       this.projectConfigMenuOpen = false;
       window.alert(ok ? "已复制项目缓存到剪贴板" : "复制失败，请手动复制");
+    },
+    _normalizePracticeUserId(raw) {
+      const id = String(raw || "").trim().toLowerCase().replace(/[^a-z0-9_-]/g, "");
+      return id || "bovia";
+    },
+    _loadPracticeActiveUser() {
+      try {
+        const raw = localStorage.getItem(PRACTICE_ACTIVE_USER_STORAGE_KEY);
+        this.activePracticeUserId = this._normalizePracticeUserId(raw || "bovia");
+      } catch (e) {
+        this.activePracticeUserId = "bovia";
+      }
+    },
+    async _loadPracticeSeedData() {
+      if (window.__PRACTICE_SEED_DATA__ && typeof window.__PRACTICE_SEED_DATA__ === "object") {
+        return window.__PRACTICE_SEED_DATA__;
+      }
+      const res = await fetch(PRACTICE_PROFILES_SEED_URL, { cache: "no-store" });
+      if (!res.ok) {
+        throw new Error("未读取到 export_my_answers_and_history.json");
+      }
+      const seedText = await res.text();
+      try {
+        return JSON.parse(seedText);
+      } catch (e) {
+        throw new Error("export_my_answers_and_history.json 文件内容不是合法 JSON");
+      }
+    },
+    async initPracticeUserFromSeedPrompt() {
+      this.projectConfigMenuOpen = false;
+      const uidRaw = window.prompt("初始化题目缓存（输入 bovia 或 mtt）：", this.activePracticeUserId || "bovia");
+      if (!uidRaw || !uidRaw.trim()) return;
+      const uid = this._normalizePracticeUserId(uidRaw);
+      if (uid !== "bovia" && uid !== "mtt") {
+        window.alert("仅支持 bovia / mtt");
+        return;
+      }
+      const ok = window.confirm(`将覆盖 ${uid} 的题目历史与答案缓存，是否继续？`);
+      if (!ok) return;
+      try {
+        const seed = await this._loadPracticeSeedData();
+        const items = seed && seed.items && typeof seed.items === "object" ? seed.items : {};
+        const profileSeed = seed && seed.practiceProfiles && typeof seed.practiceProfiles === "object"
+          ? seed.practiceProfiles
+          : {};
+        const extraAttempts = profileSeed.attemptsProfiles && typeof profileSeed.attemptsProfiles === "object"
+          ? profileSeed.attemptsProfiles
+          : {};
+        const extraAnswers = profileSeed.answersProfiles && typeof profileSeed.answersProfiles === "object"
+          ? profileSeed.answersProfiles
+          : {};
+
+        const attemptsSeedRaw = items[PRACTICE_ATTEMPTS_STORAGE_KEY];
+        const answersSeedRaw = items[PRACTICE_USER_ANS_STORAGE_KEY];
+        let boviaAttempts = {};
+        let boviaAnswersRaw = {};
+        try {
+          boviaAttempts = attemptsSeedRaw ? JSON.parse(attemptsSeedRaw) : {};
+        } catch (e) {
+          window.alert("初始化失败：export 中 attempts 字段不是合法 JSON 字符串");
+          return;
+        }
+        try {
+          boviaAnswersRaw = answersSeedRaw ? JSON.parse(answersSeedRaw) : {};
+        } catch (e) {
+          window.alert("初始化失败：export 中 user-answers 字段不是合法 JSON 字符串");
+          return;
+        }
+        const boviaAnswers = boviaAnswersRaw && typeof boviaAnswersRaw === "object"
+          ? (boviaAnswersRaw.bySetKey && typeof boviaAnswersRaw.bySetKey === "object" ? boviaAnswersRaw.bySetKey : {})
+          : {};
+
+        let nextAttempts = uid === "bovia" ? boviaAttempts : {};
+        if (extraAttempts[uid] && typeof extraAttempts[uid] === "object" && !Array.isArray(extraAttempts[uid])) {
+          nextAttempts = extraAttempts[uid];
+        }
+        let nextAnswers = uid === "bovia" ? boviaAnswers : {};
+        if (extraAnswers[uid] && typeof extraAnswers[uid] === "object") {
+          const bySet = extraAnswers[uid].bySetKey && typeof extraAnswers[uid].bySetKey === "object"
+            ? extraAnswers[uid].bySetKey
+            : {};
+          nextAnswers = bySet;
+        }
+
+        const attemptsRaw = localStorage.getItem(PRACTICE_ATTEMPTS_STORAGE_KEY);
+        const answersRaw = localStorage.getItem(PRACTICE_USER_ANS_STORAGE_KEY);
+        let parsedAttempts = {};
+        let parsedAnswers = {};
+        try {
+          parsedAttempts = attemptsRaw ? JSON.parse(attemptsRaw) : {};
+        } catch (e) {
+          parsedAttempts = {};
+        }
+        try {
+          parsedAnswers = answersRaw ? JSON.parse(answersRaw) : {};
+        } catch (e) {
+          parsedAnswers = {};
+        }
+        const attemptProfiles = parsedAttempts && parsedAttempts.__v === 2 && parsedAttempts.profiles && typeof parsedAttempts.profiles === "object"
+          ? { ...parsedAttempts.profiles }
+          : {};
+        const answerProfiles = parsedAnswers && parsedAnswers.__v === 2 && parsedAnswers.profiles && typeof parsedAnswers.profiles === "object"
+          ? { ...parsedAnswers.profiles }
+          : {};
+
+        attemptProfiles[uid] = nextAttempts && typeof nextAttempts === "object" && !Array.isArray(nextAttempts) ? nextAttempts : {};
+        answerProfiles[uid] = { v: 1, bySetKey: nextAnswers && typeof nextAnswers === "object" ? nextAnswers : {} };
+
+        localStorage.setItem(PRACTICE_ATTEMPTS_STORAGE_KEY, JSON.stringify({ __v: 2, profiles: attemptProfiles }));
+        localStorage.setItem(PRACTICE_USER_ANS_STORAGE_KEY, JSON.stringify({ __v: 2, profiles: answerProfiles }));
+        localStorage.setItem(PRACTICE_ACTIVE_USER_STORAGE_KEY, uid);
+
+        this.activePracticeUserId = uid;
+        this.practiceSetCache = {};
+        this.practiceWrongBookSnapshot = null;
+        this.exitPracticeExam();
+        this._loadPracticeAttemptLog();
+        this._loadPracticeUserAnswers();
+        window.alert(`初始化完成，当前用户：${uid}`);
+      } catch (e) {
+        window.alert(`初始化失败：${e && e.message ? e.message : "未知异常"}`);
+      }
     },
     importProjectCacheFromPrompt() {
       this.projectConfigMenuOpen = false;
@@ -2118,6 +2245,12 @@ createApp({
       try {
         const raw = localStorage.getItem(PRACTICE_USER_ANS_STORAGE_KEY);
         const parsed = raw ? JSON.parse(raw) : {};
+        if (parsed && parsed.__v === 2 && parsed.profiles && typeof parsed.profiles === "object") {
+          const profile = parsed.profiles[this.activePracticeUserId] || {};
+          const bySetV2 = profile.bySetKey && typeof profile.bySetKey === "object" ? profile.bySetKey : {};
+          this.practiceUserAnswers = bySetV2 && typeof bySetV2 === "object" && !Array.isArray(bySetV2) ? bySetV2 : {};
+          return;
+        }
         if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
           this.practiceUserAnswers = {};
           return;
@@ -2193,6 +2326,11 @@ createApp({
       try {
         const raw = localStorage.getItem(PRACTICE_ATTEMPTS_STORAGE_KEY);
         const o = raw ? JSON.parse(raw) : {};
+        if (o && o.__v === 2 && o.profiles && typeof o.profiles === "object") {
+          const hit = o.profiles[this.activePracticeUserId];
+          this.practiceAttemptLog = hit && typeof hit === "object" && !Array.isArray(hit) ? hit : {};
+          return;
+        }
         this.practiceAttemptLog = o && typeof o === "object" && !Array.isArray(o) ? o : {};
       } catch (e) {
         this.practiceAttemptLog = {};
@@ -2200,7 +2338,13 @@ createApp({
     },
     _persistPracticeAttemptLog() {
       try {
-        localStorage.setItem(PRACTICE_ATTEMPTS_STORAGE_KEY, JSON.stringify(this.practiceAttemptLog));
+        const raw = localStorage.getItem(PRACTICE_ATTEMPTS_STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        const profiles = parsed && parsed.__v === 2 && parsed.profiles && typeof parsed.profiles === "object"
+          ? { ...parsed.profiles }
+          : {};
+        profiles[this.activePracticeUserId] = this.practiceAttemptLog && typeof this.practiceAttemptLog === "object" ? this.practiceAttemptLog : {};
+        localStorage.setItem(PRACTICE_ATTEMPTS_STORAGE_KEY, JSON.stringify({ __v: 2, profiles }));
       } catch (e) {
         /* ignore quota */
       }
