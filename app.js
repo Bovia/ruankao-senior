@@ -93,8 +93,55 @@ function parsePracticeMarkdown(text) {
 
 const NAV_STORAGE_KEY = "jiyiqi-nav-v1";
 const FAVORITES_STORAGE_KEY = "jiyiqi-favorites-v1";
-const PROJECT_CACHE_KEYS = [NAV_STORAGE_KEY, FAVORITES_STORAGE_KEY];
 const CAT_STORAGE_KEY = "jiyiqi-cat-v1";
+/** 解析朗读：锁定同一中文声线，避免 getVoices() 顺序变化导致男声/女声乱跳 */
+const QUIZ_TTS_VOICE_STORAGE_KEY = "jiyiqi-quiz-tts-voice-uri-v1";
+const PROJECT_CACHE_KEYS = [NAV_STORAGE_KEY, FAVORITES_STORAGE_KEY, QUIZ_TTS_VOICE_STORAGE_KEY];
+
+function normalizeTtsLang(lang) {
+  return String(lang || "").replace("_", "-").toLowerCase();
+}
+
+function isZhTtsVoice(v) {
+  const lang = normalizeTtsLang(v.lang);
+  if (lang === "zh-cn" || lang === "zh-hk" || lang === "zh-tw" || lang === "cmn-cn") return true;
+  return /^zh(-|$)/.test(lang);
+}
+
+/**
+ * 返回排序键 [tier, name]，tier 越小越优先（倾向常见女声 / 普通话 / 高质量标识）
+ */
+function quizTtsVoiceSortKey(v) {
+  const blob = `${v.name || ""} ${v.voiceURI || ""}`.toLowerCase();
+  let tier = 50;
+  const femaleHints = [
+    "huihui", "yaoyao", "xiaoxuan", "xiaoyi", "xiaomo", "xiaorui", "xiaochen",
+    "ting-ting", "tingting", "meijia", "shelley"
+  ];
+  const maleHints = ["kangkang", "yunyang", "sinji", "liang", "dafeng", "male", "男"];
+  if (femaleHints.some((h) => blob.includes(h))) tier -= 10;
+  if (maleHints.some((h) => blob.includes(h))) tier += 14;
+  if (/cantonese|yue|粵|hongkong|香港/.test(blob)) tier += 5;
+  const lang = normalizeTtsLang(v.lang);
+  if (lang === "zh-cn" || lang === "cmn-cn") tier -= 3;
+  if (/google|premium|enhanced|neural|wavenet/.test(blob)) tier -= 4;
+  return [tier, v.name || ""];
+}
+
+function pickQuizZhVoice(synth, savedUri) {
+  const zh = synth.getVoices().filter(isZhTtsVoice);
+  if (!zh.length) return null;
+  if (savedUri) {
+    const hit = zh.find((vv) => vv.voiceURI === savedUri);
+    if (hit) return hit;
+  }
+  return [...zh].sort((a, b) => {
+    const ka = quizTtsVoiceSortKey(a);
+    const kb = quizTtsVoiceSortKey(b);
+    if (ka[0] !== kb[0]) return ka[0] - kb[0];
+    return ka[1].localeCompare(kb[1], "zh");
+  })[0];
+}
 
 function visibleViewIdsForModule(moduleId, knowledgeData, views) {
   const domains = Object.values(knowledgeData || {}).filter((d) => (d.module || "pm") === moduleId);
@@ -1050,7 +1097,15 @@ createApp({
     };
     window.addEventListener("beforeunload", this._onBeforeUnloadPersist);
     if (window.speechSynthesis) {
-      window.speechSynthesis.getVoices();
+      this._warmQuizTtsVoices = () => {
+        try {
+          window.speechSynthesis.getVoices();
+        } catch (e) {
+          /* ignore */
+        }
+      };
+      window.speechSynthesis.addEventListener("voiceschanged", this._warmQuizTtsVoices);
+      this._warmQuizTtsVoices();
     }
     this.$nextTick(() => {
       this.updateDomainNavMaxHeight();
@@ -1078,6 +1133,10 @@ createApp({
     if (window.speechSynthesis) {
       this._bumpQuizTtsGenAndCancel();
       this._clearQuizTtsUi();
+      if (this._warmQuizTtsVoices) {
+        window.speechSynthesis.removeEventListener("voiceschanged", this._warmQuizTtsVoices);
+        this._warmQuizTtsVoices = null;
+      }
     }
     clearInterval(this._countdownTimer);
     document.removeEventListener("click", this.handleGlobalClick);
@@ -1489,6 +1548,23 @@ createApp({
       this._quizTtsGen = (this._quizTtsGen || 0) + 1;
       if (window.speechSynthesis) window.speechSynthesis.cancel();
     },
+    _pickQuizTtsVoiceForUtter(synth) {
+      let saved = "";
+      try {
+        saved = localStorage.getItem(QUIZ_TTS_VOICE_STORAGE_KEY) || "";
+      } catch (e) {
+        /* ignore */
+      }
+      const v = pickQuizZhVoice(synth, saved);
+      if (v) {
+        try {
+          localStorage.setItem(QUIZ_TTS_VOICE_STORAGE_KEY, v.voiceURI);
+        } catch (e) {
+          /* ignore */
+        }
+      }
+      return v;
+    },
     _playQuizTtsSegment(fullPlain, absOffset, qi) {
       const synth = window.speechSynthesis;
       if (!synth) return;
@@ -1498,18 +1574,35 @@ createApp({
         return;
       }
       const gen = this._quizTtsGen;
+      if (!synth.getVoices().length) {
+        const onVoices = () => {
+          synth.removeEventListener("voiceschanged", onVoices);
+          if (gen !== this._quizTtsGen) return;
+          this._playQuizTtsSegment(fullPlain, absOffset, qi);
+        };
+        synth.addEventListener("voiceschanged", onVoices);
+        this._quizTtsFullPlain = fullPlain;
+        this._quizTtsSegmentStart = absOffset;
+        this._quizTtsProgressAbs = absOffset;
+        this.quizTtsPlayingIndex = qi;
+        return;
+      }
       this._quizTtsFullPlain = fullPlain;
       this._quizTtsSegmentStart = absOffset;
       this._quizTtsProgressAbs = absOffset;
       this.quizTtsPlayingIndex = qi;
 
       const utter = new SpeechSynthesisUtterance(segment);
-      utter.lang = "zh-CN";
+      utter.volume = 1;
+      utter.pitch = 1;
       utter.rate = this.quizTtsRate;
-      const voices = synth.getVoices();
-      const zh = voices.find((v) => v.lang === "zh-CN" || v.lang === "zh_CN")
-        || voices.find((v) => /^zh/i.test(v.lang || ""));
-      if (zh) utter.voice = zh;
+      const zh = this._pickQuizTtsVoiceForUtter(synth);
+      if (zh) {
+        utter.voice = zh;
+        utter.lang = zh.lang || "zh-CN";
+      } else {
+        utter.lang = "zh-CN";
+      }
 
       utter.onboundary = (e) => {
         if (gen !== this._quizTtsGen) return;
