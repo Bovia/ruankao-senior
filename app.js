@@ -863,7 +863,7 @@ createApp({
     },
     practiceQuizList() {
       const rows = this.practiceQuizBaseRows;
-      const f = this.practiceLayer === "domain" ? "all" : this.practiceBrowseResultFilter;
+      const f = this.practiceBrowseResultFilter;
       if (f === "all") return rows;
       return rows.filter((q) => {
         const u = String(q.userAnswer || "").trim().toUpperCase();
@@ -877,7 +877,7 @@ createApp({
     /** 阅卷态：筛选对象来自当前选择的历史记录（attempt），而不是题库字段 */
     practiceQuizReviewList() {
       const rows = this.practiceQuizBaseRows;
-      const f = this.practiceLayer === "domain" ? "all" : this.practiceBrowseResultFilter;
+      const f = this.practiceBrowseResultFilter;
       if (f === "all") return rows;
       const att = this.practiceExamDisplayAttempt;
       const answerMap = att && att.answerMap && typeof att.answerMap === "object" ? att.answerMap : {};
@@ -1283,6 +1283,7 @@ createApp({
       if (window.innerWidth < 768) window.scrollTo({ top: 0, behavior: "smooth" });
       this.$nextTick(() => this.updateDomainNavMaxHeight());
       this._syncPracticeQuizScrollListener();
+      this.$nextTick(() => this._ensureDomainLatestAttemptReview());
     },
     quizSubMode() {
       if (this.quizSubMode !== "quiz" && this.practiceExamActive) this.exitPracticeExam();
@@ -1290,6 +1291,7 @@ createApp({
     },
     practiceLayer() {
       this._syncPracticeQuizScrollListener();
+      this.$nextTick(() => this._ensureDomainLatestAttemptReview());
     },
     activeModule() {
       this.$nextTick(() => this.updateDomainNavMaxHeight());
@@ -1315,6 +1317,7 @@ createApp({
         this.$nextTick(() => {
           this._updatePracticeQuizActiveIndexFromLayout();
           this._updatePracticeQuizFabNeedsScroll();
+          this._ensureDomainLatestAttemptReview();
         });
       }
     },
@@ -1380,6 +1383,7 @@ createApp({
     this._loadPracticeActiveUser();
     this._loadPracticeAttemptLog();
     this._loadPracticeUserAnswers();
+    this.$nextTick(() => this._ensureDomainLatestAttemptReview());
     if (
       this.activeView === "quiz" &&
       this.practiceLayer === "domain" &&
@@ -2865,6 +2869,18 @@ createApp({
         window.scrollTo({ top: 0, behavior: "smooth" });
       });
     },
+    _ensureDomainLatestAttemptReview() {
+      if (this.activeView !== "quiz" || this.practiceLayer !== "domain") return;
+      if (this.activeDomainId === this.domainWrongBookId) return;
+      if (this.practiceExamRunning) return;
+      const list = this.practiceExamAttemptsForBundle || [];
+      if (!list.length) return;
+      const latest = list[0];
+      if (!latest || !latest.id) return;
+      // 十大知识域默认直达最后一条做题记录（无浏览态）
+      if (this.practiceExamActive && this.practiceExamResolvedAttemptId === latest.id) return;
+      this.openPracticeExamReview(latest.id);
+    },
     onPracticeExamBrowseHistorySelect(ev) {
       const el = ev && ev.target;
       const v = el ? el.value : "";
@@ -3211,6 +3227,7 @@ createApp({
           bar.scrollTo({ left: btn.offsetLeft - 12, behavior: "smooth" });
         }
         this.updateDomainNavMaxHeight();
+        this._ensureDomainLatestAttemptReview();
       });
     },
     selectProcess(processId) {
