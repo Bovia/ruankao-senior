@@ -1088,7 +1088,14 @@
                   class="practice-restart-modal"
                   @click.stop
                 >
-                  <p class="practice-restart-modal__title">历史记录</p>
+                  <div class="flex items-center justify-between gap-3">
+                    <p class="practice-restart-modal__title">历史记录</p>
+                    <button
+                      type="button"
+                      class="practice-exam-ghost-btn"
+                      @click="importPracticeAnswersForCurrentSetPrompt"
+                    >输入</button>
+                  </div>
                   <div class="practice-history-list">
                     <button
                       v-for="a in practiceExamAttemptsForBundle"

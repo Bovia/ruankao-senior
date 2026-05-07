@@ -1702,6 +1702,79 @@ createApp({
         window.alert(`初始化失败：${e && e.message ? e.message : "未知异常"}`);
       }
     },
+    importPracticeAnswersForCurrentSetPrompt() {
+      const set = this.activePracticeSet;
+      if (!set || !set.key) {
+        window.alert("仅综合题/模拟题支持导入答案串");
+        return;
+      }
+      const raw = window.prompt("输入答案串（示例：ABCDBAC）");
+      if (!raw || !raw.trim()) return;
+      const upper = String(raw).toUpperCase();
+      const letters = upper.match(/[A-D]/g) || [];
+      if (!letters.length) {
+        window.alert("未识别到 A-D 选项，请检查输入");
+        return;
+      }
+      const baseTotal = (this.practiceQuizBaseRows || []).length;
+      const limit = baseTotal > 0 ? Math.min(baseTotal, letters.length) : letters.length;
+      const mapped = {};
+      for (let i = 0; i < limit; i += 1) {
+        mapped[String(i)] = letters[i];
+      }
+      this.practiceUserAnswers = {
+        ...(this.practiceUserAnswers && typeof this.practiceUserAnswers === "object" ? this.practiceUserAnswers : {}),
+        [set.key]: mapped
+      };
+      this._persistPracticeUserAnswers();
+      // 同步生成一条历史记录，便于直接在「做题记录」里查看分数与解析
+      const rows = this.practiceQuizBaseRows || [];
+      const answerMap = {};
+      const choices = {};
+      const wrongOriginIndices = [];
+      let correct = 0;
+      for (const q of rows) {
+        const idx = q._originIndex;
+        const k = String(idx);
+        const ans = normalizeQuizAnswerKey(q.answer || "");
+        const user = normalizeQuizAnswerKey(mapped[k] || "");
+        answerMap[k] = ans;
+        if (user) choices[k] = user;
+        if (user && ans && user === ans) {
+          correct += 1;
+        } else if (user && ans && user !== ans) {
+          wrongOriginIndices.push(idx);
+        }
+      }
+      const total = rows.length;
+      const percent = total ? Math.round((correct / total) * 100) : 0;
+      const attempt = {
+        id: newPracticeAttemptId(),
+        bundleKey: this.quizBundleKey,
+        ts: Date.now(),
+        title: this.practicePanelTitle,
+        total,
+        correct,
+        percent,
+        choices,
+        answerMap,
+        wrongOriginIndices,
+        practiceLayer: this.practiceLayer,
+        activeComprehensiveId: this.activeComprehensiveId,
+        activeMockId: this.activeMockId,
+        activeDomainId: this.activeDomainId
+      };
+      const bk = this.quizBundleKey;
+      const prev = Array.isArray(this.practiceAttemptLog[bk]) ? this.practiceAttemptLog[bk].slice() : [];
+      prev.push(attempt);
+      this.practiceAttemptLog = { ...this.practiceAttemptLog, [bk]: prev.slice(-80) };
+      this._persistPracticeAttemptLog();
+      this.practiceSetCache = {};
+      this.practiceBrowseResultFilter = "all";
+      const ignored = upper.replace(/[A-D]/g, "").length;
+      const extra = letters.length > limit ? letters.length - limit : 0;
+      window.alert(`已保存并生成做题记录：当前用户「${this.activePracticeUserId}」，套题「${set.title || set.key}」，得分 ${correct}/${total}（${percent}%）${ignored ? `；忽略非 A-D 字符 ${ignored} 个` : ""}${extra ? `；超出题数 ${extra} 条已截断` : ""}`);
+    },
     importProjectCacheFromPrompt() {
       this.projectConfigMenuOpen = false;
       const raw = window.prompt("粘贴项目缓存 JSON：");
@@ -2262,6 +2335,22 @@ createApp({
         this.practiceUserAnswers = bySetKey && typeof bySetKey === "object" && !Array.isArray(bySetKey) ? bySetKey : {};
       } catch (e) {
         this.practiceUserAnswers = {};
+      }
+    },
+    _persistPracticeUserAnswers() {
+      try {
+        const raw = localStorage.getItem(PRACTICE_USER_ANS_STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        const profiles = parsed && parsed.__v === 2 && parsed.profiles && typeof parsed.profiles === "object"
+          ? { ...parsed.profiles }
+          : {};
+        profiles[this.activePracticeUserId] = {
+          v: 1,
+          bySetKey: this.practiceUserAnswers && typeof this.practiceUserAnswers === "object" ? this.practiceUserAnswers : {}
+        };
+        localStorage.setItem(PRACTICE_USER_ANS_STORAGE_KEY, JSON.stringify({ __v: 2, profiles }));
+      } catch (e) {
+        /* ignore */
       }
     },
     _resolveUserAnswersForSetKey(setKey) {
