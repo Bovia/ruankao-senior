@@ -302,6 +302,17 @@ code {
   border-radius: 7px;
 }
 
+.quiz-ans-bar--compact {
+  padding: 2px;
+  border-radius: 10px;
+}
+
+.quiz-ans-bar--compact .quiz-ans-btn {
+  padding: 0.22rem 0.55rem;
+  font-size: 0.72rem;
+  border-radius: 7px;
+}
+
 /* ── Quiz card answer peek hint ── */
 .quiz-peek-hint {
   margin-top: 0.9rem;

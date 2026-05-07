@@ -335,6 +335,8 @@ createApp({
       activeComprehensiveId: compFirstId,
       activeMockId: mockFirstId,
       quizAnswersGlobalShow: true,
+      /** 浏览题库：全部 / 只看错题 / 只对题（依据题干解析出的「你的答案」） */
+      practiceBrowseResultFilter: "all",
       quizAnswerPeek: {},
       /** 练习场题库：与滚动/最近点击同步的题号（0-based，用于移动端题数徽标） */
       practiceQuizActiveIndex: 0,
@@ -626,14 +628,29 @@ createApp({
       if (this.practiceLayer === "mock") return this.activeMockSet;
       return null;
     },
-    practiceQuizList() {
+    practiceQuizBaseRows() {
+      let list = [];
       if (this.practiceLayer === "comprehensive") {
-        return this._resolveSetQuiz(this.activeComprehensiveSet);
+        list = this._resolveSetQuiz(this.activeComprehensiveSet);
+      } else if (this.practiceLayer === "mock") {
+        list = this._resolveSetQuiz(this.activeMockSet);
+      } else {
+        list = this.activeDomain.quiz || [];
       }
-      if (this.practiceLayer === "mock") {
-        return this._resolveSetQuiz(this.activeMockSet);
-      }
-      return this.activeDomain.quiz || [];
+      return list.map((q, idx) => ({ ...q, _originIndex: idx }));
+    },
+    practiceQuizList() {
+      const rows = this.practiceQuizBaseRows;
+      const f = this.practiceBrowseResultFilter;
+      if (f === "all") return rows;
+      return rows.filter((q) => {
+        const u = String(q.userAnswer || "").trim().toUpperCase();
+        const a = String(q.answer || "").trim().toUpperCase();
+        if (!u) return false;
+        if (f === "wrong") return u !== a;
+        if (f === "correct") return u === a;
+        return true;
+      });
     },
     practicePanelTitle() {
       if (this.practiceLayer === "comprehensive" && this.activeComprehensiveSet) {
@@ -988,6 +1005,14 @@ createApp({
           this._updatePracticeQuizFabNeedsScroll();
         });
       }
+    },
+    practiceBrowseResultFilter() {
+      this.quizAnswerPeek = {};
+      this.practiceQuizActiveIndex = 0;
+      this.$nextTick(() => {
+        this._updatePracticeQuizActiveIndexFromLayout();
+        this._updatePracticeQuizFabNeedsScroll();
+      });
     },
     quizAnswersGlobalShow() {
       this.$nextTick(() => this._updatePracticeQuizFabNeedsScroll());
@@ -1708,6 +1733,7 @@ createApp({
     },
     selectPracticeLayer(layer) {
       this.practiceLayer = layer;
+      this.practiceBrowseResultFilter = "all";
       this.resetQuizMatcherState();
       if (layer === "comprehensive") {
         const list = this.comprehensiveSets;
@@ -1724,10 +1750,12 @@ createApp({
     },
     selectComprehensiveSet(id) {
       this.activeComprehensiveId = id;
+      this.practiceBrowseResultFilter = "all";
       this.resetQuizMatcherState();
     },
     selectMockSet(id) {
       this.activeMockId = id;
+      this.practiceBrowseResultFilter = "all";
       this.resetQuizMatcherState();
     },
     setQuizAnswersGlobal(show) {
@@ -1936,6 +1964,7 @@ createApp({
       this.flippedKeywords = {};
       this.blindFillRevealed = {};
       this.resetQuizMatcherState();
+      this.practiceBrowseResultFilter = "all";
       if (window.innerWidth < 768) {
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
