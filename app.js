@@ -458,7 +458,7 @@ createApp({
       practiceLayer: "domain",
       activeComprehensiveId: compFirstId,
       activeMockId: mockFirstId,
-      quizAnswersGlobalShow: true,
+      quizAnswersGlobalShow: false,
       /** 浏览题库：全部 / 只看错题 / 只对题（依据题干解析出的「你的答案」） */
       practiceBrowseResultFilter: "all",
       quizAnswerPeek: {},
@@ -511,6 +511,8 @@ createApp({
       favoriteExpandedId: "",
       favoriteEntryAnimating: false,
       favoritesMenuOpen: false,
+      favoriteToastText: "",
+      favoriteToastVisible: false,
       projectConfigMenuOpen: false,
       catVisible: true,
       catDocked: false,
@@ -1283,7 +1285,7 @@ createApp({
       if (window.innerWidth < 768) window.scrollTo({ top: 0, behavior: "smooth" });
       this.$nextTick(() => this.updateDomainNavMaxHeight());
       this._syncPracticeQuizScrollListener();
-      this.$nextTick(() => this._ensureDomainLatestAttemptReview());
+      this.$nextTick(() => this._ensureLatestAttemptReviewForActiveLayer());
     },
     quizSubMode() {
       if (this.quizSubMode !== "quiz" && this.practiceExamActive) this.exitPracticeExam();
@@ -1291,7 +1293,7 @@ createApp({
     },
     practiceLayer() {
       this._syncPracticeQuizScrollListener();
-      this.$nextTick(() => this._ensureDomainLatestAttemptReview());
+      this.$nextTick(() => this._ensureLatestAttemptReviewForActiveLayer());
     },
     activeModule() {
       this.$nextTick(() => this.updateDomainNavMaxHeight());
@@ -1317,7 +1319,7 @@ createApp({
         this.$nextTick(() => {
           this._updatePracticeQuizActiveIndexFromLayout();
           this._updatePracticeQuizFabNeedsScroll();
-          this._ensureDomainLatestAttemptReview();
+          this._ensureLatestAttemptReviewForActiveLayer();
         });
       }
     },
@@ -1383,7 +1385,7 @@ createApp({
     this._loadPracticeActiveUser();
     this._loadPracticeAttemptLog();
     this._loadPracticeUserAnswers();
-    this.$nextTick(() => this._ensureDomainLatestAttemptReview());
+    this.$nextTick(() => this._ensureLatestAttemptReviewForActiveLayer());
     if (
       this.activeView === "quiz" &&
       this.practiceLayer === "domain" &&
@@ -1675,10 +1677,8 @@ createApp({
         throw new Error("export_my_answers_and_history.json 文件内容不是合法 JSON");
       }
     },
-    async initPracticeUserFromSeedPrompt() {
+    async initPracticeUserFromSeed(uidRaw) {
       this.projectConfigMenuOpen = false;
-      const uidRaw = window.prompt("初始化题目缓存（输入 bovia 或 mtt）：", this.activePracticeUserId || "bovia");
-      if (!uidRaw || !uidRaw.trim()) return;
       const uid = this._normalizePracticeUserId(uidRaw);
       if (uid !== "bovia" && uid !== "mtt") {
         window.alert("仅支持 bovia / mtt");
@@ -1719,17 +1719,22 @@ createApp({
           ? (boviaAnswersRaw.bySetKey && typeof boviaAnswersRaw.bySetKey === "object" ? boviaAnswersRaw.bySetKey : {})
           : {};
 
-        let nextAttempts = uid === "bovia" ? boviaAttempts : {};
-        if (extraAttempts[uid] && typeof extraAttempts[uid] === "object" && !Array.isArray(extraAttempts[uid])) {
-          nextAttempts = extraAttempts[uid];
-        }
-        let nextAnswers = uid === "bovia" ? boviaAnswers : {};
-        if (extraAnswers[uid] && typeof extraAnswers[uid] === "object") {
-          const bySet = extraAnswers[uid].bySetKey && typeof extraAnswers[uid].bySetKey === "object"
+        const profileAttempts = extraAttempts[uid] && typeof extraAttempts[uid] === "object" && !Array.isArray(extraAttempts[uid])
+          ? extraAttempts[uid]
+          : {};
+        let nextAttempts = uid === "bovia"
+          ? { ...(boviaAttempts && typeof boviaAttempts === "object" ? boviaAttempts : {}), ...profileAttempts }
+          : profileAttempts;
+
+        const profileBySet = extraAnswers[uid] && typeof extraAnswers[uid] === "object"
+          ? (extraAnswers[uid].bySetKey && typeof extraAnswers[uid].bySetKey === "object"
             ? extraAnswers[uid].bySetKey
-            : {};
-          nextAnswers = bySet;
-        }
+            : {})
+          : {};
+        let nextAnswers = uid === "bovia"
+          ? { ...(boviaAnswers && typeof boviaAnswers === "object" ? boviaAnswers : {}), ...profileBySet }
+          : profileBySet;
+        nextAttempts = this._hydrateAttemptsFromAnswerProfiles(nextAttempts, nextAnswers);
 
         const attemptsRaw = localStorage.getItem(PRACTICE_ATTEMPTS_STORAGE_KEY);
         const answersRaw = localStorage.getItem(PRACTICE_USER_ANS_STORAGE_KEY);
@@ -1769,6 +1774,70 @@ createApp({
       } catch (e) {
         window.alert(`初始化失败：${e && e.message ? e.message : "未知异常"}`);
       }
+    },
+    _buildAttemptFromMappedAnswers(layer, set, mapped, tsSeed) {
+      const raw = set && set.key && window.practiceMarkdown && window.practiceMarkdown[set.key];
+      const quiz = raw ? parsePracticeMarkdown(raw) : (set && Array.isArray(set.quiz) ? set.quiz : []);
+      if (!Array.isArray(quiz) || !quiz.length) return null;
+      if (!mapped || typeof mapped !== "object" || Array.isArray(mapped)) return null;
+      const answerMap = {};
+      const choices = {};
+      const wrongOriginIndices = [];
+      let correct = 0;
+      for (let idx = 0; idx < quiz.length; idx += 1) {
+        const k = String(idx);
+        const ans = normalizeQuizAnswerKey((quiz[idx] && quiz[idx].answer) || "");
+        const user = normalizeQuizAnswerKey(mapped[k] || "");
+        answerMap[k] = ans;
+        if (user) choices[k] = user;
+        if (user && ans && user === ans) {
+          correct += 1;
+        } else if (user && ans && user !== ans) {
+          wrongOriginIndices.push(idx);
+        }
+      }
+      const total = quiz.length;
+      const percent = total ? Math.round((correct / total) * 100) : 0;
+      return {
+        id: newPracticeAttemptId(),
+        bundleKey: layer === "mock" ? `quiz|mock|||${set.id}` : `quiz|comprehensive||${set.id}|`,
+        ts: tsSeed || Date.now(),
+        title: set.title || set.key || "练习套题",
+        total,
+        correct,
+        percent,
+        choices,
+        answerMap,
+        wrongOriginIndices,
+        isDraft: false,
+        practiceLayer: layer,
+        activeComprehensiveId: layer === "comprehensive" ? set.id : "",
+        activeMockId: layer === "mock" ? set.id : "",
+        activeDomainId: ""
+      };
+    },
+    _hydrateAttemptsFromAnswerProfiles(baseAttempts, bySetKey) {
+      const attempts = baseAttempts && typeof baseAttempts === "object" && !Array.isArray(baseAttempts) ? { ...baseAttempts } : {};
+      const answers = bySetKey && typeof bySetKey === "object" && !Array.isArray(bySetKey) ? bySetKey : {};
+      const comp = Array.isArray(this.comprehensiveSets) ? this.comprehensiveSets : [];
+      const mock = Array.isArray(this.mockSets) ? this.mockSets : [];
+      const byKey = {};
+      comp.forEach((set) => { if (set && set.key) byKey[set.key] = { layer: "comprehensive", set }; });
+      mock.forEach((set) => { if (set && set.key) byKey[set.key] = { layer: "mock", set }; });
+      let tsCursor = Date.now();
+      for (const [setKey, mapped] of Object.entries(answers)) {
+        const hit = byKey[setKey];
+        if (!hit) continue;
+        const bundleKey = hit.layer === "mock" ? `quiz|mock|||${hit.set.id}` : `quiz|comprehensive||${hit.set.id}|`;
+        const list = Array.isArray(attempts[bundleKey]) ? attempts[bundleKey].filter((x) => x && typeof x === "object") : [];
+        const hasFinished = list.some((x) => !x.isDraft);
+        if (hasFinished) continue;
+        const att = this._buildAttemptFromMappedAnswers(hit.layer, hit.set, mapped, tsCursor++);
+        if (!att) continue;
+        list.push(att);
+        attempts[bundleKey] = list.slice(-80);
+      }
+      return attempts;
     },
     importPracticeAnswersForCurrentSetPrompt() {
       const set = this.activePracticeSet;
@@ -1894,6 +1963,21 @@ createApp({
     _existsFavorite(type, content, sourceKey) {
       return this.favorites.some((x) => x.type === type && x.content === content && x.sourceKey === sourceKey);
     },
+    _practiceLayerLabel() {
+      if (this.practiceLayer === "mock") return "模拟";
+      if (this.practiceLayer === "comprehensive") return "综合";
+      return "知识域";
+    },
+    _showFavoriteToast(text) {
+      this.favoriteToastText = String(text || "").trim();
+      if (!this.favoriteToastText) return;
+      this.favoriteToastVisible = true;
+      if (this._favoriteToastTimer) clearTimeout(this._favoriteToastTimer);
+      this._favoriteToastTimer = setTimeout(() => {
+        this.favoriteToastVisible = false;
+        this._favoriteToastTimer = null;
+      }, 1600);
+    },
     openFavorites() {
       this.favoritesOpen = true;
     },
@@ -1957,18 +2041,18 @@ createApp({
       this.newFavoriteNote = "";
       this._persistFavorites();
       this.openFavorites();
+      this._showFavoriteToast("收藏成功喵~ 笔记已放进收藏夹");
     },
     addFavoriteQuestion(question, qi) {
       const title = `第${qi + 1}题`;
       const uaLine = question.userAnswer ? `\n你的作答：${question.userAnswer}` : "";
       const content = `${question.question}\n${(question.options || []).join("\n")}\n答案：${question.answer}${uaLine}\n解析：${question.analysis || ""}`.trim();
       const sourceKey = `${this.quizBundleKey}|q${qi}|${question.question || ""}`;
-      const sourceTag = this.practiceLayer === "mock"
-        ? "模拟"
-        : this.practiceLayer === "comprehensive"
-          ? "综合"
-          : "知识域";
-      if (this._existsFavorite("question", content, sourceKey)) return;
+      const sourceTag = this._practiceLayerLabel();
+      if (this._existsFavorite("question", content, sourceKey)) {
+        this._showFavoriteToast("这题已经收藏过啦~");
+        return;
+      }
       this.favorites.push({
         id: this._makeFavoriteId(),
         type: "question",
@@ -1983,6 +2067,7 @@ createApp({
       setTimeout(() => {
         if (this.favoritingQuestionKey === sourceKey) this.favoritingQuestionKey = "";
       }, 900);
+      this._showFavoriteToast(`收藏成功喵~ 已收下${sourceTag}第${qi + 1}题`);
     },
     startSnippetPress(text, meta) {
       this._cancelSnippetPressTimer();
@@ -1990,7 +2075,8 @@ createApp({
       if (!payload) return;
       this._snippetPressTimer = setTimeout(() => {
         this._snippetPressTimer = null;
-        this.addFavoriteSnippet(payload, meta);
+        const nextMeta = meta && typeof meta === "object" ? { ...meta, fromLongPress: true } : { fromLongPress: true };
+        this.addFavoriteSnippet(payload, nextMeta);
       }, 550);
     },
     endSnippetPress() {
@@ -2001,12 +2087,11 @@ createApp({
       if (!content) return;
       const kind = meta && meta.kind ? meta.kind : "片段";
       const sourceKey = `${this.quizBundleKey}|snippet|${kind}|${meta && typeof meta.qi === "number" ? meta.qi : "x"}|${content.slice(0, 32)}`;
-      const sourceTag = this.practiceLayer === "mock"
-        ? "模拟"
-        : this.practiceLayer === "comprehensive"
-          ? "综合"
-          : "知识域";
-      if (this._existsFavorite("snippet", content, sourceKey)) return;
+      const sourceTag = this._practiceLayerLabel();
+      if (this._existsFavorite("snippet", content, sourceKey)) {
+        this._showFavoriteToast("这段内容已经在收藏夹啦~");
+        return;
+      }
       this.favorites.push({
         id: this._makeFavoriteId(),
         type: "snippet",
@@ -2017,6 +2102,8 @@ createApp({
         createdAt: Date.now()
       });
       this._persistFavorites();
+      const byLongPress = !!(meta && meta.fromLongPress);
+      this._showFavoriteToast(byLongPress ? `长按收藏成功喵~ 已收藏${kind}` : `收藏成功喵~ 已收藏${kind}`);
     },
     normalizeQuizAnalysisPlain(text) {
       return String(text || "")
@@ -2859,6 +2946,7 @@ createApp({
         return;
       }
       this.practiceExamSelectedHistoryId = selectValue;
+      this.practiceBrowseResultFilter = "wrong";
       this._bumpQuizTtsGenAndCancel();
       this._clearQuizTtsUi();
       this.practiceExamActive = true;
@@ -2869,15 +2957,23 @@ createApp({
         window.scrollTo({ top: 0, behavior: "smooth" });
       });
     },
-    _ensureDomainLatestAttemptReview() {
-      if (this.activeView !== "quiz" || this.practiceLayer !== "domain") return;
-      if (this.activeDomainId === this.domainWrongBookId) return;
+    _isPracticeWrongBookActive(layer) {
+      if (layer === "domain") return this.activeDomainId === this.domainWrongBookId;
+      if (layer === "comprehensive") return this.activeComprehensiveId === this.comprehensiveWrongBookId;
+      if (layer === "mock") return this.activeMockId === this.mockWrongBookId;
+      return false;
+    },
+    _ensureLatestAttemptReviewForActiveLayer() {
+      if (this.activeView !== "quiz") return;
+      const layer = this.practiceLayer;
+      if (layer !== "domain" && layer !== "comprehensive" && layer !== "mock") return;
+      if (this._isPracticeWrongBookActive(layer)) return;
       if (this.practiceExamRunning) return;
       const list = this.practiceExamAttemptsForBundle || [];
       if (!list.length) return;
       const latest = list[0];
       if (!latest || !latest.id) return;
-      // 十大知识域默认直达最后一条做题记录（无浏览态）
+      // 三层练习入口默认直达最近一条做题记录
       if (this.practiceExamActive && this.practiceExamResolvedAttemptId === latest.id) return;
       this.openPracticeExamReview(latest.id);
     },
@@ -2932,6 +3028,7 @@ createApp({
       this.practiceExamRunning = false;
       this.practiceExamDraftId = "";
       this.practiceExamSelectedHistoryId = "";
+      this.practiceBrowseResultFilter = "wrong";
       this.$nextTick(() => {
         this._syncPracticeQuizScrollListener();
         this._updatePracticeQuizFabNeedsScroll();
@@ -3227,7 +3324,7 @@ createApp({
           bar.scrollTo({ left: btn.offsetLeft - 12, behavior: "smooth" });
         }
         this.updateDomainNavMaxHeight();
-        this._ensureDomainLatestAttemptReview();
+        this._ensureLatestAttemptReviewForActiveLayer();
       });
     },
     selectProcess(processId) {
