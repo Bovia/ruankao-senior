@@ -513,6 +513,10 @@ createApp({
       favoritesMenuOpen: false,
       favoriteToastText: "",
       favoriteToastVisible: false,
+      cuteConfirmOpen: false,
+      cuteConfirmTitle: "确认一下喵~",
+      cuteConfirmText: "",
+      catConfigOpen: false,
       projectConfigMenuOpen: false,
       catVisible: true,
       catDocked: false,
@@ -524,7 +528,9 @@ createApp({
       catSpeed: 90,
       catPauseUntil: 0,
       catState: "run",
-      catFacing: 1
+      catFacing: 1,
+      catCrowdCount: 2,
+      catVisitors: []
     };
 
     if (persisted) {
@@ -1418,6 +1424,7 @@ createApp({
     this._catLastTs = 0;
     this._planNextCatBehavior(performance.now(), false);
     this._catRaf = requestAnimationFrame((ts) => this._tickCatRoam(ts));
+    this._catVisitorTimer = setInterval(() => this._maybeSpawnCatVisitor(), 1800);
   },
   beforeUnmount() {
     this._detachPracticeQuizScrollListener();
@@ -1443,6 +1450,7 @@ createApp({
     window.removeEventListener("touchend", this._onCatDragEnd);
     window.removeEventListener("touchcancel", this._onCatDragEnd);
     if (this._catRaf) cancelAnimationFrame(this._catRaf);
+    if (this._catVisitorTimer) clearInterval(this._catVisitorTimer);
   },
   methods: {
     _makeFavoriteId() {
@@ -1478,13 +1486,20 @@ createApp({
         const raw = JSON.parse(localStorage.getItem(CAT_STORAGE_KEY) || "null");
         if (!raw || raw.v !== 1) return;
         if (typeof raw.visible === "boolean") this.catVisible = raw.visible;
+        if (Number.isInteger(raw.crowdCount)) {
+          this.catCrowdCount = Math.max(0, Math.min(6, raw.crowdCount));
+        }
       } catch (e) {
         /* ignore */
       }
     },
     _persistCatSettings() {
       try {
-        localStorage.setItem(CAT_STORAGE_KEY, JSON.stringify({ v: 1, visible: this.catVisible }));
+        localStorage.setItem(CAT_STORAGE_KEY, JSON.stringify({
+          v: 1,
+          visible: this.catVisible,
+          crowdCount: this.catCrowdCount
+        }));
       } catch (e) {
         /* ignore */
       }
@@ -1492,6 +1507,7 @@ createApp({
     hideCat() {
       this.catVisible = false;
       this.catDocked = true;
+      this.catVisitors = [];
       this._persistCatSettings();
     },
     showCat() {
@@ -1501,6 +1517,43 @@ createApp({
       this.projectConfigMenuOpen = false;
       this._planNextCatBehavior(performance.now(), false);
       this._persistCatSettings();
+    },
+    setCatCrowdCount(next) {
+      const n = Math.max(0, Math.min(6, Number(next) || 0));
+      this.catCrowdCount = n;
+      if (!n) this.catVisitors = [];
+      this.projectConfigMenuOpen = false;
+      this._persistCatSettings();
+    },
+    _randomCatCoat() {
+      return "default";
+    },
+    catVisitorStyle(v) {
+      return {
+        top: `${v.top}px`,
+        "--cat-visitor-duration": `${v.duration}ms`
+      };
+    },
+    _maybeSpawnCatVisitor() {
+      if (!this.catVisible) return;
+      if (this.catCrowdCount <= 0) return;
+      const list = Array.isArray(this.catVisitors) ? this.catVisitors : [];
+      if (list.length >= this.catCrowdCount) return;
+      if (Math.random() < 0.42) return;
+      const dir = Math.random() < 0.5 ? "left" : "right";
+      const topMin = 78;
+      const topMax = Math.max(topMin, window.innerHeight - 96);
+      const v = {
+        id: `cv-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        coat: this._randomCatCoat(),
+        dir,
+        top: Math.round(topMin + Math.random() * (topMax - topMin)),
+        duration: 4200 + Math.round(Math.random() * 4200)
+      };
+      this.catVisitors = [...list, v];
+    },
+    onCatVisitorEnd(id) {
+      this.catVisitors = (this.catVisitors || []).filter((v) => v.id !== id);
     },
     _catBounds() {
       const w = 44;
@@ -1632,7 +1685,7 @@ createApp({
       });
       const ok = await this._copyTextToClipboard(payload);
       this.favoritesMenuOpen = false;
-      window.alert(ok ? "已复制收藏数据到剪贴板" : "复制失败，请手动复制");
+      this._showCuteTip(ok ? "已复制收藏数据到剪贴板" : "复制失败，请手动复制");
     },
     async exportProjectCacheToClipboard() {
       const items = {};
@@ -1648,7 +1701,7 @@ createApp({
       });
       const ok = await this._copyTextToClipboard(payload);
       this.projectConfigMenuOpen = false;
-      window.alert(ok ? "已复制项目缓存到剪贴板" : "复制失败，请手动复制");
+      this._showCuteTip(ok ? "已复制项目缓存到剪贴板" : "复制失败，请手动复制");
     },
     _normalizePracticeUserId(raw) {
       const id = String(raw || "").trim().toLowerCase().replace(/[^a-z0-9_-]/g, "");
@@ -1681,10 +1734,10 @@ createApp({
       this.projectConfigMenuOpen = false;
       const uid = this._normalizePracticeUserId(uidRaw);
       if (uid !== "bovia" && uid !== "mtt") {
-        window.alert("仅支持 bovia / mtt");
+        this._showCuteTip("仅支持 bovia / mtt");
         return;
       }
-      const ok = window.confirm(`将覆盖 ${uid} 的题目历史与答案缓存，是否继续？`);
+      const ok = await this._askCuteConfirm(`将覆盖 ${uid} 的题目历史与答案缓存，是否继续？`);
       if (!ok) return;
       try {
         const seed = await this._loadPracticeSeedData();
@@ -1706,13 +1759,13 @@ createApp({
         try {
           boviaAttempts = attemptsSeedRaw ? JSON.parse(attemptsSeedRaw) : {};
         } catch (e) {
-          window.alert("初始化失败：export 中 attempts 字段不是合法 JSON 字符串");
+          this._showCuteTip("初始化失败：export 中 attempts 字段不是合法 JSON 字符串");
           return;
         }
         try {
           boviaAnswersRaw = answersSeedRaw ? JSON.parse(answersSeedRaw) : {};
         } catch (e) {
-          window.alert("初始化失败：export 中 user-answers 字段不是合法 JSON 字符串");
+          this._showCuteTip("初始化失败：export 中 user-answers 字段不是合法 JSON 字符串");
           return;
         }
         const boviaAnswers = boviaAnswersRaw && typeof boviaAnswersRaw === "object"
@@ -1770,9 +1823,9 @@ createApp({
         this.exitPracticeExam();
         this._loadPracticeAttemptLog();
         this._loadPracticeUserAnswers();
-        window.alert(`初始化完成，当前用户：${uid}`);
+        this._showCuteTip(`初始化完成，当前用户：${uid}`);
       } catch (e) {
-        window.alert(`初始化失败：${e && e.message ? e.message : "未知异常"}`);
+        this._showCuteTip(`初始化失败：${e && e.message ? e.message : "未知异常"}`);
       }
     },
     _buildAttemptFromMappedAnswers(layer, set, mapped, tsSeed) {
@@ -1842,7 +1895,7 @@ createApp({
     importPracticeAnswersForCurrentSetPrompt() {
       const set = this.activePracticeSet;
       if (!set || !set.key) {
-        window.alert("仅综合题/模拟题支持导入答案串");
+        this._showCuteTip("仅综合题/模拟题支持导入答案串");
         return;
       }
       const raw = window.prompt("输入答案串（示例：ABCDBAC）");
@@ -1850,7 +1903,7 @@ createApp({
       const upper = String(raw).toUpperCase();
       const letters = upper.match(/[A-D]/g) || [];
       if (!letters.length) {
-        window.alert("未识别到 A-D 选项，请检查输入");
+        this._showCuteTip("未识别到 A-D 选项，请检查输入");
         return;
       }
       const baseTotal = (this.practiceQuizBaseRows || []).length;
@@ -1910,7 +1963,7 @@ createApp({
       this.practiceBrowseResultFilter = "all";
       const ignored = upper.replace(/[A-D]/g, "").length;
       const extra = letters.length > limit ? letters.length - limit : 0;
-      window.alert(`已保存并生成做题记录：当前用户「${this.activePracticeUserId}」，套题「${set.title || set.key}」，得分 ${correct}/${total}（${percent}%）${ignored ? `；忽略非 A-D 字符 ${ignored} 个` : ""}${extra ? `；超出题数 ${extra} 条已截断` : ""}`);
+      this._showCuteTip(`已保存并生成做题记录：当前用户「${this.activePracticeUserId}」，套题「${set.title || set.key}」，得分 ${correct}/${total}（${percent}%）${ignored ? `；忽略非 A-D 字符 ${ignored} 个` : ""}${extra ? `；超出题数 ${extra} 条已截断` : ""}`);
     },
     importProjectCacheFromPrompt() {
       this.projectConfigMenuOpen = false;
@@ -1919,7 +1972,7 @@ createApp({
       try {
         const parsed = JSON.parse(raw);
         if (!parsed || parsed.v !== 1 || typeof parsed.items !== "object" || Array.isArray(parsed.items)) {
-          window.alert("导入失败：JSON 格式不正确");
+          this._showCuteTip("导入失败：JSON 格式不正确");
           return;
         }
         PROJECT_CACHE_KEYS.forEach((k) => {
@@ -1927,9 +1980,9 @@ createApp({
             localStorage.setItem(k, parsed.items[k]);
           }
         });
-        window.alert("导入成功，刷新页面后生效");
+        this._showCuteTip("导入成功，刷新页面后生效");
       } catch (e) {
-        window.alert("导入失败：JSON 解析错误");
+        this._showCuteTip("导入失败：JSON 解析错误");
       }
     },
     importFavoritesFromPrompt() {
@@ -1939,7 +1992,7 @@ createApp({
       try {
         const parsed = JSON.parse(raw);
         if (!parsed || parsed.v !== 1 || !Array.isArray(parsed.items)) {
-          window.alert("导入失败：JSON 格式不正确");
+          this._showCuteTip("导入失败：JSON 格式不正确");
           return;
         }
         const safeItems = parsed.items
@@ -1949,9 +2002,9 @@ createApp({
         if (typeof parsed.compact === "boolean") this.favoritesCompact = parsed.compact;
         this.favoriteExpandedId = "";
         this._persistFavorites();
-        window.alert(`导入成功，共 ${safeItems.length} 条`);
+        this._showCuteTip(`导入成功，共 ${safeItems.length} 条`);
       } catch (e) {
-        window.alert("导入失败：JSON 解析错误");
+        this._showCuteTip("导入失败：JSON 解析错误");
       }
     },
     _cancelSnippetPressTimer() {
@@ -1978,6 +2031,34 @@ createApp({
         this._favoriteToastTimer = null;
       }, 1600);
     },
+    _showCuteTip(text) {
+      const raw = String(text || "").trim();
+      if (!raw) return;
+      let prefix = "提示喵~ ";
+      if (/失败|错误|不支持|未识别|无法/.test(raw)) prefix = "哎呀喵~ ";
+      else if (/成功|完成|已保存|已复制|已收藏/.test(raw)) prefix = "成功喵~ ";
+      this._showFavoriteToast(prefix + raw);
+    },
+    _askCuteConfirm(text, title) {
+      const msg = String(text || "").trim();
+      if (!msg) return Promise.resolve(true);
+      if (this._cuteConfirmResolver) {
+        this._cuteConfirmResolver(false);
+        this._cuteConfirmResolver = null;
+      }
+      this.cuteConfirmTitle = String(title || "").trim() || "确认一下喵~";
+      this.cuteConfirmText = msg;
+      this.cuteConfirmOpen = true;
+      return new Promise((resolve) => {
+        this._cuteConfirmResolver = resolve;
+      });
+    },
+    _resolveCuteConfirm(ok) {
+      const resolve = this._cuteConfirmResolver;
+      this._cuteConfirmResolver = null;
+      this.cuteConfirmOpen = false;
+      if (resolve) resolve(!!ok);
+    },
     openFavorites() {
       this.favoritesOpen = true;
     },
@@ -1998,6 +2079,13 @@ createApp({
     },
     toggleProjectConfigMenu() {
       this.projectConfigMenuOpen = !this.projectConfigMenuOpen;
+    },
+    openCatConfig() {
+      this.projectConfigMenuOpen = false;
+      this.catConfigOpen = true;
+    },
+    closeCatConfig() {
+      this.catConfigOpen = false;
     },
     removeFavorite(id) {
       this.favorites = this.favorites.filter((x) => x.id !== id);
@@ -2808,13 +2896,13 @@ createApp({
         const attempt = opts.attempt || this.practiceExamDisplayAttempt;
         const wrongOnly = this._extractAnsweredWrongIndicesFromAttempt(attempt);
         if (!wrongOnly.length) {
-          window.alert("该次记录中没有可重做错题");
+          this._showCuteTip("该次记录中没有可重做错题");
           return;
         }
         const allow = new Set(wrongOnly);
         const filtered = this.practiceQuizBaseRows.filter((q) => allow.has(q._originIndex));
         if (!filtered.length) {
-          window.alert("无法在现题库中匹配该次错题，请返回浏览后重试。");
+          this._showCuteTip("无法在现题库中匹配该次错题，请返回浏览后重试。");
           return;
         }
         this.practiceExamSubsetRows = filtered;
@@ -2891,7 +2979,7 @@ createApp({
     // savePracticeExamDraftNow() {
     //   if (!this.practiceExamRunning) return;
     //   this._persistCurrentPracticeDraft();
-    //   window.alert("已暂存当前做题进度");
+    //   this._showCuteTip("已暂存当前做题进度");
     // },
     goPracticeExamCard(delta) {
       if (!this.practiceExamRunning) return;

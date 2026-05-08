@@ -2140,8 +2140,13 @@
             class="module-fab-sheet"
             role="menu"
           >
+            <div class="module-fab-cat-ears" aria-hidden="true">
+              <span class="module-fab-cat-ear module-fab-cat-ear-l"></span>
+              <span class="module-fab-cat-ear module-fab-cat-ear-r"></span>
+            </div>
+            <div class="module-fab-cat-paws" aria-hidden="true">🐾 🐾</div>
             <div class="module-fab-sheet-head">
-              <div class="module-fab-sheet-title">选择学科模块</div>
+              <div class="module-fab-sheet-title">选择学科模块 · 喵</div>
               <div class="module-head-actions">
                 <button
                   type="button"
@@ -2168,13 +2173,8 @@
                     <button
                       type="button"
                       class="module-config-item"
-                      @click="showCat"
-                    >开启小猫</button>
-                    <button
-                      type="button"
-                      class="module-config-item"
-                      @click="hideCat"
-                    >关闭小猫</button>
+                      @click="openCatConfig"
+                    >猫猫配置</button>
                     <button
                       type="button"
                       class="module-config-item"
@@ -2363,6 +2363,28 @@
           </div>
         </div>
       </div>
+      <div
+        v-for="vcat in catVisitors"
+        :key="vcat.id"
+        class="cat-visitor"
+        :class="'cat-visitor-' + vcat.dir"
+        :style="catVisitorStyle(vcat)"
+        @animationend="onCatVisitorEnd(vcat.id)"
+      >
+        <div class="cat-motion">
+          <div class="cat-cute">
+            <span class="cat-ear cat-ear-l"></span>
+            <span class="cat-ear cat-ear-r"></span>
+            <span class="cat-eye cat-eye-l"></span>
+            <span class="cat-eye cat-eye-r"></span>
+            <span class="cat-leg cat-leg-fl"></span>
+            <span class="cat-leg cat-leg-fr"></span>
+            <span class="cat-leg cat-leg-bl"></span>
+            <span class="cat-leg cat-leg-br"></span>
+            <span class="cat-tail"></span>
+          </div>
+        </div>
+      </div>
 
       <div
         v-if="favoritesOpen"
@@ -2377,6 +2399,60 @@
           aria-live="polite"
         >{{ favoriteToastText }}</div>
       </transition>
+      <div
+        v-if="cuteConfirmOpen"
+        class="cute-confirm-mask"
+        @click="_resolveCuteConfirm(false)"
+      ></div>
+      <section
+        v-if="cuteConfirmOpen"
+        class="cute-confirm-modal"
+        role="dialog"
+        aria-modal="true"
+        @click.stop
+      >
+        <h3 class="cute-confirm-title">{{ cuteConfirmTitle }}</h3>
+        <p class="cute-confirm-text">{{ cuteConfirmText }}</p>
+        <div class="cute-confirm-actions">
+          <button type="button" class="cute-confirm-btn cute-confirm-btn-cancel" @click.stop="_resolveCuteConfirm(false)">再想想</button>
+          <button type="button" class="cute-confirm-btn cute-confirm-btn-ok" @click.stop="_resolveCuteConfirm(true)">继续喵</button>
+        </div>
+      </section>
+      <div
+        v-if="catConfigOpen"
+        class="cat-config-mask"
+        @click="closeCatConfig"
+      ></div>
+      <section
+        v-if="catConfigOpen"
+        class="cat-config-modal"
+        role="dialog"
+        aria-modal="true"
+        @click.stop
+      >
+        <h3 class="cat-config-title">猫猫配置</h3>
+        <p class="cat-config-sub">可以设置数量，猫猫会随机花色出现并跑来跑去喵~</p>
+        <div class="cat-config-row">
+          <span class="cat-config-label">显示猫猫</span>
+          <button
+            type="button"
+            class="cat-config-toggle"
+            :class="{ 'cat-config-toggle-on': catVisible }"
+            @click="catVisible ? hideCat() : showCat()"
+          >{{ catVisible ? '开启中' : '已关闭' }}</button>
+        </div>
+        <div class="cat-config-row">
+          <span class="cat-config-label">猫猫数量</span>
+          <div class="cat-config-stepper">
+            <button type="button" class="cat-config-step-btn" @click="setCatCrowdCount(catCrowdCount - 1)">-</button>
+            <span class="cat-config-count">{{ catCrowdCount }}</span>
+            <button type="button" class="cat-config-step-btn" @click="setCatCrowdCount(catCrowdCount + 1)">+</button>
+          </div>
+        </div>
+        <div class="cat-config-actions">
+          <button type="button" class="cat-config-close-btn" @click="closeCatConfig">好哒</button>
+        </div>
+      </section>
       <section
         v-if="favoritesOpen"
         class="favorite-modal"
