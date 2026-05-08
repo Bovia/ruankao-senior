@@ -2134,6 +2134,21 @@ code {
   from { transform: translateX(0); }
   to { transform: translateX(calc(100vw + 120px)); }
 }
+.cat-paw-print {
+  position: fixed;
+  z-index: 54;
+  font-size: 0.86rem;
+  line-height: 1;
+  pointer-events: none;
+  opacity: 0.52;
+  filter: saturate(0.82);
+  animation: catPawFade 2.2s ease-out forwards;
+}
+@keyframes catPawFade {
+  0% { opacity: 0.52; transform: translateY(0) scale(0.95); }
+  70% { opacity: 0.24; }
+  100% { opacity: 0; transform: translateY(3px) scale(0.82); }
+}
 .cat-pet--dragging {
   cursor: grabbing;
 }
@@ -2577,7 +2592,7 @@ code {
   box-shadow: 0 8px 20px rgba(12, 55, 72, 0.18);
 }
 .module-fab-item .module-tab-title::after {
-  content: "🐱";
+  content: "🐾";
   font-size: 0.72rem;
   margin-left: 0.28rem;
   opacity: 0;

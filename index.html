@@ -2385,6 +2385,13 @@
           </div>
         </div>
       </div>
+      <span
+        v-for="paw in catPawMarks"
+        :key="paw.id"
+        class="cat-paw-print"
+        :style="{ left: paw.x + 'px', top: paw.y + 'px', transform: 'rotate(' + paw.r + 'deg)' }"
+        aria-hidden="true"
+      >🐾</span>
 
       <div
         v-if="favoritesOpen"
@@ -2402,7 +2409,7 @@
       <div
         v-if="cuteConfirmOpen"
         class="cute-confirm-mask"
-        @click="_resolveCuteConfirm(false)"
+        @click="resolveCuteConfirm(false)"
       ></div>
       <section
         v-if="cuteConfirmOpen"
@@ -2414,8 +2421,8 @@
         <h3 class="cute-confirm-title">{{ cuteConfirmTitle }}</h3>
         <p class="cute-confirm-text">{{ cuteConfirmText }}</p>
         <div class="cute-confirm-actions">
-          <button type="button" class="cute-confirm-btn cute-confirm-btn-cancel" @click.stop="_resolveCuteConfirm(false)">再想想</button>
-          <button type="button" class="cute-confirm-btn cute-confirm-btn-ok" @click.stop="_resolveCuteConfirm(true)">继续喵</button>
+          <button type="button" class="cute-confirm-btn cute-confirm-btn-cancel" @click.stop="resolveCuteConfirm(false)">再想想</button>
+          <button type="button" class="cute-confirm-btn cute-confirm-btn-ok" @click.stop="resolveCuteConfirm(true)">继续喵</button>
         </div>
       </section>
       <div

@@ -530,7 +530,8 @@ createApp({
       catState: "run",
       catFacing: 1,
       catCrowdCount: 2,
-      catVisitors: []
+      catVisitors: [],
+      catPawMarks: []
     };
 
     if (persisted) {
@@ -1508,6 +1509,7 @@ createApp({
       this.catVisible = false;
       this.catDocked = true;
       this.catVisitors = [];
+      this.catPawMarks = [];
       this._persistCatSettings();
     },
     showCat() {
@@ -1593,6 +1595,10 @@ createApp({
     _tickCatRoam(ts) {
       const dt = this._catLastTs ? Math.min(0.045, Math.max(0.008, (ts - this._catLastTs) / 1000)) : 0.016;
       this._catLastTs = ts;
+      const nowMs = Date.now();
+      if (Array.isArray(this.catPawMarks) && this.catPawMarks.length) {
+        this.catPawMarks = this.catPawMarks.filter((m) => nowMs - (m.ts || 0) < 2400);
+      }
       if (this.catVisible && !this.catDocked && !this.catDragging) {
         if (this.catPauseUntil && ts < this.catPauseUntil) {
           // 停留状态：偶尔轻微抖动更像活物
@@ -1614,6 +1620,17 @@ createApp({
             const step = Math.min(dist, this.catSpeed * dt);
             this.catX += (dx / dist) * step;
             this.catY += (dy / dist) * step;
+            if (Math.random() < 0.08) {
+              const marks = Array.isArray(this.catPawMarks) ? this.catPawMarks.slice(-24) : [];
+              marks.push({
+                id: `paw-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                x: this.catX + (this.catFacing >= 0 ? 28 : 10),
+                y: this.catY + 24 + Math.random() * 8,
+                r: (Math.random() - 0.5) * 22,
+                ts: Date.now()
+              });
+              this.catPawMarks = marks;
+            }
           }
         }
       }
@@ -2053,7 +2070,7 @@ createApp({
         this._cuteConfirmResolver = resolve;
       });
     },
-    _resolveCuteConfirm(ok) {
+    resolveCuteConfirm(ok) {
       const resolve = this._cuteConfirmResolver;
       this._cuteConfirmResolver = null;
       this.cuteConfirmOpen = false;
