@@ -441,6 +441,10 @@ createApp({
       searchQuery: "",
       searchFocused: false,
       searchWrapperRect: null,
+      /** 网页端：顶栏齿轮设置菜单 */
+      desktopSettingsOpen: false,
+      /** 移动端：全屏搜索页 */
+      mobileSearchPageOpen: false,
       moduleSheetOpen: false,
       pgFilterDomain: "all",
       blindFillMode: false,
@@ -1145,7 +1149,7 @@ createApp({
           }
         });
       });
-      return results.slice(0, 12);
+      return results.slice(0, 100);
     },
     currentProcessIndex() {
       return this.activeDomain.processes.findIndex((p) => p.id === this.activeProcessId);
@@ -1525,6 +1529,7 @@ createApp({
     }
     clearInterval(this._countdownTimer);
     document.removeEventListener("click", this.handleGlobalClick);
+    document.body.classList.remove("mobile-search-screen-open");
     window.removeEventListener("resize", this._onResizeForDomainNav);
     this._cancelSnippetPressTimer();
     window.removeEventListener("mousemove", this._onCatDragMove);
@@ -2242,8 +2247,35 @@ createApp({
     toggleProjectConfigMenu() {
       this.projectConfigMenuOpen = !this.projectConfigMenuOpen;
     },
+    toggleDesktopSettings() {
+      this.desktopSettingsOpen = !this.desktopSettingsOpen;
+    },
+    closeDesktopSettings() {
+      this.desktopSettingsOpen = false;
+    },
+    openMobileSearchPage() {
+      this.mobileSearchPageOpen = true;
+      this.moduleSheetOpen = false;
+      this.projectConfigMenuOpen = false;
+      this.searchFocused = false;
+      document.body.classList.add("mobile-search-screen-open");
+      this.$nextTick(() => {
+        const el = this.$refs.mobileSearchInput;
+        if (el && typeof el.focus === "function") el.focus();
+      });
+    },
+    closeMobileSearchPage() {
+      this.mobileSearchPageOpen = false;
+      this.searchFocused = false;
+      document.body.classList.remove("mobile-search-screen-open");
+    },
+    selectMobileSearchResult(result) {
+      this.closeMobileSearchPage();
+      this.selectSearchResult(result);
+    },
     openCatConfig() {
       this.projectConfigMenuOpen = false;
+      this.desktopSettingsOpen = false;
       this.catConfigOpen = true;
     },
     closeCatConfig() {
@@ -2658,11 +2690,13 @@ createApp({
       aside.style.setProperty("--domain-nav-max-height", `${Math.max(180, available)}px`);
     },
     selectModuleFromFab(moduleId) {
+      if (this.mobileSearchPageOpen) this.closeMobileSearchPage();
       this.selectModule(moduleId);
       this.moduleSheetOpen = false;
       this.projectConfigMenuOpen = false;
     },
     selectModule(moduleId) {
+      if (this.mobileSearchPageOpen) this.closeMobileSearchPage();
       this.activeModule = moduleId;
       if (moduleId === "essay") {
         return;
@@ -2745,6 +2779,9 @@ createApp({
       if (!e.target.closest(".search-wrapper") && !e.target.closest(".search-dropdown")) {
         this.searchFocused = false;
       }
+      if (!e.target.closest(".header-settings-wrap")) {
+        this.desktopSettingsOpen = false;
+      }
     },
     onSearchFocus() {
       this.searchFocused = true;
@@ -2756,6 +2793,7 @@ createApp({
     selectSearchResult(result) {
       this.searchQuery = "";
       this.searchFocused = false;
+      this.desktopSettingsOpen = false;
       this.navigateToProcess(result.domainId, result.id);
     },
     resetQuizMatcherState() {
