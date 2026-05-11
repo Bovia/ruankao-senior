@@ -1458,10 +1458,12 @@
                     </div>
                     <h4 class="text-base font-semibold leading-7 text-ink">
                       <span
-                        @mousedown.stop="startSnippetPress(question.question, { kind: '题干', qi: question._originIndex ?? qi })"
+                        @mousedown.stop="startSnippetPress($event, question.question, { kind: '题干', qi: question._originIndex ?? qi })"
                         @mouseup.stop="endSnippetPress"
                         @mouseleave.stop="endSnippetPress"
-                        @touchstart.stop="startSnippetPress(question.question, { kind: '题干', qi: question._originIndex ?? qi })"
+                        @mousemove="moveSnippetPress($event)"
+                        @touchstart.stop="startSnippetPress($event, question.question, { kind: '题干', qi: question._originIndex ?? qi })"
+                        @touchmove="moveSnippetPress($event)"
                         @touchend.stop="endSnippetPress"
                         @touchcancel.stop="endSnippetPress"
                       >{{ question.question }}</span>
@@ -1475,19 +1477,37 @@
                           v-if="practiceExamRunning"
                           type="button"
                           :class="practiceExamRunningOptionClass(question, option)"
-                          @click.stop="setPracticeExamOption(question._originIndex ?? qi, qi, option)"
+                          @mousedown.stop="startSnippetPress($event, option, { kind: '选项', qi: question._originIndex ?? qi })"
+                          @mouseup.stop="endSnippetPress"
+                          @mouseleave.stop="endSnippetPress"
+                          @mousemove="moveSnippetPress($event)"
+                          @touchstart.stop="startSnippetPress($event, option, { kind: '选项', qi: question._originIndex ?? qi })"
+                          @touchmove="moveSnippetPress($event)"
+                          @touchend.stop="endSnippetPress"
+                          @touchcancel.stop="endSnippetPress"
+                          @click.stop="handlePracticeExamOptionButtonClick(question._originIndex ?? qi, qi, option)"
                         >{{ option }}</button>
                         <span
                           v-else-if="practiceExamInReview"
                           :class="practiceExamReviewOptionClass(question, option)"
                           class="quiz-option-review-line"
+                          @mousedown.stop="startSnippetPress($event, option, { kind: '选项', qi: question._originIndex ?? qi })"
+                          @mouseup.stop="endSnippetPress"
+                          @mouseleave.stop="endSnippetPress"
+                          @mousemove="moveSnippetPress($event)"
+                          @touchstart.stop="startSnippetPress($event, option, { kind: '选项', qi: question._originIndex ?? qi })"
+                          @touchmove="moveSnippetPress($event)"
+                          @touchend.stop="endSnippetPress"
+                          @touchcancel.stop="endSnippetPress"
                         >{{ option }}</span>
                         <span
                           v-else
-                          @mousedown.stop="startSnippetPress(option, { kind: '选项', qi: question._originIndex ?? qi })"
+                          @mousedown.stop="startSnippetPress($event, option, { kind: '选项', qi: question._originIndex ?? qi })"
                           @mouseup.stop="endSnippetPress"
                           @mouseleave.stop="endSnippetPress"
-                          @touchstart.stop="startSnippetPress(option, { kind: '选项', qi: question._originIndex ?? qi })"
+                          @mousemove="moveSnippetPress($event)"
+                          @touchstart.stop="startSnippetPress($event, option, { kind: '选项', qi: question._originIndex ?? qi })"
+                          @touchmove="moveSnippetPress($event)"
                           @touchend.stop="endSnippetPress"
                           @touchcancel.stop="endSnippetPress"
                         >{{ option }}</span>
@@ -1599,10 +1619,12 @@
                         </div>
                         <p
                           class="mt-1 whitespace-pre-wrap"
-                          @mousedown.stop="startSnippetPress(question.analysis, { kind: '解析', qi: question._originIndex ?? qi })"
+                          @mousedown.stop="startSnippetPress($event, question.analysis, { kind: '解析', qi: question._originIndex ?? qi })"
                           @mouseup.stop="endSnippetPress"
                           @mouseleave.stop="endSnippetPress"
-                          @touchstart.stop="startSnippetPress(question.analysis, { kind: '解析', qi: question._originIndex ?? qi })"
+                          @mousemove="moveSnippetPress($event)"
+                          @touchstart.stop="startSnippetPress($event, question.analysis, { kind: '解析', qi: question._originIndex ?? qi })"
+                          @touchmove="moveSnippetPress($event)"
                           @touchend.stop="endSnippetPress"
                           @touchcancel.stop="endSnippetPress"
                         >{{ question.analysis }}</p>
@@ -2193,7 +2215,7 @@
                     <button
                       type="button"
                       class="module-config-item"
-                      @click="importProjectCacheFromPrompt"
+                      @click="openProjectCacheImportModal"
                     >导入项目缓存</button>
                   </div>
                 </div>
@@ -2421,8 +2443,60 @@
         <h3 class="cute-confirm-title">{{ cuteConfirmTitle }}</h3>
         <p class="cute-confirm-text">{{ cuteConfirmText }}</p>
         <div class="cute-confirm-actions">
-          <button type="button" class="cute-confirm-btn cute-confirm-btn-cancel" @click.stop="resolveCuteConfirm(false)">再想想</button>
-          <button type="button" class="cute-confirm-btn cute-confirm-btn-ok" @click.stop="resolveCuteConfirm(true)">继续喵</button>
+          <button type="button" class="cute-confirm-btn cute-confirm-btn-cancel" @click.stop="resolveCuteConfirm(false)">{{ cuteConfirmCancelLabel }}</button>
+          <button type="button" class="cute-confirm-btn cute-confirm-btn-ok" @click.stop="resolveCuteConfirm(true)">{{ cuteConfirmOkLabel }}</button>
+        </div>
+      </section>
+      <div
+        v-if="snippetFavoritePreviewOpen"
+        class="cute-confirm-mask"
+        @click="closeSnippetFavoritePreview"
+      ></div>
+      <section
+        v-if="snippetFavoritePreviewOpen && snippetFavoriteDraft"
+        class="cute-confirm-modal snippet-favorite-preview-modal"
+        role="dialog"
+        aria-modal="true"
+        @click.stop
+      >
+        <h3 class="cute-confirm-title">收藏确认</h3>
+        <p class="cute-confirm-text snippet-favorite-preview-lead">
+          将以下「{{ snippetFavoritePreviewKind }}」{{ snippetFavoritePreviewQiHint }}加入收藏？
+        </p>
+        <div class="snippet-favorite-preview-scroll">
+          <div class="snippet-favorite-preview-body">{{ snippetFavoriteDraft.text }}</div>
+        </div>
+        <div class="cute-confirm-actions">
+          <button type="button" class="cute-confirm-btn cute-confirm-btn-cancel" @click.stop="closeSnippetFavoritePreview">取消</button>
+          <button type="button" class="cute-confirm-btn cute-confirm-btn-ok" @click.stop="confirmSnippetFavoritePreview">收藏</button>
+        </div>
+      </section>
+      <div
+        v-if="projectCacheImportOpen"
+        class="cute-confirm-mask"
+        @click="closeProjectCacheImportModal"
+      ></div>
+      <section
+        v-if="projectCacheImportOpen"
+        class="cute-confirm-modal"
+        role="dialog"
+        aria-modal="true"
+        @click.stop
+      >
+        <h3 class="cute-confirm-title">导入项目缓存</h3>
+        <p class="cute-confirm-text">请粘贴「导出项目缓存」得到的整段 JSON（手机端不支持系统粘贴框时用这个）。</p>
+        <textarea
+          v-model="projectCacheImportText"
+          class="favorite-note-input project-cache-import-textarea"
+          rows="6"
+          autocapitalize="off"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder="{ &quot;v&quot;: 1, &quot;items&quot;: { … } }"
+        ></textarea>
+        <div class="cute-confirm-actions">
+          <button type="button" class="cute-confirm-btn cute-confirm-btn-cancel" @click.stop="closeProjectCacheImportModal">取消</button>
+          <button type="button" class="cute-confirm-btn cute-confirm-btn-ok" @click.stop="applyProjectCacheImport">导入</button>
         </div>
       </section>
       <div
@@ -2757,6 +2831,8 @@
   <script src="./data/practice/zonghe_3.js"></script>
   <script src="./data/practice/zonghe_4.js"></script>
   <script src="./data/practice/zonghe_5.js"></script>
+  <script src="./data/practice/zonghe_6.js"></script>
+  <script src="./data/practice/zonghe_7.js"></script>
   <script src="./data/practice/moni_1.js"></script>
   <script src="./data/practice/zhishiyu_integration.js"></script>
   <script src="./data/practice/zhishiyu_scope.js"></script>

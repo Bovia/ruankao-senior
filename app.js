@@ -122,6 +122,8 @@ const COMPREHENSIVE_WRONG_BOOK_ID = "__wrongbook__";
 const MOCK_WRONG_BOOK_ID = "__mock_wrongbook__";
 /** 知识域侧栏「错题集」虚拟 id */
 const DOMAIN_WRONG_BOOK_ID = "__domain_wrongbook__";
+/** 练习场题干/选项/解析：长按多久弹出收藏预览（毫秒，常见客户端约 450–650ms） */
+const SNIPPET_LONG_PRESS_MS = 600;
 
 function normalizeTtsLang(lang) {
   return String(lang || "").replace("_", "-").toLowerCase();
@@ -516,6 +518,12 @@ createApp({
       cuteConfirmOpen: false,
       cuteConfirmTitle: "确认一下喵~",
       cuteConfirmText: "",
+      cuteConfirmOkLabel: "继续喵",
+      cuteConfirmCancelLabel: "再想想",
+      projectCacheImportOpen: false,
+      projectCacheImportText: "",
+      snippetFavoritePreviewOpen: false,
+      snippetFavoriteDraft: null,
       catConfigOpen: false,
       projectConfigMenuOpen: false,
       catVisible: true,
@@ -582,6 +590,16 @@ createApp({
         essay: "2500 字论文，给你一套可直接抄的打法"
       };
       return titleMap[this.activeModule] || "信息系统项目管理师 · 一站式学习器";
+    },
+    snippetFavoritePreviewKind() {
+      const d = this.snippetFavoriteDraft;
+      if (!d || !d.meta) return "片段";
+      return String(d.meta.kind || "片段");
+    },
+    snippetFavoritePreviewQiHint() {
+      const d = this.snippetFavoriteDraft;
+      if (!d || typeof d.meta.qi !== "number") return "";
+      return `（第 ${d.meta.qi + 1} 题）`;
     },
     domainGroups() {
       const map = new Map();
@@ -1668,30 +1686,52 @@ createApp({
       this.catTargetY = this.catY;
       this._planNextCatBehavior(performance.now(), true);
     },
+    _tryExecCommandCopy(payload) {
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = payload;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        ta.style.top = "0";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        ta.setSelectionRange(0, payload.length);
+        const ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+        return !!ok;
+      } catch (e) {
+        return false;
+      }
+    },
     async _copyTextToClipboard(text) {
       const payload = String(text || "");
       if (!payload) return false;
+      if (this._tryExecCommandCopy(payload)) return true;
       try {
         if (navigator.clipboard && window.isSecureContext) {
           await navigator.clipboard.writeText(payload);
           return true;
         }
       } catch (e) {
-        /* fallback below */
+        /* ignore */
       }
-      try {
-        const ta = document.createElement("textarea");
-        ta.value = payload;
-        ta.style.position = "fixed";
-        ta.style.opacity = "0";
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        document.body.removeChild(ta);
-        return true;
-      } catch (e) {
-        return false;
-      }
+      return false;
+    },
+    _downloadTextFile(filename, text) {
+      const payload = String(text || "");
+      const blob = new Blob([payload], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename || "download.json";
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     },
     async exportFavoritesToClipboard() {
       const payload = JSON.stringify({
@@ -1716,9 +1756,18 @@ createApp({
         keys: PROJECT_CACHE_KEYS,
         items
       });
-      const ok = await this._copyTextToClipboard(payload);
       this.projectConfigMenuOpen = false;
-      this._showCuteTip(ok ? "已复制项目缓存到剪贴板" : "复制失败，请手动复制");
+      const copied = await this._copyTextToClipboard(payload);
+      if (copied) {
+        this._showCuteTip("已复制项目缓存到剪贴板");
+        return;
+      }
+      try {
+        this._downloadTextFile("jiyiqi-project-cache.json", payload);
+        this._showCuteTip("复制未成功，已改为下载 json 文件（可作备份或从文件粘贴导入）");
+      } catch (e) {
+        this._showCuteTip("导出失败：请换用系统浏览器或检查权限");
+      }
     },
     _normalizePracticeUserId(raw) {
       const id = String(raw || "").trim().toLowerCase().replace(/[^a-z0-9_-]/g, "");
@@ -1982,24 +2031,51 @@ createApp({
       const extra = letters.length > limit ? letters.length - limit : 0;
       this._showCuteTip(`已保存并生成做题记录：当前用户「${this.activePracticeUserId}」，套题「${set.title || set.key}」，得分 ${correct}/${total}（${percent}%）${ignored ? `；忽略非 A-D 字符 ${ignored} 个` : ""}${extra ? `；超出题数 ${extra} 条已截断` : ""}`);
     },
-    importProjectCacheFromPrompt() {
+    openProjectCacheImportModal() {
       this.projectConfigMenuOpen = false;
-      const raw = window.prompt("粘贴项目缓存 JSON：");
-      if (!raw || !raw.trim()) return;
+      this.projectCacheImportText = "";
+      this.projectCacheImportOpen = true;
+    },
+    closeProjectCacheImportModal() {
+      this.projectCacheImportOpen = false;
+      this.projectCacheImportText = "";
+    },
+    _applyImportedProjectCacheJson(raw) {
+      const trimmed = String(raw || "").trim();
+      if (!trimmed) {
+        this._showCuteTip("导入失败：内容为空");
+        return false;
+      }
       try {
-        const parsed = JSON.parse(raw);
+        const parsed = JSON.parse(trimmed);
         if (!parsed || parsed.v !== 1 || typeof parsed.items !== "object" || Array.isArray(parsed.items)) {
           this._showCuteTip("导入失败：JSON 格式不正确");
-          return;
+          return false;
         }
         PROJECT_CACHE_KEYS.forEach((k) => {
           if (Object.prototype.hasOwnProperty.call(parsed.items, k) && typeof parsed.items[k] === "string") {
             localStorage.setItem(k, parsed.items[k]);
           }
         });
-        this._showCuteTip("导入成功，刷新页面后生效");
+        this._showCuteTip("导入成功，正在刷新…");
+        setTimeout(() => {
+          try {
+            location.reload();
+          } catch (e) {
+            /* ignore */
+          }
+        }, 400);
+        return true;
       } catch (e) {
         this._showCuteTip("导入失败：JSON 解析错误");
+        return false;
+      }
+    },
+    applyProjectCacheImport() {
+      const ok = this._applyImportedProjectCacheJson(this.projectCacheImportText);
+      if (ok) {
+        this.projectCacheImportOpen = false;
+        this.projectCacheImportText = "";
       }
     },
     importFavoritesFromPrompt() {
@@ -2029,6 +2105,9 @@ createApp({
         clearTimeout(this._snippetPressTimer);
         this._snippetPressTimer = null;
       }
+      this._snippetPressMeta = null;
+      this._snippetPressStartX = null;
+      this._snippetPressStartY = null;
     },
     _existsFavorite(type, content, sourceKey) {
       return this.favorites.some((x) => x.type === type && x.content === content && x.sourceKey === sourceKey);
@@ -2056,7 +2135,7 @@ createApp({
       else if (/成功|完成|已保存|已复制|已收藏/.test(raw)) prefix = "成功喵~ ";
       this._showFavoriteToast(prefix + raw);
     },
-    _askCuteConfirm(text, title) {
+    _askCuteConfirm(text, title, okLabel, cancelLabel) {
       const msg = String(text || "").trim();
       if (!msg) return Promise.resolve(true);
       if (this._cuteConfirmResolver) {
@@ -2065,6 +2144,8 @@ createApp({
       }
       this.cuteConfirmTitle = String(title || "").trim() || "确认一下喵~";
       this.cuteConfirmText = msg;
+      this.cuteConfirmOkLabel = (okLabel && String(okLabel).trim()) || "继续喵";
+      this.cuteConfirmCancelLabel = (cancelLabel && String(cancelLabel).trim()) || "再想想";
       this.cuteConfirmOpen = true;
       return new Promise((resolve) => {
         this._cuteConfirmResolver = resolve;
@@ -2174,15 +2255,78 @@ createApp({
       }, 900);
       this._showFavoriteToast(`收藏成功喵~ 已收下${sourceTag}第${qi + 1}题`);
     },
-    startSnippetPress(text, meta) {
+    startSnippetPress(ev, text, meta) {
       this._cancelSnippetPressTimer();
       const payload = String(text || "").trim();
       if (!payload) return;
+      const metaObj = meta && typeof meta === "object" ? { ...meta } : {};
+      this._snippetPressMeta = { text: payload, meta: metaObj };
+      if (ev && ev.touches && ev.touches[0]) {
+        this._snippetPressStartX = ev.touches[0].clientX;
+        this._snippetPressStartY = ev.touches[0].clientY;
+      } else if (ev && typeof ev.clientX === "number") {
+        this._snippetPressStartX = ev.clientX;
+        this._snippetPressStartY = ev.clientY;
+      } else {
+        this._snippetPressStartX = null;
+        this._snippetPressStartY = null;
+      }
       this._snippetPressTimer = setTimeout(() => {
         this._snippetPressTimer = null;
-        const nextMeta = meta && typeof meta === "object" ? { ...meta, fromLongPress: true } : { fromLongPress: true };
-        this.addFavoriteSnippet(payload, nextMeta);
-      }, 550);
+        const pending = this._snippetPressMeta;
+        this._snippetPressMeta = null;
+        this._snippetPressStartX = null;
+        this._snippetPressStartY = null;
+        if (!pending) return;
+        this.openSnippetFavoritePreview(pending);
+      }, SNIPPET_LONG_PRESS_MS);
+    },
+    openSnippetFavoritePreview(pending) {
+      if (!pending || !pending.text) return;
+      if (
+        this.practiceExamRunning &&
+        pending.meta &&
+        pending.meta.kind === "选项"
+      ) {
+        this._suppressExamOptionSelectOnce = true;
+      }
+      this.snippetFavoriteDraft = {
+        text: pending.text,
+        meta: pending.meta && typeof pending.meta === "object" ? { ...pending.meta } : {}
+      };
+      this.snippetFavoritePreviewOpen = true;
+    },
+    closeSnippetFavoritePreview() {
+      this._suppressExamOptionSelectOnce = false;
+      this.snippetFavoritePreviewOpen = false;
+      this.snippetFavoriteDraft = null;
+    },
+    confirmSnippetFavoritePreview() {
+      const d = this.snippetFavoriteDraft;
+      if (!d) return;
+      const text = d.text;
+      const meta = { ...d.meta, fromLongPress: true };
+      this.closeSnippetFavoritePreview();
+      this.addFavoriteSnippet(text, meta);
+    },
+    moveSnippetPress(ev) {
+      if (this._snippetPressStartX == null || this._snippetPressStartY == null || !ev) return;
+      let x;
+      let y;
+      if (ev.touches && ev.touches[0]) {
+        x = ev.touches[0].clientX;
+        y = ev.touches[0].clientY;
+      } else if (typeof ev.clientX === "number") {
+        x = ev.clientX;
+        y = ev.clientY;
+      } else {
+        return;
+      }
+      const dx = x - this._snippetPressStartX;
+      const dy = y - this._snippetPressStartY;
+      if (dx * dx + dy * dy > 144) {
+        this.endSnippetPress();
+      }
     },
     endSnippetPress() {
       this._cancelSnippetPressTimer();
@@ -3138,6 +3282,13 @@ createApp({
         this._syncPracticeQuizScrollListener();
         this._updatePracticeQuizFabNeedsScroll();
       });
+    },
+    handlePracticeExamOptionButtonClick(originIndex, cardIndex, optionLine) {
+      if (this._suppressExamOptionSelectOnce) {
+        this._suppressExamOptionSelectOnce = false;
+        return;
+      }
+      this.setPracticeExamOption(originIndex, cardIndex, optionLine);
     },
     setPracticeExamOption(originIndex, cardIndex, optionLine) {
       if (!this.practiceExamRunning) return;

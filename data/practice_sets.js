@@ -35,6 +35,18 @@ window.practiceSets = {
       title: "综合题5",
       summary: "单选综合练习，含解析与作答对照。",
       key: "zonghe_5"
+    },
+    {
+      id: "comp-6",
+      title: "综合题6",
+      summary: "74道单选，含解析与「你的作答」记录。",
+      key: "zonghe_6"
+    },
+    {
+      id: "comp-7",
+      title: "综合题7",
+      summary: "75道单选，含解析与「你的作答」记录。",
+      key: "zonghe_7"
     }
   ],
   mock: [

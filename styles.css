@@ -3702,6 +3702,34 @@ code {
   font: inherit;
   resize: vertical;
 }
+.project-cache-import-textarea {
+  min-height: 140px;
+  margin-top: 0.45rem;
+}
+.snippet-favorite-preview-modal {
+  max-width: min(520px, calc(100vw - 2rem));
+}
+.snippet-favorite-preview-lead {
+  margin-bottom: 0.35rem;
+}
+.snippet-favorite-preview-scroll {
+  max-height: min(48vh, 360px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0.35rem 0 0.65rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 76, 92, 0.12);
+  background: rgba(249, 251, 251, 0.95);
+  text-align: left;
+}
+.snippet-favorite-preview-body {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: rgba(15, 45, 55, 0.92);
+}
 .favorite-list {
   overflow: auto;
   display: flex;
