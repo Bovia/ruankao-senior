@@ -405,15 +405,14 @@ code {
 
 .quiz-option-review--truth {
   background: rgba(16, 185, 129, 0.1);
-}
-
-.quiz-option-review--picked-ok {
-  box-shadow: inset 0 0 0 2px rgba(16, 185, 129, 0.45);
+  border: 2px solid rgba(16, 185, 129, 0.55);
+  box-shadow: none;
 }
 
 .quiz-option-review--picked-bad {
-  box-shadow: inset 0 0 0 2px rgba(244, 63, 94, 0.45);
-  background: rgba(244, 63, 94, 0.06);
+  background: rgba(244, 114, 182, 0.09);
+  border: 2px solid rgba(244, 114, 182, 0.5);
+  box-shadow: none;
 }
 
 .practice-scores-overview-icon-btn {
