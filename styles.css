@@ -416,6 +416,188 @@ code {
   background: rgba(244, 63, 94, 0.06);
 }
 
+.practice-scores-overview-icon-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-bottom: 0.1rem;
+  border: 1px solid rgba(15, 76, 92, 0.14);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  color: rgba(28, 124, 125, 0.92);
+  box-shadow: 0 2px 8px rgba(12, 55, 72, 0.06);
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.practice-scores-overview-icon-btn:hover {
+  border-color: rgba(28, 124, 125, 0.35);
+  background: rgba(236, 253, 250, 0.95);
+}
+
+.practice-scores-overview-icon-btn svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.practice-scores-overview-icon-btn--aside {
+  width: 1.95rem;
+  height: 1.95rem;
+  margin-bottom: 0.02rem;
+  flex-shrink: 0;
+}
+
+.practice-scores-overview-icon-btn--aside svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.practice-scores-overview-modal {
+  max-width: min(440px, calc(100vw - 1.5rem));
+}
+
+.practice-scores-overview-hint {
+  margin-bottom: 0.5rem;
+}
+
+.practice-scores-overview-history-block {
+  margin-bottom: 0.65rem;
+}
+
+.practice-scores-overview-history-btn {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid rgba(28, 124, 125, 0.35);
+  background: rgba(236, 253, 250, 0.65);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(22, 101, 96, 0.95);
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, opacity 140ms ease;
+}
+
+.practice-scores-overview-history-btn:hover:not(:disabled) {
+  background: rgba(204, 251, 241, 0.92);
+  border-color: rgba(28, 124, 125, 0.5);
+}
+
+.practice-scores-overview-history-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.practice-scores-overview-history-muted {
+  margin: 0.35rem 0 0;
+  font-size: 0.68rem;
+  line-height: 1.4;
+  color: rgba(15, 76, 92, 0.45);
+}
+
+.practice-scores-overview-list {
+  max-height: min(52vh, 420px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0.25rem 0 0.75rem;
+  padding-right: 0.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.practice-scores-overview-row {
+  padding: 0.55rem 0.65rem;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 76, 92, 0.1);
+  background: rgba(249, 251, 251, 0.9);
+}
+
+.practice-scores-overview-row--active {
+  border-color: rgba(28, 124, 125, 0.42);
+  box-shadow: 0 0 0 2px rgba(101, 195, 186, 0.2);
+  background: rgba(236, 253, 250, 0.55);
+}
+
+.practice-scores-overview-row-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.practice-scores-overview-row-title {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: rgba(15, 45, 55, 0.92);
+}
+
+.practice-scores-overview-row-score {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: rgba(28, 124, 125, 0.95);
+  white-space: nowrap;
+}
+
+.practice-scores-overview-row-score--empty {
+  font-weight: 500;
+  color: rgba(15, 76, 92, 0.38);
+}
+
+.practice-scores-overview-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.practice-scores-overview-bar-track {
+  position: relative;
+  height: 9px;
+  border-radius: 999px;
+  background: rgba(15, 76, 92, 0.08);
+  overflow: hidden;
+}
+
+.practice-scores-overview-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  min-width: 0;
+  transition: width 220ms ease;
+}
+
+.practice-scores-overview-bar-fill--pass {
+  background: linear-gradient(90deg, rgba(34, 197, 94, 0.75), rgba(16, 185, 129, 0.9));
+}
+
+.practice-scores-overview-bar-fill--fail {
+  background: linear-gradient(90deg, rgba(251, 113, 133, 0.85), rgba(244, 63, 94, 0.92));
+}
+
+.practice-scores-overview-pass-line {
+  position: absolute;
+  left: 60%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: rgba(100, 116, 139, 0.55);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.practice-scores-overview-row-meta {
+  font-size: 0.65rem;
+  color: rgba(15, 76, 92, 0.42);
+}
+
 .practice-exam-bar {
   border-radius: 18px;
 }

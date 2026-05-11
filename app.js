@@ -104,6 +104,15 @@ function newPracticeAttemptId() {
   return "at-" + Date.now() + "-" + Math.random().toString(36).slice(2, 9);
 }
 
+/** 与 quizBundleKey 一致：按视图 + 层 + 套卷 id 生成做题记录归档键 */
+function bundleKeyForPracticeSet(activeView, practiceLayer, setId) {
+  const sid = String(setId || "");
+  const domainId = practiceLayer === "domain" ? sid : "";
+  const compId = practiceLayer === "comprehensive" ? sid : "";
+  const mockId = practiceLayer === "mock" ? sid : "";
+  return [activeView, practiceLayer, domainId, compId, mockId].join("|");
+}
+
 const NAV_STORAGE_KEY = "jiyiqi-nav-v1";
 const FAVORITES_STORAGE_KEY = "jiyiqi-favorites-v1";
 const CAT_STORAGE_KEY = "jiyiqi-cat-v1";
@@ -493,7 +502,7 @@ createApp({
       practiceExamChoices: {},
       /** 做题中草稿记录 id（用于实时落盘与恢复） */
       practiceExamDraftId: "",
-      /** 阅卷查看：空字符串表示该套卷「最新一次」记录 */
+      /** 阅卷查看：空字符串表示默认展示该套卷交卷列表中时间最后一条 */
       practiceExamSelectedHistoryId: "",
       /** { [quizBundleKey]: Attempt[] } */
       practiceAttemptLog: {},
@@ -524,6 +533,7 @@ createApp({
       projectCacheImportText: "",
       snippetFavoritePreviewOpen: false,
       snippetFavoriteDraft: null,
+      practiceScoresOverviewOpen: false,
       catConfigOpen: false,
       projectConfigMenuOpen: false,
       catVisible: true,
@@ -1008,6 +1018,60 @@ createApp({
       set(v) {
         this.practiceExamSelectedHistoryId = v === "__latest__" ? "" : v;
       }
+    },
+    /** 得分总览弹窗标题（随当前练习大类：综合 / 知识域 / 模考） */
+    practiceScoresOverviewTitle() {
+      if (this.practiceLayer === "comprehensive") return "综合题 · 各套卷得分";
+      if (this.practiceLayer === "mock") return "模考 · 各套卷得分";
+      if (this.practiceLayer === "domain") return "知识域 · 各套得分";
+      return "练习得分总览";
+    },
+    /** 当前大类下全部套卷 + 错题集，附各套非草稿交卷中时间最后一条的得分 */
+    practiceScoresOverviewRows() {
+      const av = this.activeView;
+      const layer = this.practiceLayer;
+      let sets = [];
+      if (layer === "comprehensive") {
+        sets = (this.comprehensiveSets || []).slice();
+        sets.push({
+          id: this.comprehensiveWrongBookId,
+          title: "错题集",
+          summary: ""
+        });
+      } else if (layer === "mock") {
+        sets = (this.mockSets || []).slice();
+        sets.push({
+          id: this.mockWrongBookId,
+          title: "错题集",
+          summary: ""
+        });
+      } else if (layer === "domain") {
+        sets = (this.visibleDomains || []).slice();
+        sets.push({
+          id: this.domainWrongBookId,
+          title: "错题集",
+          name: "错题集",
+          summary: ""
+        });
+      } else {
+        return [];
+      }
+      return sets.map((s) => {
+        const sid = s && s.id != null ? s.id : "";
+        const title = (s && (s.title || s.name)) || String(sid);
+        const bk = bundleKeyForPracticeSet(av, layer, sid);
+        const latest = this._latestFinishedAttemptForBundleKey(bk);
+        return {
+          id: sid,
+          title,
+          bundleKey: bk,
+          latest,
+          percent: latest && Number.isFinite(latest.percent) ? latest.percent : null,
+          correct: latest && Number.isFinite(latest.correct) ? latest.correct : null,
+          total: latest && Number.isFinite(latest.total) ? latest.total : null,
+          ts: latest && latest.ts ? latest.ts : null
+        };
+      });
     },
     navPersistSignature() {
       return JSON.stringify({
@@ -3123,6 +3187,40 @@ createApp({
       this.practiceRestartPickerOpen = false;
       this.practiceHistoryPickerOpen = false;
       this.practiceExamNavOpen = false;
+    },
+    _latestFinishedAttemptForBundleKey(bk) {
+      const list = this.practiceAttemptLog[bk];
+      if (!Array.isArray(list)) return null;
+      const finished = list.filter((a) => a && !a.isDraft);
+      if (!finished.length) return null;
+      return finished.reduce((acc, a) => ((a.ts || 0) > (acc.ts || 0) ? a : acc));
+    },
+    openPracticeScoresOverview() {
+      this.practiceScoresOverviewOpen = true;
+    },
+    closePracticeScoresOverview() {
+      this.practiceScoresOverviewOpen = false;
+    },
+    openPracticeHistoryFromScoresOverview() {
+      if (this.quizSubMode !== "quiz") {
+        this._showCuteTip("请先在题库练习模式下使用");
+        return;
+      }
+      if (!this.practiceExamAttemptsForBundle.length) {
+        this._showCuteTip("当前套题暂无历史提交记录");
+        return;
+      }
+      this.closePracticeScoresOverview();
+      this.$nextTick(() => {
+        this.openPracticeHistoryPicker();
+      });
+    },
+    isPracticeScoresOverviewRowActive(row) {
+      if (!row) return false;
+      if (this.practiceLayer === "comprehensive") return row.id === this.activeComprehensiveId;
+      if (this.practiceLayer === "mock") return row.id === this.activeMockId;
+      if (this.practiceLayer === "domain") return row.id === this.activeDomainId;
+      return false;
     },
     openPracticeHistoryPicker() {
       this.practiceHistoryPickerOpen = true;

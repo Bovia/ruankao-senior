@@ -243,11 +243,34 @@
           </div>
 
           <template v-if="activeView !== 'quiz' || practiceLayer === 'domain'">
-            <div class="domain-aside-head ml-3 mr-3 mb-3 flex items-center justify-between">
-              <div>
-                <p class="hidden text-xs font-semibold uppercase tracking-[0.22em] text-ocean/60 md:block">Knowledge Map
-                </p>
-                <h2 class="font-display text-base font-semibold md:text-xl">知识域</h2>
+            <div class="domain-aside-head ml-3 mr-3 mb-3 flex items-center justify-between gap-2">
+              <div class="flex min-w-0 items-end gap-1.5">
+                <div class="min-w-0">
+                  <p class="hidden text-xs font-semibold uppercase tracking-[0.22em] text-ocean/60 md:block">Knowledge Map
+                  </p>
+                  <h2 class="font-display text-base font-semibold md:text-xl">知识域</h2>
+                </div>
+                <button
+                  v-if="activeView === 'quiz' && quizSubMode === 'quiz' && practiceScoresOverviewRows.length"
+                  type="button"
+                  class="practice-scores-overview-icon-btn practice-scores-overview-icon-btn--aside"
+                  title="各套卷得分一览"
+                  aria-label="打开各套卷得分一览"
+                  @click="openPracticeScoresOverview"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M3 3v18h18" />
+                    <path d="m7 14 4-4 4 4 6-7" />
+                  </svg>
+                </button>
               </div>
               <div class="rounded-full bg-mist px-3 py-1 text-xs font-medium text-ocean">
                 {{ learnedCount }}/{{ activeDomain.processes.length }} 已点亮</div>
@@ -319,11 +342,34 @@
           </template>
 
           <template v-else-if="activeView === 'quiz' && practiceLayer === 'comprehensive'">
-            <div class="domain-aside-head ml-3 mr-3 mb-3 flex items-center justify-between">
-              <div>
-                <p class="hidden text-xs font-semibold uppercase tracking-[0.22em] text-ocean/60 md:block">Comprehensive
-                </p>
-                <h2 class="font-display text-base font-semibold md:text-xl">综合题</h2>
+            <div class="domain-aside-head ml-3 mr-3 mb-3 flex items-center justify-between gap-2">
+              <div class="flex min-w-0 items-end gap-1.5">
+                <div class="min-w-0">
+                  <p class="hidden text-xs font-semibold uppercase tracking-[0.22em] text-ocean/60 md:block">Comprehensive
+                  </p>
+                  <h2 class="font-display text-base font-semibold md:text-xl">综合题</h2>
+                </div>
+                <button
+                  v-if="activeView === 'quiz' && quizSubMode === 'quiz' && practiceScoresOverviewRows.length"
+                  type="button"
+                  class="practice-scores-overview-icon-btn practice-scores-overview-icon-btn--aside"
+                  title="各套卷得分一览"
+                  aria-label="打开各套卷得分一览"
+                  @click="openPracticeScoresOverview"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M3 3v18h18" />
+                    <path d="m7 14 4-4 4 4 6-7" />
+                  </svg>
+                </button>
               </div>
               <div class="rounded-full bg-mist px-3 py-1 text-xs font-medium text-ocean">{{ comprehensiveSets.length }}
                 套</div>
@@ -384,10 +430,33 @@
           </template>
 
           <template v-else-if="activeView === 'quiz' && practiceLayer === 'mock'">
-            <div class="domain-aside-head ml-3 mr-3 mb-3 flex items-center justify-between">
-              <div>
-                <p class="hidden text-xs font-semibold uppercase tracking-[0.22em] text-ocean/60 md:block">Mock Exam</p>
-                <h2 class="font-display text-base font-semibold md:text-xl">模考</h2>
+            <div class="domain-aside-head ml-3 mr-3 mb-3 flex items-center justify-between gap-2">
+              <div class="flex min-w-0 items-end gap-1.5">
+                <div class="min-w-0">
+                  <p class="hidden text-xs font-semibold uppercase tracking-[0.22em] text-ocean/60 md:block">Mock Exam</p>
+                  <h2 class="font-display text-base font-semibold md:text-xl">模考</h2>
+                </div>
+                <button
+                  v-if="activeView === 'quiz' && quizSubMode === 'quiz' && practiceScoresOverviewRows.length"
+                  type="button"
+                  class="practice-scores-overview-icon-btn practice-scores-overview-icon-btn--aside"
+                  title="各套卷得分一览"
+                  aria-label="打开各套卷得分一览"
+                  @click="openPracticeScoresOverview"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M3 3v18h18" />
+                    <path d="m7 14 4-4 4 4 6-7" />
+                  </svg>
+                </button>
               </div>
               <div class="rounded-full bg-mist px-3 py-1 text-xs font-medium text-ocean">{{ mockSets.length }} 套</div>
             </div>
@@ -2497,6 +2566,83 @@
         <div class="cute-confirm-actions">
           <button type="button" class="cute-confirm-btn cute-confirm-btn-cancel" @click.stop="closeProjectCacheImportModal">取消</button>
           <button type="button" class="cute-confirm-btn cute-confirm-btn-ok" @click.stop="applyProjectCacheImport">导入</button>
+        </div>
+      </section>
+      <div
+        v-if="practiceScoresOverviewOpen"
+        class="cute-confirm-mask"
+        @click="closePracticeScoresOverview"
+      ></div>
+      <section
+        v-if="practiceScoresOverviewOpen"
+        class="cute-confirm-modal practice-scores-overview-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="practice-scores-overview-heading"
+        @click.stop
+      >
+        <h3 id="practice-scores-overview-heading" class="cute-confirm-title">{{ practiceScoresOverviewTitle }}</h3>
+        <p class="cute-confirm-text practice-scores-overview-hint">
+          当前大类下列出各套<strong>非草稿交卷</strong>得分；同一套多次交卷时取<strong>时间排序最后一条</strong>。进度条竖线处为 60% 及格线；当前选中的套卷已高亮。
+        </p>
+        <div class="practice-scores-overview-history-block">
+          <button
+            type="button"
+            class="practice-scores-overview-history-btn"
+            :disabled="!practiceExamAttemptsForBundle.length"
+            @click.stop="openPracticeHistoryFromScoresOverview"
+          >查看本套题的历史提交记录（{{ practicePanelTitle }}）</button>
+          <p
+            v-if="!practiceExamAttemptsForBundle.length"
+            class="practice-scores-overview-history-muted"
+          >当前套卷尚未产生记录，交卷后可在此查看历次提交。</p>
+        </div>
+        <div class="practice-scores-overview-list">
+          <div
+            v-for="row in practiceScoresOverviewRows"
+            :key="row.id + '-' + row.bundleKey"
+            class="practice-scores-overview-row"
+            :class="{ 'practice-scores-overview-row--active': isPracticeScoresOverviewRowActive(row) }"
+          >
+            <div class="practice-scores-overview-row-top">
+              <span class="practice-scores-overview-row-title">{{ row.title }}</span>
+              <span
+                v-if="row.latest"
+                class="practice-scores-overview-row-score"
+              >{{ row.correct }} / {{ row.total }}（{{ row.percent }}%）</span>
+              <span
+                v-else
+                class="practice-scores-overview-row-score practice-scores-overview-row-score--empty"
+              >暂无交卷记录</span>
+            </div>
+            <div
+              v-if="row.latest"
+              class="practice-scores-overview-bar-wrap"
+            >
+              <div class="practice-scores-overview-bar-track">
+                <div
+                  class="practice-scores-overview-bar-fill"
+                  :class="row.percent >= 60 ? 'practice-scores-overview-bar-fill--pass' : 'practice-scores-overview-bar-fill--fail'"
+                  :style="{ width: Math.min(100, Math.max(0, row.percent)) + '%' }"
+                ></div>
+                <div
+                  class="practice-scores-overview-pass-line"
+                  aria-hidden="true"
+                ></div>
+              </div>
+              <div
+                v-if="row.ts"
+                class="practice-scores-overview-row-meta"
+              >{{ formatFavoriteTime(row.ts) }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="cute-confirm-actions">
+          <button
+            type="button"
+            class="cute-confirm-btn cute-confirm-btn-ok"
+            @click.stop="closePracticeScoresOverview"
+          >关闭</button>
         </div>
       </section>
       <div
