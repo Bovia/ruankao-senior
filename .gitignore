@@ -1,0 +1,7 @@
+.vendor_ocr/
+.vendor_pdf/
+.history/
+*.part
+__pycache__/
+*.pyc
+.DS_Store

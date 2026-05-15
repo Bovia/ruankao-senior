@@ -20,6 +20,7 @@ PLACEHOLDER = re.compile(r"【题图：([^】]+)】")
 IMG_PATTERNS = [
     re.compile(r"图片\d+\.png"),
     re.compile(r"\d+-\d+(?:-\d+)*(?:-\d+)*\.png"),
+    re.compile(r"(?<!\d-)(?<![\w/])\d{1,3}\.png"),
     re.compile(r"image\.gif"),
     re.compile(r"企业微信截图_[\w.-]+\.png"),
 ]

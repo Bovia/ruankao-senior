@@ -124,7 +124,7 @@ function formatPracticeRichText(text, setKey) {
       const n = String(name || "").trim();
       return imgTag(`./data/practice/assets/${sk}/${n}`, n);
     });
-    const bareImg = /(图片\d+\.png|\d+-\d+(?:-\d+)*\.png|image\.gif|企业微信截图_[\w.-]+\.png)/g;
+    const bareImg = /(图片\d+\.png|\d+-\d+(?:-\d+)*\.png|(?<!\d-)(?<![\w/])\d{1,3}\.png|image\.gif|企业微信截图_[\w.-]+\.png)/g;
     html = html.replace(bareImg, (name) => {
       if (html.includes(`assets/${sk}/${name}`)) return name;
       return imgTag(`./data/practice/assets/${sk}/${name}`, name);
