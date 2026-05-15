@@ -47,6 +47,24 @@ window.practiceSets = {
       title: "综合题7",
       summary: "75道单选，含解析与「你的作答」记录。",
       key: "zonghe_7"
+    },
+    {
+      id: "comp-8",
+      title: "综合题8",
+      summary: "71道单选（源导出缺第6/14/27/28题），含解析。",
+      key: "zonghe_8"
+    },
+    {
+      id: "comp-9",
+      title: "综合题9",
+      summary: "68道单选，含解析。",
+      key: "zonghe_9"
+    },
+    {
+      id: "comp-10",
+      title: "综合题10",
+      summary: "75道单选，含解析。",
+      key: "zonghe_10"
     }
   ],
   mock: [

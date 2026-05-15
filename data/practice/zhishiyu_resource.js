@@ -649,7 +649,7 @@
       "D：激励"
     ],
     "answer": "C",
-    "analysis": "图片6.png解析如图\n答题用时：18分钟\n答题时间：2026-05-03 13:58:02\n答题卡\n单选题\n1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50\n\n咨询热线：400-0892-521\n技术支持：186-0032-8316\n备案号：京ICP备17068716号-1\nCopyright 2019 版权所有 光环国际\nPMI, PMP, PgMP, PMI-ACP, and PMBOK are \nregistered marks of the Project Management Institute, Inc.\n意见/建议/服务反馈通道\n客诉：400-8396-658\n邮箱：feedback@aura.cn\n\n\n首页 课程中心 直播中心 题库 名师 问答 我的课程 詹丹丹 下载APP 关注公众号\n首页 试题详情 答案解析",
+    "analysis": "图片6.png解析如图",
     "userAnswer": "C"
   }
 ];
