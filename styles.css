@@ -4216,3 +4216,14 @@ body.mobile-search-screen-open {
   font-size: 0.78rem;
   color: rgba(31, 41, 55, 0.5);
 }
+
+.practice-rich-text .practice-fig,
+h4 .practice-fig {
+  display: block;
+  max-width: min(100%, 42rem);
+  height: auto;
+  margin: 0.5rem 0;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(15, 76, 92, 0.12);
+  background: #fff;
+}

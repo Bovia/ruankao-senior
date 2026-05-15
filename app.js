@@ -99,6 +99,40 @@ function extractQuizOptionLetter(optionLine) {
   return m ? m[1].toUpperCase() : "";
 }
 
+/** 练习场题干/解析：转义后插入本地题图与 markdown 图片 */
+function formatPracticeRichText(text, setKey) {
+  const raw = String(text || "");
+  const sk = String(setKey || "").trim();
+  if (!raw) return "";
+  const esc = (s) =>
+    String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  let html = esc(raw);
+  const imgCls = "practice-fig max-w-full h-auto rounded-lg my-2 border border-ink/10";
+  const imgTag = (src, alt) =>
+    `<img src="${esc(src)}" alt="${esc(alt)}" class="${imgCls}" loading="lazy" ` +
+    `onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'text-xs text-ink/45',textContent:'[题图未下载: ${esc(alt)}]'}))" />`;
+  html = html.replace(
+    /!\[([^\]]*)\]\(\.\/data\/practice\/assets\/([^/]+)\/([^)]+)\)/g,
+    (_, alt, key, file) => imgTag(`./data/practice/assets/${key}/${file}`, alt || file)
+  );
+  if (sk) {
+    html = html.replace(/【题图：([^】]+)】/g, (_, name) => {
+      const n = String(name || "").trim();
+      return imgTag(`./data/practice/assets/${sk}/${n}`, n);
+    });
+    const bareImg = /(图片\d+\.png|\d+-\d+(?:-\d+)*\.png|image\.gif|企业微信截图_[\w.-]+\.png)/g;
+    html = html.replace(bareImg, (name) => {
+      if (html.includes(`assets/${sk}/${name}`)) return name;
+      return imgTag(`./data/practice/assets/${sk}/${name}`, name);
+    });
+  }
+  return html.replace(/\n/g, "<br>");
+}
+
 function newPracticeAttemptId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
   return "at-" + Date.now() + "-" + Math.random().toString(36).slice(2, 9);
@@ -848,6 +882,10 @@ createApp({
       if (this.practiceLayer === "mock") return this.activeMockSet;
       return null;
     },
+    activePracticeSetKey() {
+      const set = this.activePracticeSet;
+      return set && set.key ? String(set.key) : "";
+    },
     practiceQuizBaseRows() {
       let list = [];
       if (this.practiceLayer === "comprehensive") {
@@ -1541,6 +1579,9 @@ createApp({
     if (this._catVisitorTimer) clearInterval(this._catVisitorTimer);
   },
   methods: {
+    formatPracticeRichText(text) {
+      return formatPracticeRichText(text, this.activePracticeSetKey);
+    },
     _makeFavoriteId() {
       return `fav-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     },
