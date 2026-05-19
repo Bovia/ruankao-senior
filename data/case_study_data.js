@@ -50,13 +50,13 @@ window.caseStudySets = [
         "preamble": "试题二",
         "scenario": "项目各活动的工期、预算成本及监控日的实际费用，如下表所示：",
         "images": [
-          "data/case_gaoxiang/assets/case_01/20260109150404_49622_489x322.png",
-          "data/case_gaoxiang/assets/case_01/20260109150428_43236_574x337.png",
-          "data/case_gaoxiang/assets/case_01/20260109150458_75235_644x377.png",
-          "data/case_gaoxiang/assets/case_01/20260109150516_8741_686x402.png",
-          "data/case_gaoxiang/assets/case_01/20260109150531_66909_518x341.png",
-          "data/case_gaoxiang/assets/case_01/20260109150552_34538_575x337.png",
-          "data/case_gaoxiang/assets/case_01/20260109150609_7502_524x345.png"
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109150404_49622_489x322.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109150428_43236_574x337.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109150458_75235_644x377.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109150516_8741_686x402.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109150531_66909_518x341.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109150552_34538_575x337.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109150609_7502_524x345.png"
         ],
         "subQuestions": [
           {
@@ -169,8 +169,8 @@ window.caseStudySets = [
         "preamble": "试题二",
         "scenario": "下图描述了某项目的进度信息，字符代表活动名称，数字代表完成该活动的工期。已知活动的预算成本为工期*人数*1万元/人天，第12天时，项目已花费成本80万元，此时A、B、D、E均已完工，C、F各完成75%，G尚未开始。",
         "images": [
-          "data/case_gaoxiang/assets/case_02/20260109155629_96859_645x254.png",
-          "data/case_gaoxiang/assets/case_02/20260109155642_73422_410x97.png"
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109155629_96859_645x254.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109155642_73422_410x97.png"
         ],
         "subQuestions": [
           {
@@ -283,8 +283,8 @@ window.caseStudySets = [
         "preamble": "试题二",
         "scenario": "某项目活动信息如下表所示：项目预算按天核定，任一活动一天的成本为2万元。项目实施到第9天时，项目总花费为32万，此时各活动完成情况为：A、B、C、D均已完工，E已完成一半，F尚未开工。",
         "images": [
-          "data/case_gaoxiang/assets/case_03/20260109160558_41187_690x318.png",
-          "data/case_gaoxiang/assets/case_03/20260109160713_97703_601x312.png"
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109160558_41187_690x318.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109160713_97703_601x312.png"
         ],
         "subQuestions": [
           {
@@ -365,7 +365,7 @@ window.caseStudySets = [
         "preamble": "试题一",
         "scenario": "某银行拟建设数据中心，该项目涉及数据中心基础设施、网络、硬件、软件、信息安全建设等方面工作。A公司作为该项目承建商，任命了张伟担任该项目的项目经理。张伟从相应的技术服务部门（网络服务部、硬件服务部、软件服务部、信息安全服务部）分别抽调了技术人员加入该项目。这些技术人员大部分时间投入本项目，小部分时间参与公司的其他项目。由于公司没有基础设施方面的技术能力，因此将本项目的基础设 施建设工作外包给了B公司。张伟认为，该项目工作内容复杂，涉及人员较多，干系人管理很关键，作为项目经理，自己应投入较大精力在管理干系人参与上。首先，张伟经过分析，建立了干系人名册，主要人员包括客户方的4名技术人员、3名中层管理人员、2名高管和项目团队人员以及A公司的2名高管。项目实施过程中，张伟发现B公司的技术人员的工作质量经常不能满足要求，工作进度也有所延迟，当问及B公司的相关负责人时，他们表示对此并不知情。A公司各技术服务部门的负责人还向张伟抱怨说，他们抽调了大量技术人员参与该项目，但却无法掌控他们的工作安排，也不知道他们的工作绩效；部分团队成员对项目工作表达了不满，认为这个项目占用了他们太多时间，绩效考评结果却偏低。项目进行到第3个月时，由于银行方内部机构改革，银行方的项目接口负责人和对接部门发生变化，但张伟在向新的接口人对接的同时，也把项目相关情况汇报给原接口负责人，导致对方很不满意。",
         "images": [
-          "data/case_gaoxiang/assets/case_04/20260109161227_65990_670x329.png"
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109161227_65990_670x329.png"
         ],
         "subQuestions": [
           {
@@ -399,13 +399,13 @@ window.caseStudySets = [
         "preamble": "试题二",
         "scenario": "某项目活动信息如下表所示：",
         "images": [
-          "data/case_gaoxiang/assets/case_04/20260109161310_54694_652x400.png",
-          "data/case_gaoxiang/assets/case_04/20260109161344_45673_524x322.png",
-          "data/case_gaoxiang/assets/case_04/20260109161352_1263_579x222.png",
-          "data/case_gaoxiang/assets/case_04/20260109161420_6416_535x328.png",
-          "data/case_gaoxiang/assets/case_04/20260109161427_41114_567x217.png",
-          "data/case_gaoxiang/assets/case_04/20260109161445_35217_470x302.png",
-          "data/case_gaoxiang/assets/case_04/20260109161452_17146_633x386.png"
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109161310_54694_652x400.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109161344_45673_524x322.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109161352_1263_579x222.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109161420_6416_535x328.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109161427_41114_567x217.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109161445_35217_470x302.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109161452_17146_633x386.png"
         ],
         "subQuestions": [
           {
@@ -518,15 +518,15 @@ window.caseStudySets = [
         "preamble": "试题二",
         "scenario": "某信息系统项目包含以下8个活动，各活动预计持续时间、成本估算和资源消耗如下表所示：",
         "images": [
-          "data/case_gaoxiang/assets/case_05/20260109161844_15139_897x329.png",
-          "data/case_gaoxiang/assets/case_05/20260109161906_71706_867x353.png",
-          "data/case_gaoxiang/assets/case_05/20260109161919_94939_876x322.png",
-          "data/case_gaoxiang/assets/case_05/20260109161924_14402_521x281.png",
-          "data/case_gaoxiang/assets/case_05/20260109161930_32382_572x213.png",
-          "data/case_gaoxiang/assets/case_05/20260109161948_76488_502x249.png",
-          "data/case_gaoxiang/assets/case_05/20260109161954_80541_602x223.png",
-          "data/case_gaoxiang/assets/case_05/20260109162004_43483_482x233.png",
-          "data/case_gaoxiang/assets/case_05/20260109162011_33160_606x187.png"
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109161844_15139_897x329.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109161906_71706_867x353.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109161919_94939_876x322.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109161924_14402_521x281.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109161930_32382_572x213.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109161948_76488_502x249.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109161954_80541_602x223.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109162004_43483_482x233.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109162011_33160_606x187.png"
         ],
         "subQuestions": [
           {
@@ -633,9 +633,9 @@ window.caseStudySets = [
         "preamble": "试题二",
         "scenario": "某项目计划工期为 10 个月，预算 210 万元，第 7 个月结束时，项目经理进行了绩效评估，发现实际完成了总计划进度的 70%。项目的实际数据如下表所示：",
         "images": [
-          "data/case_gaoxiang/assets/case_06/20260109162459_85480_813x362.png",
-          "data/case_gaoxiang/assets/case_06/20260109162522_60900_786x350.png",
-          "data/case_gaoxiang/assets/case_06/20260109162535_54296_816x363.png"
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109162459_85480_813x362.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109162522_60900_786x350.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109162535_54296_816x363.png"
         ],
         "subQuestions": [
           {
@@ -669,8 +669,8 @@ window.caseStudySets = [
         "preamble": "试题三",
         "scenario": "某市计划建设人工智能计算中心、作为新型生产力的重要抓手，向区域内进行智能化转型的企业提供人工智能算力。该建设项目需要进行设备采购、平台软件采购、网络建设、软件开发等工作，投资额较大。项目建设主管部门对申请报告批准后，建设单位对技术可行性、经济可行性、运行环境可行性进行了细致地研究和分析。但是，可行性研究报告未通过主管部门审批，原因是：缺少社会效益可行性分析。建设单位修改报告后再次提交。由于项目金额较大，主管部门聘请具有相关资质的A设计院进一步评估项目可行性，A 设计院评估了项目的可行性研究报告，项目关键建设条件和工程的协议文件。由于A设计院缺少熟悉人工智能领域的技术专家，设计院总工程师初步进行了技术可行性分析，认为其技术方案设计比较丰富，项目关键建设条件和工程协议文件比较全面，于是在可研报告上签署了同意，并将其发布为评估报告。项目立项后，建设单位项目经理老陈为明确项目边界，实施了如下项目范围管理过程，规定项目输出相应文档。项目经理老陈分解项目工作，形成完整的WBS如下图所示：",
         "images": [
-          "data/case_gaoxiang/assets/case_06/20260109162625_60489_772x280.png",
-          "data/case_gaoxiang/assets/case_06/20260109162637_59249_734x321.png"
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109162625_60489_772x280.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109162637_59249_734x321.png"
         ],
         "subQuestions": [
           {
@@ -719,7 +719,7 @@ window.caseStudySets = [
         "preamble": "试题一",
         "scenario": "某科技公司承接一个创新型供应链金融项目，开发一套整合区块链技术的“端到端数字化解决方案”，项目经理开展了如下范围管理和风险管理相关活动。活动1：通过召开跨部门沟通会，识别出应收账款登记、核心供应商自动结算、跨境支付模块，供应商评级算法等13项核心需求；活动2：明确了项目一期必须交付的智能合约融资MVP（最小可行产品），其中含应收账款登记核心供应商自动结算功能，其他功能放入第二期；活动3：项目组通过访谈讨论，列出了项目面临的智能合约安全漏洞、数据合规争议和跨境支付模块技术难度高3个主要风险；活动4：开展了风险发生概率与影响程度分析；活动5：通过风险登记册标注了优先级；活动6：针对识别出的3个主要风险分别制定了代码审计、预留解决争议的储备金和购买跨境支付服务应对方案。",
         "images": [
-          "data/case_gaoxiang/assets/case_07/20260109164552_77761_1094x175.png"
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109164552_77761_1094x175.png"
         ],
         "subQuestions": [
           {
@@ -735,19 +735,19 @@ window.caseStudySets = [
         "preamble": "试题二",
         "scenario": "某医疗大数据公司基于机器学习技术正在研发糖尿病风险预测系统，由10名开发人员组成的项目团队，需在六个月内完成全流程开发，并推进项目商业落地，项目活动关键信息如下表：在模型训练方面，项目需要依赖第三方供应商提供的健康数据集，其质量直接决定预测模型在早期识别糖尿病风险的有效性，在预算紧缩与开发周期限定的双重挑战下，供需双方展开策略博弈：A：供应商侧：提供S1（高价+高质量数据）或S2（低价+标准数据）两种方案；B：项目团队：需要选择T1（接受高价+联合风险担保）或T2（拒绝高价+自担延期风险）作为应对机制。",
         "images": [
-          "data/case_gaoxiang/assets/case_07/20260109164655_73447_1092x329.png",
-          "data/case_gaoxiang/assets/case_07/20260109164713_43503_382x136.png",
-          "data/case_gaoxiang/assets/case_07/20260109164739_76854_577x212.png",
-          "data/case_gaoxiang/assets/case_07/20260109164808_83244_602x135.png",
-          "data/case_gaoxiang/assets/case_07/20260109165043_34534_346x124.png",
-          "data/case_gaoxiang/assets/case_07/20260109165058_65586_616x208.png",
-          "data/case_gaoxiang/assets/case_07/20260109165110_76505_616x289.png",
-          "data/case_gaoxiang/assets/case_07/20260109165124_40739_634x233.png",
-          "data/case_gaoxiang/assets/case_07/20260109165136_19545_631x214.png",
-          "data/case_gaoxiang/assets/case_07/20260109165140_96781_654x294.png",
-          "data/case_gaoxiang/assets/case_07/20260109165151_28459_842x272.png",
-          "data/case_gaoxiang/assets/case_07/20260109165155_27238_853x383.png",
-          "data/case_gaoxiang/assets/case_07/20260109165210_54913_554x198.png"
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109164655_73447_1092x329.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109164713_43503_382x136.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109164739_76854_577x212.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109164808_83244_602x135.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109165043_34534_346x124.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109165058_65586_616x208.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109165110_76505_616x289.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109165124_40739_634x233.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109165136_19545_631x214.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109165140_96781_654x294.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109165151_28459_842x272.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109165155_27238_853x383.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109165210_54913_554x198.png"
         ],
         "subQuestions": [
           {
@@ -763,8 +763,8 @@ window.caseStudySets = [
         "preamble": "试题三",
         "scenario": "某公司计划开发一套智能物流系统，通过A1进行物流路径规划、库存管理和无人配送，以提高物流效率，降低运营成本，预计开发周期为12个月。项目团队中有两位来自非洲国家的成员，文化背景差异较大。项目经理小王安排了相关培训，让团队成员了解各自国家的工作习惯和沟通风格。项目启动阶段，小王组织人员制定项目管理计划，包括范围管理计划，成本管理计划，进度管理计划，质量管理计划，采购管理计划等。此外，为了评估激励水平，小王通过与团队成员的沟通和调研，综合考虑团队成员对项目成功的奖励期望（如额外休假等）和对项目成功的信心，分析得出团队成员对项目成功的目标效价平均评分为7.5分（满分10分），对项目成功的整体期望值是65%。项目执行阶段，质量经理强调全员参与质量管理，并定期组织质量改进会议，使项目团队能够及时发现并解决潜在问题，优化工作流程。开发人员每完成一个功能模块，会先进行单元测试。全部模块完成后，再进行集成测试。通过这些测试，开发团队可以确保交付的模块满足客户的功能需求，为最终验收做好准备。开发过程中，两位研发人员在某功能模块接口实现时出现分歧，都认为该接口功能应该由对方来实现。小王组织双方共同分析问题，寻找解决方案。在项目测试阶段，测试团队发现了一些重复出现的缺陷，小王组织团队进行根本原因分析，通过分析发现，这些缺陷的根源在于需求文档的不清晰和开发团队对需求理解的不一致。针对这一问题，项目组采取了改进措施，从而有效减少了类似缺陷的出现，另外测试时小王还发现某个数据处理功能可能不符合最新的数据隐私法规，要求研发人员对该功能进行改进。",
         "images": [
-          "data/case_gaoxiang/assets/case_07/20260109165303_7160_868x261.png",
-          "data/case_gaoxiang/assets/case_07/20260109165344_6970_603x283.png"
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109165303_7160_868x261.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109165344_6970_603x283.png"
         ],
         "subQuestions": []
       }
@@ -820,16 +820,16 @@ window.caseStudySets = [
         "preamble": "试题二",
         "scenario": "某项目计划工期为 10 个月，预算 210 万元，第 7 个月结束时，项目经理进行了绩效评估，发现实际完成了总计划进度的 70%。项目的实际数据如下表（1）所示，各活动单日费用需 0.5万元，这6 个活动由 6个小组完成，每个小组只能承担一个活动。由于活动性质及每个小组的技术水平不同，他们完成各项活动所需的总费用及时间也不同。各组完成各项活动的总费用 （单位：万元）。如表（2）所示。 \n                 表（1）\n                       表（2）",
         "images": [
-          "data/case_gaoxiang/assets/case_08/20260109165600_80414_402x296.png",
-          "data/case_gaoxiang/assets/case_08/20260109165625_18439_805x250.png",
-          "data/case_gaoxiang/assets/case_08/20260109165709_47308_446x328.png",
-          "data/case_gaoxiang/assets/case_08/20260109165715_10265_506x250.png",
-          "data/case_gaoxiang/assets/case_08/20260109165730_6693_791x246.png",
-          "data/case_gaoxiang/assets/case_08/20260109165734_47834_504x363.png",
-          "data/case_gaoxiang/assets/case_08/20260109165741_15456_511x361.png",
-          "data/case_gaoxiang/assets/case_08/20260109165758_18946_1005x330.png",
-          "data/case_gaoxiang/assets/case_08/20260109165827_69634_603x188.png",
-          "data/case_gaoxiang/assets/case_08/20260109165842_22227_562x329.png"
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109165600_80414_402x296.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109165625_18439_805x250.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109165709_47308_446x328.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109165715_10265_506x250.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109165730_6693_791x246.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109165734_47834_504x363.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109165741_15456_511x361.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109165758_18946_1005x330.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109165827_69634_603x188.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109165842_22227_562x329.png"
         ],
         "subQuestions": [
           {
@@ -857,8 +857,8 @@ window.caseStudySets = [
         "preamble": "试题三",
         "scenario": "公司A承接了一个大型信息系统研发项目，项目涉及公司内部研发、测试、运维、市场等多个部门的协同。项目团队采用敏捷开发模式进行软件研发，项目经理小李负责该项目的全面管理。在项目初期迭代测试过程中，发现部分功能模块的实际运行效果与设计预期偏差显著。经调查发现部分开发人员对新技术框架理解不足，在编码过程中也未遵循公司定制的详细编码规范，导致代码可读性与可维护性差。此外，在代码审查环节，审查流程没有明确的量化标准，审查人员仅凭经验简单浏览代码，且审查时间被其他紧急任务压缩，未能有效识别出潜在的代码漏洞与性能瓶颈问题。随着项目进展，客户需求逐渐清晰，需求变更逐渐增多，但部分变更请求直接与部分项目成员口头沟通，导致需求变更信息在传递过程中出现了偏差与遗漏，项目团队成员对变更内容理解不一致，造成部分已完成的工作需要返工。在项目团队内部，由于跨部门协作流程不完善，不同部门成员之间缺乏有效的信息共享机制。有时研发部门完成的功能模块更新未能及时通知测试部门，导致测试计划延误。在资源管理方面，项目团队中的核心技术人员大多身兼数职，不仅参与本项目，还承担着公司其他重要项目的技术支持工作。由于任务分配不合理，导致在本项目中的关键技术节点上，人力投入不足。",
         "images": [
-          "data/case_gaoxiang/assets/case_08/20260109165924_83867_986x202.png",
-          "data/case_gaoxiang/assets/case_08/20260109165947_25880_1106x297.png"
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109165924_83867_986x202.png",
+          "https://img01.aura.cn/wx/ueditor/2026/2026-01/20260109165947_25880_1106x297.png"
         ],
         "subQuestions": [
           {

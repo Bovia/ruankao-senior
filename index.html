@@ -158,7 +158,7 @@
             </div>
             <div
               class="countdown-card"
-              :class="{ 'countdown-urgent': isCountdownUrgent }"
+              :class="{ 'countdown-urgent': countdown.days <= 7 }"
             >
               <div class="metric-label">距离考试</div>
               <div
@@ -981,7 +981,7 @@
               <div class="process-nav mb-4 flex items-center gap-2">
                 <button
                   class="process-nav-btn"
-                  :disabled="isProcessNavPrevDisabled"
+                  :disabled="currentProcessIndex <= 0"
                   @click="goProcess(-1)"
                 >
                   <svg
@@ -1001,7 +1001,7 @@
                   {{ activeDomain.processes.length }}</div>
                 <button
                   class="process-nav-btn"
-                  :disabled="isProcessNavNextDisabled"
+                  :disabled="currentProcessIndex >= activeDomain.processes.length - 1"
                   @click="goProcess(1)"
                 >
                   <span class="hidden sm:inline">下一个</span>
@@ -1659,7 +1659,7 @@
                         >{{ caseQuestionSubtitle }}</p>
                         <p class="case-study-scenario__text whitespace-pre-wrap text-sm leading-7 text-ink/85">{{ formatCaseScenario(activeCaseQuestion.scenario) }}</p>
                         <div v-if="activeCaseQuestion.images && activeCaseQuestion.images.length" class="case-study-images mt-4">
-                          <img v-for="(imgSrc, ii) in activeCaseQuestion.images" :key="'cimg-'+ii" class="case-study-images__img" :src="imgSrc" :alt="activeCaseQuestion.label + ' 题图 ' + (ii + 1)" loading="lazy" />
+                          <img v-for="(imgSrc, ii) in activeCaseQuestion.images" :key="'cimg-'+ii" class="case-study-images__img" :src="resolveCaseImageUrl(imgSrc)" :alt="activeCaseQuestion.label + ' 题图 ' + (ii + 1)" loading="lazy" referrerpolicy="no-referrer" />
                         </div>
                       </section>
                       <p
@@ -1765,25 +1765,6 @@
 
                 <div class="space-y-4">
                   <div
-                    v-if="practiceDataLoading"
-                    class="panel-subtle"
-                  >
-                    <p class="eyebrow">正在加载题库</p>
-                    <p class="mt-2 text-sm leading-7 text-ink/80">手机网络较慢时请稍候，加载完成会自动显示题目。</p>
-                  </div>
-                  <div
-                    v-else-if="practiceDataLoadError"
-                    class="panel-subtle"
-                  >
-                    <p class="eyebrow">题库加载失败</p>
-                    <p class="mt-2 text-sm leading-7 text-ink/80">{{ practiceDataLoadError }}</p>
-                    <button
-                      type="button"
-                      class="practice-exam-ghost-btn mt-3"
-                      @click="retryPracticeDataLoad"
-                    >重试</button>
-                  </div>
-                  <div
                     v-if="practiceQuizBaseRows.length && !practiceExamRunning"
                     class="flex flex-wrap items-center gap-3"
                   >
@@ -1867,18 +1848,14 @@
                       请先在各套<strong>{{ practiceLayer === 'mock' ? '模拟题' : (practiceLayer === 'domain' ? '知识域' : '综合题') }}</strong>里做题并<strong>交卷</strong>，错题会按题去重后出现在这里。重新进入本页会重新打乱顺序。</p>
                   </div>
                   <div
-                    v-if="!practiceDataLoading && !practiceDataLoadError && !practiceQuizBaseRows.length && (practiceLayer === 'domain' || activePracticeSet) && !(practiceLayer === 'domain' && activeDomainId === domainWrongBookId) && !(practiceLayer === 'comprehensive' && activeComprehensiveId === comprehensiveWrongBookId) && !(practiceLayer === 'mock' && activeMockId === mockWrongBookId)"
+                    v-if="!practiceQuizBaseRows.length && activePracticeSet && !(practiceLayer === 'domain' && activeDomainId === domainWrongBookId) && !(practiceLayer === 'comprehensive' && activeComprehensiveId === comprehensiveWrongBookId) && !(practiceLayer === 'mock' && activeMockId === mockWrongBookId)"
                     class="panel-subtle"
                   >
                     <p class="eyebrow">暂无题目</p>
                     <p class="mt-2 text-sm leading-7 text-ink/80">
-                      题库数据尚未就绪。请点上方「重试」，或下拉刷新页面；若用 Safari，可暂时关闭对该站的「跨站跟踪防护」后再试。
+                      请创建 <code>data/practice/{{ activePracticeSet.key }}.js</code>，
+                      并在 <code>index.html</code> 中以 <code>&lt;script&gt;</code> 引入，内容格式参考 <code>zonghe_1.js</code>。
                     </p>
-                    <button
-                      type="button"
-                      class="practice-exam-ghost-btn mt-3"
-                      @click="retryPracticeDataLoad"
-                    >重新加载题库</button>
                   </div>
                   <article
                     v-for="(question, qi) in practiceQuizCardsForRender"
@@ -1987,13 +1964,13 @@
                         <button
                           type="button"
                           class="practice-card-nav-btn"
-                          :disabled="isPracticeQuizPrevDisabled"
+                          :disabled="practiceQuizActiveIndex <= 0"
                           @click.stop="goPracticeExamCard(-1)"
                         >上一题</button>
                         <button
                           type="button"
                           class="practice-card-nav-btn practice-card-nav-btn--primary"
-                          :disabled="isPracticeQuizNextDisabled"
+                          :disabled="practiceQuizActiveIndex >= practiceQuizCardsForRender.length - 1"
                           @click.stop="goPracticeExamCard(1)"
                         >下一题</button>
                         <button
@@ -3071,7 +3048,7 @@
               <div class="practice-scores-overview-bar-track">
                 <div
                   class="practice-scores-overview-bar-fill"
-                  :class="practiceScoreOverviewBarClass(row)"
+                  :class="row.percent >= 60 ? 'practice-scores-overview-bar-fill--pass' : 'practice-scores-overview-bar-fill--fail'"
                   :style="{ width: Math.min(100, Math.max(0, row.percent)) + '%' }"
                 ></div>
                 <div
@@ -3558,10 +3535,35 @@
   <script defer src="./data/law_regulations.js"></script>
   <script defer src="./data/essay.js"></script>
   <script defer src="./data/my_essay.js"></script>
+  <script defer src="./data/practice/image_manifest.js"></script>
   <script defer src="./data/practice_sets.js"></script>
+  <!-- 综合题 / 模考 Markdown 数据（命名规则：zonghe_n.js / mock_n.js） -->
+  <script defer src="./data/practice/zonghe_1.js"></script>
+  <script defer src="./data/practice/zonghe_2.js"></script>
+  <script defer src="./data/practice/zonghe_3.js"></script>
+  <script defer src="./data/practice/zonghe_4.js"></script>
+  <script defer src="./data/practice/zonghe_5.js"></script>
+  <script defer src="./data/practice/zonghe_6.js"></script>
+  <script defer src="./data/practice/zonghe_7.js"></script>
+  <script defer src="./data/practice/zonghe_8.js"></script>
+  <script defer src="./data/practice/zonghe_9.js"></script>
+  <script defer src="./data/practice/zonghe_10.js"></script>
+  <script defer src="./data/practice/zonghe_11.js"></script>
+  <script defer src="./data/practice/zonghe_12.js"></script>
+  <script defer src="./data/practice/moni_1.js"></script>
+  <script defer src="./data/practice/moni_2.js"></script>
+  <script defer src="./data/practice/zhishiyu_integration.js"></script>
+  <script defer src="./data/practice/zhishiyu_scope.js"></script>
+  <script defer src="./data/practice/zhishiyu_schedule.js"></script>
+  <script defer src="./data/practice/zhishiyu_cost.js"></script>
+  <script defer src="./data/practice/zhishiyu_quality.js"></script>
+  <script defer src="./data/practice/zhishiyu_resource.js"></script>
+  <script defer src="./data/practice/zhishiyu_communications.js"></script>
+  <script defer src="./data/practice/zhishiyu_risk.js"></script>
+  <script defer src="./data/practice/zhishiyu_procurement.js"></script>
+  <script defer src="./data/practice/zhishiyu_stakeholder.js"></script>
   <script defer src="./data/export_my_answers_and_history.js"></script>
-  <!-- 综合题/模考/知识域题：按需加载，减轻手机首屏压力（见 data/practice_loader.js） -->
-  <script defer src="./data/practice_loader.js"></script>
+  <script defer src="./data/case_study_data.js"></script>
   <script defer src="./app.js"></script>
 </body>
 

@@ -13,6 +13,22 @@ MANIFEST = SRC_DIR / "manifest.json"
 OUT = ROOT / "data" / "case_study_data.js"
 AURA_LID = "7801"
 AURA_SID = "1119"
+CDN_BASE = "https://img01.aura.cn/wx/ueditor"
+
+
+def case_image_path_to_cdn(path: str) -> str:
+    """本地 assets 路径或文件名 → 光环 CDN（与 img01.aura.cn 命名规则一致）。"""
+    p = (path or "").strip()
+    if not p:
+        return ""
+    if re.match(r"^https?://", p, re.I):
+        return p
+    name = Path(p).name
+    m = re.match(r"^(\d{4})(\d{2})", name)
+    if not m:
+        return p
+    year, month = m.group(1), m.group(2)
+    return f"{CDN_BASE}/{year}/{year}-{month}/{name}"
 
 
 def _strip_prompt_prefix(text: str, prompt: str) -> str:
@@ -79,7 +95,9 @@ def parse_question_section(body: str, slug: str) -> dict:
 
     images = re.findall(r"!\[[^\]]*\]\(([^)]+)\)", stem_part)
     images = [
-        p if p.startswith("data/") else f"data/case_gaoxiang/{p.lstrip('/')}"
+        case_image_path_to_cdn(
+            p if p.startswith("data/") else f"data/case_gaoxiang/{p.lstrip('/')}"
+        )
         for p in images
     ]
     stem_part = re.sub(r"!\[[^\]]*\]\([^)]+\)\s*", "", stem_part)

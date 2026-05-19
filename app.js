@@ -99,7 +99,29 @@ function extractQuizOptionLetter(optionLine) {
   return m ? m[1].toUpperCase() : "";
 }
 
-/** 练习场题干/解析：转义后插入本地题图与 markdown 图片 */
+/** 案例题图：本地路径或文件名 → 光环 CDN */
+function resolveCaseImageUrl(path) {
+  const p = String(path || "").trim();
+  if (!p) return "";
+  if (/^https?:\/\//i.test(p)) return p;
+  const name = p.split("/").pop() || p;
+  const m = name.match(/^(\d{4})(\d{2})/);
+  if (!m) return p;
+  return `https://img01.aura.cn/wx/ueditor/${m[1]}/${m[1]}-${m[2]}/${name}`;
+}
+
+/** 题图 CDN：data/practice/image_manifest.js */
+function resolvePracticeImageUrl(setKey, fileName) {
+  const sk = String(setKey || "").trim();
+  const name = String(fileName || "").trim();
+  if (!name) return "";
+  if (/^https?:\/\//i.test(name)) return name;
+  const root = window.practiceImageManifest;
+  const hit = root && root.bySetKey && root.bySetKey[sk] && root.bySetKey[sk][name];
+  return hit || "";
+}
+
+/** 练习场题干/解析：转义后插入线上题图（光环 CDN） */
 function formatPracticeRichText(text, setKey) {
   const raw = String(text || "");
   const sk = String(setKey || "").trim();
@@ -112,22 +134,41 @@ function formatPracticeRichText(text, setKey) {
       .replace(/"/g, "&quot;");
   let html = esc(raw);
   const imgCls = "practice-fig max-w-full h-auto rounded-lg my-2 border border-ink/10";
-  const imgTag = (src, alt) =>
-    `<img src="${esc(src)}" alt="${esc(alt)}" class="${imgCls}" loading="lazy" ` +
-    `onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'text-xs text-ink/45',textContent:'[题图未下载: ${esc(alt)}]'}))" />`;
-  html = html.replace(
-    /!\[([^\]]*)\]\(\.\/data\/practice\/assets\/([^/]+)\/([^)]+)\)/g,
-    (_, alt, key, file) => imgTag(`./data/practice/assets/${key}/${file}`, alt || file)
-  );
+  const imgTag = (src, alt) => {
+    const url = resolvePracticeImageUrl(sk, src) || src;
+    if (!/^https?:\/\//i.test(url)) {
+      return `<span class="text-xs text-ink/45">[题图: ${esc(alt || src)}]</span>`;
+    }
+    return (
+      `<img src="${esc(url)}" alt="${esc(alt || src)}" class="${imgCls}" loading="lazy" ` +
+      `referrerpolicy="no-referrer" ` +
+      `onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'text-xs text-ink/45',textContent:'[题图加载失败: ${esc(alt || src)}]'}))" />`
+    );
+  };
+  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, path) => {
+    const p = String(path || "").trim();
+    const altName = String(alt || "").trim();
+    const asset = p.match(/\.\/data\/practice\/assets\/([^/]+)\/([^)]+)/);
+    if (asset) {
+      const url =
+        resolvePracticeImageUrl(asset[1], altName) ||
+        resolvePracticeImageUrl(asset[1], asset[2]) ||
+        (/^https?:\/\//i.test(p) ? p : "");
+      return imgTag(url || p, altName || asset[2]);
+    }
+    if (/^https?:\/\//i.test(p)) return imgTag(p, altName || p);
+    if (sk) return imgTag(resolvePracticeImageUrl(sk, altName || p) || p, altName || p);
+    return `![${alt}](${p})`;
+  });
   if (sk) {
     html = html.replace(/【题图：([^】]+)】/g, (_, name) => {
       const n = String(name || "").trim();
-      return imgTag(`./data/practice/assets/${sk}/${n}`, n);
+      return imgTag(n, n);
     });
     const bareImg = /(图片\d+\.png|\d+-\d+(?:-\d+)*\.png|(?<!\d-)(?<![\w/])\d{1,3}\.png|image\.gif|企业微信截图_[\w.-]+\.png)/g;
     html = html.replace(bareImg, (name) => {
-      if (html.includes(`assets/${sk}/${name}`)) return name;
-      return imgTag(`./data/practice/assets/${sk}/${name}`, name);
+      if (html.includes(name) && html.includes("practice-fig")) return name;
+      return imgTag(name, name);
     });
   }
   return html.replace(/\n/g, "<br>");
@@ -595,10 +636,6 @@ const app = createApp({
       snippetFavoritePreviewOpen: false,
       snippetFavoriteDraft: null,
       practiceScoresOverviewOpen: false,
-      practiceDataLoading: false,
-      practiceDataLoadError: "",
-      /** 题库异步加载完成后递增，驱动练习场题单重算 */
-      practiceDataEpoch: 0,
       catConfigOpen: false,
       projectConfigMenuOpen: false,
       catVisible: true,
@@ -818,23 +855,6 @@ const app = createApp({
     catPetFaceClass() {
       return this.catFacing < 0 ? "cat-face-left" : "cat-face-right";
     },
-    isCountdownUrgent() {
-      return this.countdown.days <= 7;
-    },
-    isProcessNavPrevDisabled() {
-      return this.currentProcessIndex <= 0;
-    },
-    isProcessNavNextDisabled() {
-      const n = (this.activeDomain.processes || []).length;
-      return n === 0 || this.currentProcessIndex >= n - 1;
-    },
-    isPracticeQuizPrevDisabled() {
-      return (this.practiceQuizActiveIndex || 0) <= 0;
-    },
-    isPracticeQuizNextDisabled() {
-      const n = (this.practiceQuizCardsForRender || []).length;
-      return !n || (this.practiceQuizActiveIndex || 0) >= n - 1;
-    },
     canGoPrevCaseQuestion() {
       return this.caseStudyQuestionIndex > 0;
     },
@@ -1035,7 +1055,6 @@ const app = createApp({
       return set && set.key ? String(set.key) : "";
     },
     practiceQuizBaseRows() {
-      void this.practiceDataEpoch;
       if (this.practiceLayer === "case") return [];
       let list = [];
       if (this.practiceLayer === "comprehensive") {
@@ -1578,8 +1597,6 @@ const app = createApp({
           this._bumpQuizTtsGenAndCancel();
           this._clearQuizTtsUi();
         }
-      } else {
-        this._prefetchActiveQuizData().then(() => this._refreshWrongBookSnapshotIfNeeded());
       }
       if (window.innerWidth < 768) window.scrollTo({ top: 0, behavior: "smooth" });
       this.$nextTick(() => this.updateDomainNavMaxHeight());
@@ -1593,11 +1610,6 @@ const app = createApp({
     practiceLayer() {
       this._syncPracticeQuizScrollListener();
       this.$nextTick(() => this._ensureLatestAttemptReviewForActiveLayer());
-      this._prefetchActiveQuizData().then(() => this._refreshWrongBookSnapshotIfNeeded());
-    },
-    activePracticeSetKey() {
-      if (this.activeView !== "quiz") return;
-      this._prefetchActiveQuizData().then(() => this._refreshWrongBookSnapshotIfNeeded());
     },
     activeModule() {
       this.$nextTick(() => this.updateDomainNavMaxHeight());
@@ -1690,11 +1702,29 @@ const app = createApp({
     this._loadPracticeAttemptLog();
     this._loadPracticeUserAnswers();
     this.$nextTick(() => this._ensureLatestAttemptReviewForActiveLayer());
+    if (
+      this.activeView === "quiz" &&
+      this.practiceLayer === "domain" &&
+      this.activeDomainId === this.domainWrongBookId
+    ) {
+      this.practiceDomainWrongBookSnapshot = this._buildWrongBookCandidatesShuffledByLayer("domain");
+    }
+    if (
+      this.activeView === "quiz" &&
+      this.practiceLayer === "comprehensive" &&
+      this.activeComprehensiveId === this.comprehensiveWrongBookId
+    ) {
+      this.practiceWrongBookSnapshot = this._buildWrongBookCandidatesShuffled();
+    }
+    if (
+      this.activeView === "quiz" &&
+      this.practiceLayer === "mock" &&
+      this.activeMockId === this.mockWrongBookId
+    ) {
+      this.practiceMockWrongBookSnapshot = this._buildMockWrongBookCandidatesShuffled();
+    }
     if (this.activeView === "quiz" && this.practiceLayer === "case") {
       this._loadCaseStudyStateForBundle();
-    }
-    if (this.activeView === "quiz") {
-      this._prefetchActiveQuizData().then(() => this._refreshWrongBookSnapshotIfNeeded());
     }
     this._loadCatSettings();
     this._onCatDragMove = (e) => this.handleCatDragMove(e);
@@ -1739,6 +1769,9 @@ const app = createApp({
   methods: {
     formatPracticeRichText(text) {
       return formatPracticeRichText(text, this.activePracticeSetKey);
+    },
+    resolveCaseImageUrl(path) {
+      return resolveCaseImageUrl(path);
     },
     _makeFavoriteId() {
       return `fav-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -3005,9 +3038,6 @@ const app = createApp({
       this.matcherMatchedIds = [];
       this.matcherWrong = false;
     },
-    _bumpPracticeDataEpoch() {
-      this.practiceDataEpoch += 1;
-    },
     _resolveSetQuiz(set) {
       if (!set) return [];
       if (this.practiceSetCache[set.id]) return this.practiceSetCache[set.id];
@@ -3021,119 +3051,6 @@ const app = createApp({
         return merged;
       }
       return set.quiz || [];
-    },
-    async _ensurePracticeKeyLoaded(key) {
-      const k = String(key || "").trim();
-      if (!k) return true;
-      window.practiceMarkdown = window.practiceMarkdown || {};
-      if (window.practiceMarkdown[k] != null) return true;
-      if (typeof window.loadPracticeMarkdownKey !== "function") {
-        this.practiceDataLoadError = "题库加载器未就绪，请刷新页面";
-        return false;
-      }
-      this.practiceDataLoading = true;
-      this.practiceDataLoadError = "";
-      try {
-        await window.loadPracticeMarkdownKey(k);
-        this.practiceSetCache = {};
-        if (window.practiceMarkdown[k] == null) {
-          this.practiceDataLoadError = "题库脚本未写入数据：" + k;
-          return false;
-        }
-        this._bumpPracticeDataEpoch();
-        return true;
-      } catch (e) {
-        this.practiceDataLoadError = (e && e.message) || "题库加载失败";
-        return false;
-      } finally {
-        this.practiceDataLoading = false;
-      }
-    },
-    async _ensureCaseStudyLoaded() {
-      if (Array.isArray(window.caseStudySets) && window.caseStudySets.length) return true;
-      if (typeof window.loadCaseStudyData !== "function") return false;
-      this.practiceDataLoading = true;
-      this.practiceDataLoadError = "";
-      try {
-        await window.loadCaseStudyData();
-        if (!Array.isArray(window.caseStudySets) || !window.caseStudySets.length) {
-          this.practiceDataLoadError = "案例题数据未加载";
-          return false;
-        }
-        this._bumpPracticeDataEpoch();
-        return true;
-      } catch (e) {
-        this.practiceDataLoadError = (e && e.message) || "案例题加载失败";
-        return false;
-      } finally {
-        this.practiceDataLoading = false;
-      }
-    },
-    async _ensureWrongBookLayerReady(layer) {
-      const sets = layer === "mock" ? this.mockSets : this.comprehensiveSets;
-      const keys = sets.map((s) => s.key).filter(Boolean);
-      if (!keys.length || typeof window.loadPracticeMarkdownKeys !== "function") return true;
-      this.practiceDataLoading = true;
-      this.practiceDataLoadError = "";
-      try {
-        await window.loadPracticeMarkdownKeys(keys);
-        this.practiceSetCache = {};
-        this._bumpPracticeDataEpoch();
-        return true;
-      } catch (e) {
-        this.practiceDataLoadError = (e && e.message) || "错题集加载失败";
-        return false;
-      } finally {
-        this.practiceDataLoading = false;
-      }
-    },
-    async _prefetchActiveQuizData() {
-      if (this.activeView !== "quiz") return;
-      if (this.practiceLayer === "case") {
-        await this._ensureCaseStudyLoaded();
-        return;
-      }
-      if (this.practiceLayer === "domain") {
-        if (this.activeDomainId === this.domainWrongBookId) return;
-        return;
-      }
-      if (this.practiceLayer === "comprehensive") {
-        if (this.activeComprehensiveId === this.comprehensiveWrongBookId) {
-          await this._ensureWrongBookLayerReady("comprehensive");
-          return;
-        }
-      }
-      if (this.practiceLayer === "mock") {
-        if (this.activeMockId === this.mockWrongBookId) {
-          await this._ensureWrongBookLayerReady("mock");
-          return;
-        }
-      }
-      const set = this.activePracticeSet;
-      if (set && set.key) await this._ensurePracticeKeyLoaded(set.key);
-    },
-    _refreshWrongBookSnapshotIfNeeded() {
-      if (this.activeView !== "quiz") return;
-      if (this.practiceLayer === "domain" && this.activeDomainId === this.domainWrongBookId) {
-        this.practiceDomainWrongBookSnapshot = this._buildWrongBookCandidatesShuffledByLayer("domain");
-      }
-      if (this.practiceLayer === "comprehensive" && this.activeComprehensiveId === this.comprehensiveWrongBookId) {
-        this.practiceWrongBookSnapshot = this._buildWrongBookCandidatesShuffled();
-      }
-      if (this.practiceLayer === "mock" && this.activeMockId === this.mockWrongBookId) {
-        this.practiceMockWrongBookSnapshot = this._buildMockWrongBookCandidatesShuffled();
-      }
-      this._bumpPracticeDataEpoch();
-    },
-    async retryPracticeDataLoad() {
-      this.practiceDataLoadError = "";
-      await this._prefetchActiveQuizData();
-      this._refreshWrongBookSnapshotIfNeeded();
-    },
-    practiceScoreOverviewBarClass(row) {
-      return row && Number(row.percent) >= 60
-        ? "practice-scores-overview-bar-fill--pass"
-        : "practice-scores-overview-bar-fill--fail";
     },
     _loadPracticeUserAnswers() {
       try {
@@ -3208,7 +3125,7 @@ const app = createApp({
           this.activeComprehensiveId = list[0].id;
         }
         if (this.activeComprehensiveId === this.comprehensiveWrongBookId) {
-          this.practiceWrongBookSnapshot = null;
+          this.practiceWrongBookSnapshot = this._buildWrongBookCandidatesShuffled();
         }
       }
       if (layer === "domain") {
