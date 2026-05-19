@@ -597,6 +597,8 @@ const app = createApp({
       practiceScoresOverviewOpen: false,
       practiceDataLoading: false,
       practiceDataLoadError: "",
+      /** 题库异步加载完成后递增，驱动练习场题单重算 */
+      practiceDataEpoch: 0,
       catConfigOpen: false,
       projectConfigMenuOpen: false,
       catVisible: true,
@@ -1033,6 +1035,7 @@ const app = createApp({
       return set && set.key ? String(set.key) : "";
     },
     practiceQuizBaseRows() {
+      void this.practiceDataEpoch;
       if (this.practiceLayer === "case") return [];
       let list = [];
       if (this.practiceLayer === "comprehensive") {
@@ -3002,6 +3005,9 @@ const app = createApp({
       this.matcherMatchedIds = [];
       this.matcherWrong = false;
     },
+    _bumpPracticeDataEpoch() {
+      this.practiceDataEpoch += 1;
+    },
     _resolveSetQuiz(set) {
       if (!set) return [];
       if (this.practiceSetCache[set.id]) return this.practiceSetCache[set.id];
@@ -3021,12 +3027,20 @@ const app = createApp({
       if (!k) return true;
       window.practiceMarkdown = window.practiceMarkdown || {};
       if (window.practiceMarkdown[k] != null) return true;
-      if (typeof window.loadPracticeMarkdownKey !== "function") return false;
+      if (typeof window.loadPracticeMarkdownKey !== "function") {
+        this.practiceDataLoadError = "题库加载器未就绪，请刷新页面";
+        return false;
+      }
       this.practiceDataLoading = true;
       this.practiceDataLoadError = "";
       try {
         await window.loadPracticeMarkdownKey(k);
         this.practiceSetCache = {};
+        if (window.practiceMarkdown[k] == null) {
+          this.practiceDataLoadError = "题库脚本未写入数据：" + k;
+          return false;
+        }
+        this._bumpPracticeDataEpoch();
         return true;
       } catch (e) {
         this.practiceDataLoadError = (e && e.message) || "题库加载失败";
@@ -3042,6 +3056,11 @@ const app = createApp({
       this.practiceDataLoadError = "";
       try {
         await window.loadCaseStudyData();
+        if (!Array.isArray(window.caseStudySets) || !window.caseStudySets.length) {
+          this.practiceDataLoadError = "案例题数据未加载";
+          return false;
+        }
+        this._bumpPracticeDataEpoch();
         return true;
       } catch (e) {
         this.practiceDataLoadError = (e && e.message) || "案例题加载失败";
@@ -3059,6 +3078,7 @@ const app = createApp({
       try {
         await window.loadPracticeMarkdownKeys(keys);
         this.practiceSetCache = {};
+        this._bumpPracticeDataEpoch();
         return true;
       } catch (e) {
         this.practiceDataLoadError = (e && e.message) || "错题集加载失败";
@@ -3103,6 +3123,12 @@ const app = createApp({
       if (this.practiceLayer === "mock" && this.activeMockId === this.mockWrongBookId) {
         this.practiceMockWrongBookSnapshot = this._buildMockWrongBookCandidatesShuffled();
       }
+      this._bumpPracticeDataEpoch();
+    },
+    async retryPracticeDataLoad() {
+      this.practiceDataLoadError = "";
+      await this._prefetchActiveQuizData();
+      this._refreshWrongBookSnapshotIfNeeded();
     },
     practiceScoreOverviewBarClass(row) {
       return row && Number(row.percent) >= 60
