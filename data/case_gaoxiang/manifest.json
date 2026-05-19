@@ -1,0 +1,85 @@
+{
+  "index_url": "https://yun.aura.cn/Tpaper/index/lid/7801/sid/1119.html",
+  "cases": [
+    {
+      "num": 1,
+      "title": "软考高项综合测试题-案例（1）",
+      "paper_tid": "2416",
+      "result_tid": "6952892",
+      "write_url": "https://yun.aura.cn/Test/alsTyper/lid/0/tid/6952892/typer/5/write/3.html",
+      "slug": "case_01",
+      "markdown": "data/case_gaoxiang/case_01.md",
+      "has_answers": true
+    },
+    {
+      "num": 2,
+      "title": "软考高项综合测试题-案例（2）",
+      "paper_tid": "2417",
+      "result_tid": "7036270",
+      "write_url": "https://yun.aura.cn/Test/alsTyper/lid/0/tid/7036270/typer/5/write/3.html",
+      "slug": "case_02",
+      "markdown": "data/case_gaoxiang/case_02.md",
+      "has_answers": true
+    },
+    {
+      "num": 3,
+      "title": "软考高项综合测试题-案例（3）",
+      "paper_tid": "2418",
+      "result_tid": "7036280",
+      "write_url": "https://yun.aura.cn/Test/alsTyper/lid/0/tid/7036280/typer/5/write/3.html",
+      "slug": "case_03",
+      "markdown": "data/case_gaoxiang/case_03.md",
+      "has_answers": true
+    },
+    {
+      "num": 4,
+      "title": "软考高项综合测试题-案例（4）",
+      "paper_tid": "2419",
+      "result_tid": "7036283",
+      "write_url": "https://yun.aura.cn/Test/alsTyper/lid/0/tid/7036283/typer/5/write/3.html",
+      "slug": "case_04",
+      "markdown": "data/case_gaoxiang/case_04.md",
+      "has_answers": true
+    },
+    {
+      "num": 5,
+      "title": "软考高项综合测试题-案例（5）",
+      "paper_tid": "2420",
+      "result_tid": "7036290",
+      "write_url": "https://yun.aura.cn/Test/alsTyper/lid/0/tid/7036290/typer/5/write/3.html",
+      "slug": "case_05",
+      "markdown": "data/case_gaoxiang/case_05.md",
+      "has_answers": true
+    },
+    {
+      "num": 6,
+      "title": "软考高项综合测试题-案例（6）",
+      "paper_tid": "2421",
+      "result_tid": "7036293",
+      "write_url": "https://yun.aura.cn/Test/alsTyper/lid/0/tid/7036293/typer/5/write/3.html",
+      "slug": "case_06",
+      "markdown": "data/case_gaoxiang/case_06.md",
+      "has_answers": true
+    },
+    {
+      "num": 7,
+      "title": "软考高项综合测试题-案例（7）",
+      "paper_tid": "2422",
+      "result_tid": "7036297",
+      "write_url": "https://yun.aura.cn/Test/alsTyper/lid/0/tid/7036297/typer/5/write/3.html",
+      "slug": "case_07",
+      "markdown": "data/case_gaoxiang/case_07.md",
+      "has_answers": true
+    },
+    {
+      "num": 8,
+      "title": "软考高项综合测试题-案例（8）",
+      "paper_tid": "2423",
+      "result_tid": "7006328",
+      "write_url": "https://yun.aura.cn/Test/alsTyper/lid/0/tid/7006328/typer/5/write/3.html",
+      "slug": "case_08",
+      "markdown": "data/case_gaoxiang/case_08.md",
+      "has_answers": true
+    }
+  ]
+}

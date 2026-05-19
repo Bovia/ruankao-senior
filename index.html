@@ -283,7 +283,7 @@
             v-if="activeView === 'quiz'"
             class="mb-3 ml-3 mr-3"
           >
-            <div class="practice-seg">
+            <div class="practice-seg practice-seg--quad">
               <button
                 type="button"
                 class="practice-seg-btn"
@@ -302,6 +302,12 @@
                 :class="{ 'practice-seg-btn-active': practiceLayer === 'mock' }"
                 @click="selectPracticeLayer('mock')"
               >模考</button>
+              <button
+                type="button"
+                class="practice-seg-btn"
+                :class="{ 'practice-seg-btn-active': practiceLayer === 'case' }"
+                @click="selectPracticeLayer('case')"
+              >案例题</button>
             </div>
           </div>
 
@@ -573,6 +579,71 @@
                     <span class="domain-badge">{{ mockWrongBookCount }}</span>
                   </div>
                   <p class="line-clamp-2 text-sm leading-6 text-ink/70">全部模拟题交卷中的错题，本地去重并随机排序。</p>
+                </button>
+              </div>
+            </div>
+          </template>
+
+          <template v-else-if="activeView === 'quiz' && practiceLayer === 'case'">
+            <div class="domain-aside-head ml-3 mr-3 mb-3 flex items-center justify-between gap-2">
+              <div class="min-w-0">
+                <p class="hidden text-xs font-semibold uppercase tracking-[0.22em] text-ocean/60 md:block">Case Study</p>
+                <h2 class="font-display text-base font-semibold md:text-xl">案例题</h2>
+              </div>
+              <div class="rounded-full bg-mist px-3 py-1 text-xs font-medium text-ocean">{{ caseSets.length }} 套</div>
+            </div>
+            <div class="domain-pills flex gap-2 overflow-x-auto pb-1 lg:hidden" ref="domainPillBar">
+              <button
+                v-for="set in caseSets"
+                :key="'cs-'+set.id"
+                type="button"
+                @click="selectCaseSet(set.id)"
+                class="domain-pill"
+                :class="{ 'domain-pill-active': activeCaseId === set.id && !caseStudyZhaChaOpen }"
+                :data-domain-id="set.id"
+              >{{ set.title }}</button>
+              <button
+                v-if="caseStudyZhaChaRows.length"
+                type="button"
+                class="domain-pill domain-pill--zhaocha"
+                :class="{ 'domain-pill-active': caseStudyZhaChaOpen }"
+                @click="toggleCaseStudyZhaCha"
+              >背题速记</button>
+            </div>
+            <div class="domain-nav domain-nav-scroll hidden gap-4 lg:flex lg:flex-col">
+              <div class="flex flex-col gap-2">
+                <button
+                  v-for="set in caseSets"
+                  :key="set.id"
+                  type="button"
+                  @click="selectCaseSet(set.id)"
+                  class="domain-card"
+                  :class="{ 'domain-card-active': activeCaseId === set.id && !caseStudyZhaChaOpen }"
+                  style="--domain-accent: #7c3aed"
+                >
+                  <div class="mb-2 flex items-center justify-between gap-3">
+                    <span class="domain-name">{{ set.title }}</span>
+                    <span class="domain-badge">{{ (set.questions || []).length }} 题</span>
+                  </div>
+                  <p class="line-clamp-2 text-sm leading-6 text-ink/70">{{ set.summary }}</p>
+                  <p
+                    v-if="!set.hasOfficialAnswers"
+                    class="mt-1 text-xs font-medium text-amber-700"
+                  >暂无官方参考答案</p>
+                </button>
+                <button
+                  v-if="caseStudyZhaChaRows.length"
+                  type="button"
+                  class="domain-card domain-card--zhaocha"
+                  :class="{ 'domain-card-active': caseStudyZhaChaOpen }"
+                  style="--domain-accent: #7c3aed"
+                  @click="toggleCaseStudyZhaCha"
+                >
+                  <div class="mb-2 flex items-center justify-between gap-3">
+                    <span class="domain-name">背题速记</span>
+                    <span class="domain-badge">{{ caseStudyZhaChaRows.length }} 题</span>
+                  </div>
+                  <p class="line-clamp-2 text-sm leading-6 text-ink/70">8 套找茬题：试题一、试题三「指出问题」类第 1 小题</p>
                 </button>
               </div>
             </div>
@@ -1450,7 +1521,245 @@
               </div>
             </div>
             <div v-if="quizSubMode === 'quiz'">
-              <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] min-w-0">
+              <div
+                v-if="practiceLayer === 'case'"
+                class="case-study min-w-0"
+              >
+                <div v-if="!caseSets.length" class="panel-subtle">
+                  <p class="eyebrow">未加载案例题库</p>
+                  <p class="mt-2 text-sm leading-7 text-ink/80">请确认已引入 <code>data/case_study_data.js</code>。若刚从光环导出，可在项目根目录执行：<code>python3 tools/build_case_study_js.py</code></p>
+                </div>
+                  <section
+                    v-if="caseStudyZhaChaOpen && caseStudyZhaChaRows.length"
+                    class="case-study-zhaocha panel-subtle"
+                  >
+                    <div class="mb-3 flex flex-wrap items-end justify-between gap-2">
+                      <div>
+                        <p class="eyebrow">背题速记</p>
+                        <h4 class="font-display text-lg font-semibold text-ink">8 套找茬题速览</h4>
+                        <p class="mt-1 text-sm leading-6 text-ink/65">汇总各套 <strong>试题一</strong>、<strong>试题三</strong> 中「指出问题 / 不足 / 错误」类第 1 小题，便于考前连看。</p>
+                      </div>
+                      <div class="flex flex-wrap items-center gap-2">
+                      <span class="text-xs font-medium text-ocean/70">{{ caseStudyZhaChaRows.length }} 题</span>
+                      <button type="button" class="practice-exam-ghost-btn" @click="toggleCaseStudyZhaCha">返回做题</button>
+                    </div>
+                    </div>
+                    <div class="case-study-zhaocha__grid">
+                      <article
+                        v-for="row in caseStudyZhaChaRows"
+                        :key="row.id"
+                        class="case-study-zhaocha__card"
+                      >
+                        <header class="case-study-zhaocha__head">
+                          <button
+                            type="button"
+                            class="case-study-zhaocha__jump"
+                            @click="jumpToCaseZhaCha(row)"
+                          >{{ row.setTitle }} · {{ row.questionLabel }} · 问题 {{ row.num }}</button>
+                          <span v-if="row.points" class="case-study-sub__points">{{ row.points }} 分</span>
+                        </header>
+                        <p class="whitespace-pre-wrap text-sm leading-7 text-ink">{{ formatCasePrompt(row.prompt) }}</p>
+                        <div class="case-study-answer mt-3">
+                          <div class="case-study-answer__head">
+                            <p class="case-study-answer__label">参考答案</p>
+                            <div v-if="formatCaseAnswer(row.answer, row.prompt)" class="case-study-answer__tools">
+                              <button
+                                type="button"
+                                class="quiz-tts-btn"
+                                :class="{ 'quiz-tts-btn-active': quizTtsPlayingIndex === row.id }"
+                                :title="quizTtsPlayingIndex === row.id ? '停止朗读' : '朗读答案'"
+                                :aria-pressed="quizTtsPlayingIndex === row.id"
+                                aria-label="朗读答案"
+                                @click="speakCaseAnswer(row)"
+                              >
+                                <svg class="quiz-tts-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                  <path d="m3 11 18-5v12L3 13v-2z" />
+                                  <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+                                </svg>
+                              </button>
+                              <div class="quiz-ans-bar quiz-ans-bar--inline">
+                                <button
+                                  type="button"
+                                  class="quiz-ans-btn"
+                                  :class="{ 'quiz-ans-btn-active': quizTtsRate === 1 }"
+                                  title="正常语速"
+                                  @click="setQuizTtsRate(1)"
+                                >1×</button>
+                                <button
+                                  type="button"
+                                  class="quiz-ans-btn"
+                                  :class="{ 'quiz-ans-btn-active': quizTtsRate === 1.25 }"
+                                  title="1.25 倍速"
+                                  @click="setQuizTtsRate(1.25)"
+                                >1.25×</button>
+                                <button
+                                  type="button"
+                                  class="quiz-ans-btn"
+                                  :class="{ 'quiz-ans-btn-active': quizTtsRate === 1.5 }"
+                                  title="1.5 倍速"
+                                  @click="setQuizTtsRate(1.5)"
+                                >1.5×</button>
+                              </div>
+                            </div>
+                          </div>
+                          <p v-if="formatCaseAnswer(row.answer, row.prompt)" class="case-study-answer__body whitespace-pre-wrap text-sm leading-7">{{ formatCaseAnswer(row.answer, row.prompt) }}</p>
+                          <p v-else class="case-study-answer__empty text-sm leading-7">暂无参考答案</p>
+                        </div>
+                      </article>
+                    </div>
+                  </section>
+                <template v-else-if="!caseStudyZhaChaOpen && activeCaseSet && activeCaseQuestion">
+                  <div class="mb-4 flex flex-wrap items-center gap-3">
+                    <div class="quiz-ans-bar">
+                      <button type="button" class="quiz-ans-btn" :class="{ 'quiz-ans-btn-active': caseStudyMode === 'selftest' }" @click="setCaseStudyMode('selftest')">自测</button>
+                      <button type="button" class="quiz-ans-btn" :class="{ 'quiz-ans-btn-active': caseStudyMode === 'memorize' }" @click="setCaseStudyMode('memorize')">背题</button>
+                    </div>
+                    <div v-if="caseStudyMode === 'selftest'" class="quiz-ans-bar">
+                      <button type="button" class="quiz-ans-btn" @click="revealAllCaseSubs">展开全部答案</button>
+                      <button type="button" class="quiz-ans-btn" @click="hideAllCaseSubs">收起全部答案</button>
+                    </div>
+                    <button type="button" class="process-nav-btn process-nav-btn--soft" :class="{ 'process-nav-btn--active': caseStudyScenarioPinned }" @click="toggleCaseStudyScenarioPinned">{{ caseStudyScenarioPinned ? '案例说明已固定' : '固定案例说明' }}</button>
+                  </div>
+                  <div class="case-study-qtabs mb-4 flex items-center gap-2">
+                    <button
+                      type="button"
+                      class="case-study-qtabs__arrow process-nav-btn"
+                      :disabled="!canGoPrevCaseQuestion"
+                      aria-label="上一道大题"
+                      @click="goCaseQuestion(-1)"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6" /></svg>
+                    </button>
+                    <div class="case-study-qtabs__list flex min-w-0 flex-1 flex-wrap justify-center gap-2">
+                      <button v-for="(q, qIdx) in activeCaseSet.questions" :key="'cqt-'+qIdx" type="button" class="case-study-qtab" :class="{ 'case-study-qtab--active': caseStudyQuestionIndex === qIdx }" @click="selectCaseQuestionIndex(qIdx)">{{ q.label }}</button>
+                    </div>
+                    <button
+                      type="button"
+                      class="case-study-qtabs__arrow process-nav-btn"
+                      :disabled="!canGoNextCaseQuestion"
+                      aria-label="下一道大题"
+                      @click="goCaseQuestion(1)"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6" /></svg>
+                    </button>
+                  </div>
+                  <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px] min-w-0">
+                    <div class="space-y-4 min-w-0">
+                      <section class="case-study-scenario panel-subtle" :class="{ 'case-study-scenario--pinned': caseStudyScenarioPinned }">
+                        <div class="mb-2 flex items-center justify-between gap-2">
+                          <p class="eyebrow">{{ activeCaseQuestion.label }} · 案例说明</p>
+                          <span class="text-xs font-medium text-ocean/70">{{ (activeCaseQuestion.subQuestions || []).length }} 道小题</span>
+                        </div>
+                        <p
+                          v-if="caseQuestionSubtitle"
+                          class="case-study-scenario__subtitle whitespace-pre-wrap text-xs leading-6 text-ink/60 mb-2"
+                        >{{ caseQuestionSubtitle }}</p>
+                        <p class="case-study-scenario__text whitespace-pre-wrap text-sm leading-7 text-ink/85">{{ formatCaseScenario(activeCaseQuestion.scenario) }}</p>
+                        <div v-if="activeCaseQuestion.images && activeCaseQuestion.images.length" class="case-study-images mt-4">
+                          <img v-for="(imgSrc, ii) in activeCaseQuestion.images" :key="'cimg-'+ii" class="case-study-images__img" :src="imgSrc" :alt="activeCaseQuestion.label + ' 题图 ' + (ii + 1)" loading="lazy" />
+                        </div>
+                      </section>
+                      <p
+                        v-if="!caseStudySubRows.length"
+                        class="panel-subtle text-sm leading-7 text-amber-800"
+                      >本大题暂无小题数据。请在项目根目录执行 <code>python3 tools/build_case_study_js.py</code> 后刷新页面。</p>
+                      <article v-for="sq in caseStudySubRows" :key="sq.id" class="case-study-sub" :data-case-sub-id="sq.id">
+                        <header class="case-study-sub__head">
+                          <span class="case-study-sub__badge">问题 {{ sq.num }}</span>
+                          <span v-if="sq.points" class="case-study-sub__points">{{ sq.points }} 分</span>
+                          <span v-if="isCaseSubRevealed(sq.id)" class="case-study-sub__done">已对照</span>
+                        </header>
+                        <p class="case-study-sub__prompt whitespace-pre-wrap text-sm leading-7 text-ink">{{ formatCasePrompt(sq.prompt) }}</p>
+                        <div v-if="caseStudyMode === 'selftest' && !isCaseSubRevealed(sq.id)" class="case-study-sub__compose">
+                          <label class="case-study-sub__label" :for="'case-draft-'+sq.id">你的作答（要点即可，不会评分）</label>
+                          <textarea :id="'case-draft-'+sq.id" class="case-study-textarea" rows="5" placeholder="先凭记忆写下要点，写完后点「对照答案」…" :value="caseStudyDraftFor(sq.id)" @input="setCaseStudyDraft(sq.id, $event.target.value)"></textarea>
+                          <button type="button" class="process-nav-btn mt-3" @click="revealCaseSub(sq.id)">对照答案</button>
+                        </div>
+                        <div v-else class="case-study-sub__answer-wrap">
+                          <div v-if="caseStudyMode === 'selftest' && caseStudyDraftFor(sq.id)" class="case-study-sub__draft panel-subtle mb-3">
+                            <p class="eyebrow mb-2">你的作答</p>
+                            <p class="whitespace-pre-wrap text-sm leading-7 text-ink/80">{{ caseStudyDraftFor(sq.id) }}</p>
+                          </div>
+                          <div class="case-study-answer">
+                            <div class="case-study-answer__head">
+                              <p class="case-study-answer__label">参考答案</p>
+                              <div
+                                v-if="formatCaseAnswer(sq.answer, sq.prompt)"
+                                class="case-study-answer__tools"
+                              >
+                                <button
+                                  type="button"
+                                  class="quiz-tts-btn"
+                                  :class="{ 'quiz-tts-btn-active': quizTtsPlayingIndex === sq.id }"
+                                  :title="quizTtsPlayingIndex === sq.id ? '停止朗读' : '朗读答案'"
+                                  :aria-pressed="quizTtsPlayingIndex === sq.id"
+                                  aria-label="朗读答案"
+                                  @click="speakCaseAnswer(sq)"
+                                >
+                                  <svg
+                                    class="quiz-tts-icon"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    aria-hidden="true"
+                                  >
+                                    <path d="m3 11 18-5v12L3 13v-2z" />
+                                    <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+                                  </svg>
+                                </button>
+                                <div class="quiz-ans-bar quiz-ans-bar--inline">
+                                  <button
+                                    type="button"
+                                    class="quiz-ans-btn"
+                                    :class="{ 'quiz-ans-btn-active': quizTtsRate === 1 }"
+                                    title="正常语速"
+                                    @click="setQuizTtsRate(1)"
+                                  >1×</button>
+                                  <button
+                                    type="button"
+                                    class="quiz-ans-btn"
+                                    :class="{ 'quiz-ans-btn-active': quizTtsRate === 1.25 }"
+                                    title="1.25 倍速"
+                                    @click="setQuizTtsRate(1.25)"
+                                  >1.25×</button>
+                                  <button
+                                    type="button"
+                                    class="quiz-ans-btn"
+                                    :class="{ 'quiz-ans-btn-active': quizTtsRate === 1.5 }"
+                                    title="1.5 倍速"
+                                    @click="setQuizTtsRate(1.5)"
+                                  >1.5×</button>
+                                </div>
+                              </div>
+                            </div>
+                            <p v-if="formatCaseAnswer(sq.answer, sq.prompt)" class="case-study-answer__body whitespace-pre-wrap text-sm leading-7">{{ formatCaseAnswer(sq.answer, sq.prompt) }}</p>
+                            <p v-else class="case-study-answer__empty text-sm leading-7">本题暂无官方参考答案。可在项目根目录执行 <code>python3 tools/sync_case_answers_from_aura.py</code> 同步答案后刷新。</p>
+                          </div>
+                          <button v-if="caseStudyMode === 'selftest'" type="button" class="practice-exam-ghost-btn mt-3" @click="unrevealCaseSub(sq.id)">收起答案继续练</button>
+                        </div>
+                      </article>
+                    </div>
+                    <aside class="panel-subtle h-fit case-study-aside">
+                      <p class="eyebrow">案例题提示</p>
+                      <ul class="mt-3 space-y-2 text-sm leading-7 text-ink/80">
+                        <li>• <strong>自测</strong>：先写要点，再点「对照答案」；进度记为「已对照 x/y」。</li>
+                        <li>• <strong>背题</strong>：直接显示参考答案，适合考前速记。</li>
+                        <li>• 切换「试题一 / 二 / 三」时，案例说明与草稿会分别保存。</li>
+                        <li v-if="!activeCaseSet.hasOfficialAnswers">• 本套尚无同步答案：在光环交卷后，终端运行 <code>python3 tools/sync_case_answers_from_aura.py</code> 再刷新本页。</li>
+                        <li v-else>• 参考答案旁可点喇叭「朗读答案」，支持 1× / 1.25× / 1.5× 语速。</li>
+                        <li v-if="caseStudyZhaChaRows.length">• 套卷列表末尾 <strong>背题速记</strong> 可一次浏览 8 套找茬题。</li>
+                      </ul>
+                      <p v-if="activeCaseSet.summary" class="mt-4 text-xs leading-6 text-ink/55">{{ activeCaseSet.summary }}</p>
+                    </aside>
+                  </div>
+
+                </template>
+              </div>
+              <div v-else class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] min-w-0">
+
                 <div class="space-y-4">
                   <div
                     v-if="practiceQuizBaseRows.length && !practiceExamRunning"
@@ -2240,8 +2549,49 @@
         </section>
       </main>
 
+      <!-- 移动端：案例题套卷左右切换 -->
+      <template v-if="showCaseNavArrows && activeModule !== 'essay'">
+        <button
+          type="button"
+          class="domain-nav-arrow domain-nav-arrow--left md:hidden"
+          :class="{ 'domain-nav-arrow--disabled': !canGoPrevCaseSet }"
+          @click="goCaseSet(-1)"
+          :disabled="!canGoPrevCaseSet"
+          aria-label="上一套案例"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="domain-nav-arrow domain-nav-arrow--right md:hidden"
+          :class="{ 'domain-nav-arrow--disabled': !canGoNextCaseSet }"
+          @click="goCaseSet(1)"
+          :disabled="!canGoNextCaseSet"
+          aria-label="下一套案例"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
+      </template>
       <!-- 移动端：知识域左右切换箭头（concept/formula等视图） -->
-      <template v-if="showDomainNavArrows && activeModule !== 'essay'">
+      <template v-else-if="showDomainNavArrows && activeModule !== 'essay'">
         <button
           type="button"
           class="domain-nav-arrow domain-nav-arrow--left md:hidden"
@@ -3189,6 +3539,7 @@
   <script src="./data/practice/zhishiyu_procurement.js"></script>
   <script src="./data/practice/zhishiyu_stakeholder.js"></script>
   <script src="./data/export_my_answers_and_history.js"></script>
+  <script src="./data/case_study_data.js"></script>
   <script src="./app.js"></script>
 </body>
 

@@ -698,6 +698,23 @@ code {
   --domain-accent: #b45309;
 }
 
+.domain-pill--zhaocha {
+  border-color: rgba(109, 40, 217, 0.28);
+  color: #6d28d9;
+  font-weight: 600;
+}
+
+.domain-pill--zhaocha.domain-pill-active {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  border-color: transparent;
+  color: #fff;
+}
+
+.domain-card--zhaocha {
+  border-color: rgba(109, 40, 217, 0.22);
+  background: linear-gradient(180deg, rgba(245, 243, 255, 0.95), rgba(255, 255, 255, 0.98));
+}
+
 .domain-card--wrongbook {
   border-color: rgba(180, 83, 9, 0.15);
 }
@@ -4226,4 +4243,231 @@ h4 .practice-fig {
   border-radius: 0.5rem;
   border: 1px solid rgba(15, 76, 92, 0.12);
   background: #fff;
+}
+
+/* ── 案例题（简答 · 自测/背题） ── */
+.case-study-qtabs__arrow {
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.case-study-qtab {
+  border: 1px solid rgba(15, 76, 92, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0.35rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(22, 49, 63, 0.62);
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.case-study-qtab:hover {
+  color: #0f4c5c;
+  border-color: rgba(15, 76, 92, 0.22);
+}
+
+.case-study-qtab--active {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(109, 40, 217, 0.28);
+}
+
+.case-study-scenario--pinned {
+  position: sticky;
+  top: 0.5rem;
+  z-index: 2;
+  max-height: min(42vh, 420px);
+  overflow: auto;
+  box-shadow: 0 8px 24px rgba(12, 55, 72, 0.1);
+}
+
+.case-study-images {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.case-study-images__img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 76, 92, 0.1);
+  background: #fff;
+}
+
+.case-study-sub {
+  border-radius: 22px;
+  border: 1px solid rgba(15, 76, 92, 0.08);
+  background: rgba(255, 255, 255, 0.92);
+  padding: 1rem 1.1rem 1.15rem;
+  box-shadow: 0 10px 28px rgba(12, 55, 72, 0.06);
+}
+
+.case-study-sub__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+}
+
+.case-study-sub__badge {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6d28d9;
+}
+
+.case-study-sub__points {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(22, 49, 63, 0.5);
+}
+
+.case-study-sub__done {
+  margin-left: auto;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #047857;
+  background: rgba(16, 185, 129, 0.12);
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
+.case-study-sub__label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(22, 49, 63, 0.55);
+}
+
+.case-study-textarea {
+  width: 100%;
+  min-height: 7rem;
+  resize: vertical;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 76, 92, 0.14);
+  background: #fff;
+  padding: 0.75rem 0.9rem;
+  font-family: inherit;
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: #16313f;
+}
+
+.case-study-textarea:focus {
+  outline: none;
+  border-color: rgba(109, 40, 217, 0.45);
+  box-shadow: 0 0 0 3px rgba(109, 40, 217, 0.12);
+}
+
+.case-study-answer {
+  border-radius: 14px;
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  background: linear-gradient(180deg, rgba(236, 253, 245, 0.95), rgba(255, 255, 255, 0.98));
+  padding: 0.85rem 1rem;
+}
+
+.case-study-answer__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.case-study-answer__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+}
+
+.case-study-answer__label {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #047857;
+}
+
+.case-study-answer__body {
+  margin: 0;
+  color: #134e4a;
+}
+
+.case-study-answer__empty {
+  margin: 0;
+  color: #b45309;
+}
+
+.case-study-scenario__subtitle {
+  border-left: 3px solid rgba(15, 76, 92, 0.2);
+  padding-left: 0.65rem;
+}
+
+.case-study-zhaocha {
+  border-color: rgba(109, 40, 217, 0.18);
+  background: linear-gradient(180deg, rgba(245, 243, 255, 0.95), rgba(255, 255, 255, 0.98));
+}
+
+.case-study-zhaocha__grid {
+  display: grid;
+  gap: 0.85rem;
+}
+
+@media (min-width: 768px) {
+  .case-study-zhaocha__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.case-study-zhaocha__card {
+  border: 1px solid rgba(15, 76, 92, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 0.85rem 1rem;
+}
+
+.case-study-zhaocha__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.case-study-zhaocha__jump {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #6d28d9;
+  text-align: left;
+  cursor: pointer;
+}
+
+.case-study-zhaocha__jump:hover {
+  text-decoration: underline;
+}
+
+.process-nav-btn--active {
+  border-color: rgba(109, 40, 217, 0.35);
+  background: rgba(109, 40, 217, 0.1);
+  color: #5b21b6;
 }

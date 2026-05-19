@@ -144,7 +144,8 @@ function bundleKeyForPracticeSet(activeView, practiceLayer, setId) {
   const domainId = practiceLayer === "domain" ? sid : "";
   const compId = practiceLayer === "comprehensive" ? sid : "";
   const mockId = practiceLayer === "mock" ? sid : "";
-  return [activeView, practiceLayer, domainId, compId, mockId].join("|");
+  const caseId = practiceLayer === "case" ? sid : "";
+  return [activeView, practiceLayer, domainId, compId, mockId, caseId].join("|");
 }
 
 const NAV_STORAGE_KEY = "jiyiqi-nav-v1";
@@ -157,6 +158,8 @@ const PRACTICE_ATTEMPTS_STORAGE_KEY = "jiyiqi-practice-attempts-v1";
 /** 练习场：外部导入的“我的答案”配置（不写进题库 Markdown，避免影响解析阅读） */
 const PRACTICE_USER_ANS_STORAGE_KEY = "jiyiqi-practice-user-answers-v1";
 const PRACTICE_ACTIVE_USER_STORAGE_KEY = "jiyiqi-practice-active-user-v1";
+/** 案例题：对照进度、自测草稿、当前大题序号 */
+const CASE_STUDY_STATE_KEY = "jiyiqi-case-study-state-v1";
 const PRACTICE_PROFILES_SEED_URL = "data/export_my_answers_and_history.json";
 const PROJECT_CACHE_KEYS = [NAV_STORAGE_KEY, FAVORITES_STORAGE_KEY, QUIZ_TTS_VOICE_STORAGE_KEY, PRACTICE_ATTEMPTS_STORAGE_KEY, PRACTICE_USER_ANS_STORAGE_KEY, PRACTICE_ACTIVE_USER_STORAGE_KEY];
 /** 综合题侧栏「错题集」虚拟套卷 id（非 practiceSets 配置项） */
@@ -336,12 +339,13 @@ function loadPersistedNavState(ctx) {
   let activeView = raw.activeView;
   if (!allowedViews.has(activeView)) activeView = "study";
 
-  const layers = new Set(["domain", "comprehensive", "mock"]);
+  const layers = new Set(["domain", "comprehensive", "mock", "case"]);
   let practiceLayer = raw.practiceLayer;
   if (!layers.has(practiceLayer)) practiceLayer = "domain";
 
   const comp = practiceSets.comprehensive || [];
   const mock = practiceSets.mock || [];
+  const caseList = window.caseStudySets || [];
   let activeComprehensiveId = raw.activeComprehensiveId;
   const persistedWrongBook = activeComprehensiveId === COMPREHENSIVE_WRONG_BOOK_ID;
   if (!persistedWrongBook && !comp.some((s) => s.id === activeComprehensiveId)) {
@@ -351,6 +355,11 @@ function loadPersistedNavState(ctx) {
   const persistedMockWrongBook = activeMockId === MOCK_WRONG_BOOK_ID;
   if (!persistedMockWrongBook && !mock.some((s) => s.id === activeMockId)) {
     activeMockId = mock[0]?.id || defaults.activeMockId;
+  }
+
+  let activeCaseId = raw.activeCaseId;
+  if (!caseList.some((s) => s.id === activeCaseId)) {
+    activeCaseId = caseList[0]?.id || defaults.activeCaseId || "";
   }
 
   let quizSubMode = raw.quizSubMode === "matcher" ? "matcher" : "quiz";
@@ -387,6 +396,7 @@ function loadPersistedNavState(ctx) {
     practiceLayer,
     activeComprehensiveId,
     activeMockId,
+    activeCaseId,
     quizSubMode,
     pgFilterDomain,
     quizAnswersGlobalShow,
@@ -420,6 +430,7 @@ createApp({
     const practiceSetsBootstrap = window.practiceSets || { comprehensive: [], mock: [] };
     const compFirstId = (practiceSetsBootstrap.comprehensive && practiceSetsBootstrap.comprehensive[0] && practiceSetsBootstrap.comprehensive[0].id) || "";
     const mockFirstId = (practiceSetsBootstrap.mock && practiceSetsBootstrap.mock[0] && practiceSetsBootstrap.mock[0].id) || "";
+    const caseFirstId = (window.caseStudySets && window.caseStudySets[0] && window.caseStudySets[0].id) || "";
     const knowledgeDataBootstrap = window.knowledgeData || {};
     const myEssayBootstrap = window.myEssayData || { projectOverview: { title: "", content: "" }, wordRequirements: { sections: [] }, groups: [], topics: { knowledge: [], performance: [] }, conclusionTemplate: { outline: [] } };
     const defEssayTopics = (myEssayBootstrap.topics || {}).knowledge || [];
@@ -447,6 +458,7 @@ createApp({
         activeDomainId: firstDomain.id || "",
         activeComprehensiveId: compFirstId,
         activeMockId: mockFirstId,
+        activeCaseId: caseFirstId,
         myEssayGroupId: "knowledge",
         myEssayTopicId: defEssayTopicId
       }
@@ -507,6 +519,17 @@ createApp({
       practiceLayer: "domain",
       activeComprehensiveId: compFirstId,
       activeMockId: mockFirstId,
+      activeCaseId: caseFirstId,
+      /** 案例题：背题 memorize / 自测 selftest */
+      caseStudyMode: "selftest",
+      caseStudyQuestionIndex: 0,
+      caseStudyScenarioPinned: true,
+      /** 背题速记：8 套找茬题汇总视图 */
+      caseStudyZhaChaOpen: false,
+      /** { [bundleKey]: { [subId]: true } } */
+      caseStudyRevealed: {},
+      /** { [bundleKey]: { [subId]: string } } */
+      caseStudyDrafts: {},
       quizAnswersGlobalShow: false,
       /** 浏览题库：全部 / 只看错题 / 只对题（依据题干解析出的「你的答案」） */
       practiceBrowseResultFilter: "all",
@@ -606,6 +629,7 @@ createApp({
           practiceLayer: persisted.practiceLayer,
           activeComprehensiveId: persisted.activeComprehensiveId,
           activeMockId: persisted.activeMockId,
+          activeCaseId: persisted.activeCaseId || caseFirstId,
           quizSubMode: persisted.quizSubMode,
           pgFilterDomain: persisted.pgFilterDomain,
           quizAnswersGlobalShow: persisted.quizAnswersGlobalShow,
@@ -772,7 +796,28 @@ createApp({
       return this.activeDomainIndex < this.visibleDomains.length - 1;
     },
     showDomainNavArrows() {
+      if (this.practiceLayer === "case" && this.activeView === "quiz") return false;
       return ["study", "keyword", "scenario", "formula", "compare", "quiz"].includes(this.activeView);
+    },
+    activeCaseSetIndex() {
+      return this.caseSets.findIndex((s) => s.id === this.activeCaseId);
+    },
+    canGoPrevCaseSet() {
+      return this.activeCaseSetIndex > 0;
+    },
+    canGoNextCaseSet() {
+      return this.activeCaseSetIndex >= 0 && this.activeCaseSetIndex < this.caseSets.length - 1;
+    },
+    showCaseNavArrows() {
+      return this.activeView === "quiz" && this.practiceLayer === "case" && this.caseSets.length > 1;
+    },
+    canGoPrevCaseQuestion() {
+      return this.caseStudyQuestionIndex > 0;
+    },
+    canGoNextCaseQuestion() {
+      const set = this.activeCaseSet;
+      const n = (set && set.questions && set.questions.length) || 0;
+      return n > 0 && this.caseStudyQuestionIndex < n - 1;
     },
     visibleViews() {
       const domains = this.visibleDomains;
@@ -848,6 +893,84 @@ createApp({
     comprehensiveSets() {
       return this.practiceSetsRoot.comprehensive || [];
     },
+    caseSets() {
+      return Array.isArray(window.caseStudySets) ? window.caseStudySets : [];
+    },
+    activeCaseSet() {
+      const list = this.caseSets;
+      return list.find((s) => s.id === this.activeCaseId) || list[0] || null;
+    },
+    activeCaseQuestion() {
+      const set = this.activeCaseSet;
+      if (!set || !Array.isArray(set.questions) || !set.questions.length) return null;
+      const idx = Math.min(Math.max(0, this.caseStudyQuestionIndex), set.questions.length - 1);
+      return set.questions[idx];
+    },
+    caseStudyBundleKey() {
+      const set = this.activeCaseSet;
+      if (!set) return "";
+      return bundleKeyForPracticeSet(this.activeView, "case", set.id);
+    },
+    caseStudySubRows() {
+      const q = this.activeCaseQuestion;
+      if (!q || !Array.isArray(q.subQuestions)) return [];
+      const set = this.activeCaseSet;
+      const qIdx = this.caseStudyQuestionIndex;
+      return q.subQuestions.map((sq) => ({
+        ...sq,
+        id: `${set.id}-q${qIdx}-s${sq.num}`,
+        questionLabel: q.label
+      }));
+    },
+    caseQuestionSubtitle() {
+      const q = this.activeCaseQuestion;
+      if (!q) return "";
+      const pre = String(q.preamble || "").trim();
+      const label = String(q.label || "").trim();
+      if (!pre || pre === label) return "";
+      const rest = pre.replace(new RegExp(`^${label}\\s*`), "").trim();
+      if (rest.length < 8) return "";
+      return rest.replace(/\n{3,}/g, "\n\n").trim();
+    },
+    caseStudyZhaChaRows() {
+      const bigQIndexes = [0, 2];
+      const rows = [];
+      for (const set of this.caseSets) {
+        const questions = set.questions || [];
+        for (const qIdx of bigQIndexes) {
+          const q = questions[qIdx];
+          if (!q || !Array.isArray(q.subQuestions)) continue;
+          const sq = q.subQuestions.find((s) => s.num === 1);
+          if (!sq || !this.isCaseZhaChaSub(sq)) continue;
+          rows.push({
+            ...sq,
+            setId: set.id,
+            setTitle: set.title,
+            setNum: set.num,
+            questionLabel: q.label,
+            qIdx,
+            id: `${set.id}-zhaocha-q${qIdx}-s${sq.num}`
+          });
+        }
+      }
+      return rows;
+    },
+    caseStudyProgress() {
+      const bk = this.caseStudyBundleKey;
+      const rev = (this.caseStudyRevealed && this.caseStudyRevealed[bk]) || {};
+      const set = this.activeCaseSet;
+      if (!set) return { done: 0, total: 0 };
+      let total = 0;
+      let done = 0;
+      (set.questions || []).forEach((q, qi) => {
+        (q.subQuestions || []).forEach((sq) => {
+          total += 1;
+          const id = `${set.id}-q${qi}-s${sq.num}`;
+          if (rev[id]) done += 1;
+        });
+      });
+      return { done, total };
+    },
     mockSets() {
       return this.practiceSetsRoot.mock || [];
     },
@@ -878,6 +1001,7 @@ createApp({
       return hit || list[0] || null;
     },
     activePracticeSet() {
+      if (this.practiceLayer === "case") return this.activeCaseSet;
       if (this.practiceLayer === "comprehensive") return this.activeComprehensiveSet;
       if (this.practiceLayer === "mock") return this.activeMockSet;
       return null;
@@ -887,6 +1011,7 @@ createApp({
       return set && set.key ? String(set.key) : "";
     },
     practiceQuizBaseRows() {
+      if (this.practiceLayer === "case") return [];
       let list = [];
       if (this.practiceLayer === "comprehensive") {
         if (this.activeComprehensiveId === this.comprehensiveWrongBookId) {
@@ -931,6 +1056,7 @@ createApp({
     },
     /** 顶部练习条：有题或已在考试流程中则显示 */
     practiceQuizExamBarVisible() {
+      if (this.practiceLayer === "case") return false;
       return this.quizSubMode === "quiz" && (this.practiceQuizBaseRows.length > 0 || this.practiceExamActive);
     },
     /** 考试/交卷使用的题单（支持「只做本次错题」子集） */
@@ -979,6 +1105,12 @@ createApp({
       return Object.keys(bySet).length > 0;
     },
     practicePanelTitle() {
+      if (this.practiceLayer === "case" && this.caseStudyZhaChaOpen) {
+        return "案例题";
+      }
+      if (this.practiceLayer === "case" && this.activeCaseSet) {
+        return this.activeCaseSet.title;
+      }
       if (this.practiceLayer === "comprehensive" && this.activeComprehensiveSet) {
         return this.activeComprehensiveSet.title;
       }
@@ -1042,6 +1174,14 @@ createApp({
       return list.find((a) => a.id === id) || null;
     },
     practicePanelLiveLabel() {
+      if (this.practiceLayer === "case" && this.caseStudyZhaChaOpen) {
+        return `背题速记 · ${this.caseStudyZhaChaRows.length} 题`;
+      }
+      if (this.practiceLayer === "case") {
+        const p = this.caseStudyProgress;
+        const mode = this.caseStudyMode === "memorize" ? "背题" : "自测";
+        return `${mode} · 已对照 ${p.done}/${p.total}`;
+      }
       if (this.practiceExamRunning) return "做题中ing";
       // 只在“阅卷/历史查看”状态展示记录名；普通浏览永远叫「练习场」
       if (this.practiceExamInReview) {
@@ -1124,6 +1264,7 @@ createApp({
         activeProcessId: this.activeProcessId,
         activeComprehensiveId: this.activeComprehensiveId,
         activeMockId: this.activeMockId,
+        activeCaseId: this.activeCaseId,
         quizSubMode: this.quizSubMode,
         activeEssayTab: this.activeEssayTab,
         myEssayGroupId: this.myEssayGroupId,
@@ -1537,6 +1678,9 @@ createApp({
       this.activeMockId === this.mockWrongBookId
     ) {
       this.practiceMockWrongBookSnapshot = this._buildMockWrongBookCandidatesShuffled();
+    }
+    if (this.activeView === "quiz" && this.practiceLayer === "case") {
+      this._loadCaseStudyStateForBundle();
     }
     this._loadCatSettings();
     this._onCatDragMove = (e) => this.handleCatDragMove(e);
@@ -2917,6 +3061,11 @@ createApp({
       });
     },
     selectPracticeLayer(layer) {
+      if (this.practiceLayer === "case" && layer !== "case") {
+        this._bumpQuizTtsGenAndCancel();
+        this._clearQuizTtsUi();
+        this.caseStudyZhaChaOpen = false;
+      }
       this.practiceLayer = layer;
       this.practiceBrowseResultFilter = "all";
       this.resetQuizMatcherState();
@@ -2955,6 +3104,301 @@ createApp({
           this.practiceMockWrongBookSnapshot = this._buildMockWrongBookCandidatesShuffled();
         }
       }
+      if (layer === "case") {
+        const list = this.caseSets;
+        const idOk = list.some((s) => s.id === this.activeCaseId);
+        if (list.length && !idOk) {
+          this.activeCaseId = list[0].id;
+        }
+        this.caseStudyQuestionIndex = 0;
+        this._loadCaseStudyStateForBundle();
+      }
+    },
+    selectCaseSet(id) {
+      this._bumpQuizTtsGenAndCancel();
+      this._clearQuizTtsUi();
+      this.caseStudyZhaChaOpen = false;
+      this.activeCaseId = id;
+      this.caseStudyQuestionIndex = 0;
+      this._loadCaseStudyStateForBundle();
+    },
+    selectCaseQuestionIndex(idx) {
+      const set = this.activeCaseSet;
+      const max = (set && set.questions && set.questions.length) || 0;
+      if (!max) return;
+      this._bumpQuizTtsGenAndCancel();
+      this._clearQuizTtsUi();
+      this.caseStudyQuestionIndex = Math.min(Math.max(0, idx), max - 1);
+      this._persistCaseStudyState();
+      if (window.innerWidth < 768) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    },
+    goCaseQuestion(delta) {
+      this.selectCaseQuestionIndex(this.caseStudyQuestionIndex + delta);
+    },
+    toggleCaseStudyZhaCha() {
+      this.caseStudyZhaChaOpen = !this.caseStudyZhaChaOpen;
+      if (this.caseStudyZhaChaOpen) {
+        this._bumpQuizTtsGenAndCancel();
+        this._clearQuizTtsUi();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    },
+    jumpToCaseZhaCha(row) {
+      if (!row) return;
+      if (this.practiceLayer !== "case") this.selectPracticeLayer("case");
+      this.caseStudyZhaChaOpen = false;
+      this.activeCaseId = row.setId;
+      this.caseStudyQuestionIndex = row.qIdx;
+      this._loadCaseStudyStateForBundle();
+      this.$nextTick(() => {
+        const el = document.querySelector(`[data-case-sub-id="${row.id}"]`);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        else window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    },
+    goCaseSet(delta) {
+      const list = this.caseSets;
+      const idx = list.findIndex((s) => s.id === this.activeCaseId);
+      const next = list[idx + delta];
+      if (next) {
+        this.selectCaseSet(next.id);
+        if (window.innerWidth < 768) {
+          this.$nextTick(() => {
+            const bar = this.$refs.domainPillBar;
+            if (!bar) return;
+            const btn = bar.querySelector(`[data-domain-id="${next.id}"]`);
+            if (btn) bar.scrollTo({ left: btn.offsetLeft - 12, behavior: "smooth" });
+          });
+        }
+      }
+    },
+    setCaseStudyMode(mode) {
+      this.caseStudyMode = mode === "memorize" ? "memorize" : "selftest";
+      this._persistCaseStudyState();
+    },
+    toggleCaseStudyScenarioPinned() {
+      this.caseStudyScenarioPinned = !this.caseStudyScenarioPinned;
+      this._persistCaseStudyState();
+    },
+    stripCasePromptPrefix(text, prompt) {
+      const p = String(prompt || "").trim();
+      if (!p || !text) return text;
+      if (text.startsWith(p)) return text.slice(p.length).trim();
+      let n = 0;
+      const lim = Math.min(text.length, p.length);
+      while (n < lim && text[n] === p[n]) n += 1;
+      if (n >= Math.max(20, Math.floor(p.length * 0.85))) return text.slice(n).trim();
+      return text;
+    },
+    formatCaseListLineBreaks(text) {
+      if (!text) return "";
+      let t = String(text).trim();
+      // 「一、……（1）」大节标题与首个序号
+      t = t.replace(/([一二三四五六七八九十]+、[^（\n]+?)\s*（\s*(\d+)\s*）/g, "$1\n（$2）");
+      t = t.replace(/([\u4e00-\u9fff])(风险管理改进措施：)/g, "$1\n$2");
+      t = t.replace(/(?<!^)(风险应对类型：|解题思路：|关键路径：)/g, "\n$1");
+      t = t.replace(/([：:])\s*（\s*(\d+)\s*）/g, "$1\n（$2）");
+      t = t.replace(/([\u4e00-\u9fff]{2,})（\s*(\d+)\s*）/g, "$1\n（$2）");
+      t = t.replace(/([。；）])\s*（\s*(\d+)\s*）/g, "$1\n（$2）");
+      t = t.replace(/、\s*（\s*(\d+)\s*）/g, "、\n（$1）");
+      // ：。；后的 1. 2. / 1、（案例说明：1.B产品…）
+      t = t.replace(/([。；：:])\s*(\d+)[.、．]\s*/g, "$1\n$2.");
+      // 步骤一：步骤二：
+      t = t.replace(/(?<!^)(步骤[一二三四五六七八九十]+：)/g, "\n$1");
+      // 句号后新段落（B产品重新测试…）
+      t = t.replace(/([。])\s*(B产品|B公司|签订补充)/g, "$1\n$2");
+      // 活动历时 A=…天B=…
+      t = t.replace(/天([A-F]=)/g, "天\n$1");
+      t = t.replace(/(?<!^)([一二三四五六七八九十]+、)/g, "\n$1");
+      t = t.replace(/(?<!^)([①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮])/g, "\n$1");
+      t = t.replace(/([√×]\s*）)\s+/g, "$1\n");
+      t = t.replace(/([。）])\s*解析[：:]/g, "$1\n解析：");
+      return t.replace(/\n{2,}/g, "\n").trim();
+    },
+    formatCaseScenario(scenario) {
+      return this.formatCaseListLineBreaks(scenario);
+    },
+    formatCasePrompt(prompt) {
+      return this.formatCaseListLineBreaks(prompt);
+    },
+    formatCaseAnswerLineBreaks(text) {
+      return this.formatCaseListLineBreaks(text);
+    },
+    formatCaseAnswer(raw, prompt) {
+      let text = String(raw || "").trim();
+      if (!text) return "";
+      text = text.replace(/\s*<\s*div[\s\S]*$/i, "").replace(/\n-{2,}\s*$/g, "").trim();
+
+      let refAt = -1;
+      const refRe = /【\s*参考答案\s*】/g;
+      let m;
+      while ((m = refRe.exec(text)) !== null) {
+        refAt = m.index + m[0].length;
+      }
+      if (refAt >= 0) {
+        text = text.slice(refAt).trim();
+      } else {
+        text = text.replace(/^参考答案[：:]\s*/, "").trim();
+      }
+
+      text = text.replace(/^【问题\s*\d+】[^【]*/, "").trim();
+      text = text.replace(/^（\s*\d+\s*分\s*）\s*/, "").trim();
+
+      const p = String(prompt || "").trim();
+      text = this.stripCasePromptPrefix(text, p);
+      const pHead = p.replace(/【问题\s*\d+】[\s\S]*$/, "").trim();
+      text = this.stripCasePromptPrefix(text, pHead);
+
+      if (/判断.+正误/.test(p)) {
+        const sub = text.match(/（\s*1\s*）/);
+        if (sub && sub.index > 0 && /[√×]/.test(text.slice(sub.index, sub.index + 400))) {
+          text = text.slice(sub.index).trim();
+        }
+      }
+      return this.formatCaseAnswerLineBreaks(text);
+    },
+    isCaseZhaChaSub(sq) {
+      const p = String((sq && sq.prompt) || "");
+      if (!p) return false;
+      if (/判断下列说法|请填写|填入答题|正确选项|网络图为|计算项目|应填|单选/.test(p)) return false;
+      return /指出|存在的问题|不足|错误|哪些问题|改进措施|存在哪些问题/.test(p);
+    },
+    speakCaseAnswer(sq) {
+      if (!sq) return;
+      const text = this.formatCaseAnswer(sq.answer, sq.prompt);
+      if (!text) return;
+      this.speakQuizAnalysis(text, sq.id);
+    },
+    openAuraCaseDetail() {
+      const set = this.activeCaseSet;
+      const url = set && set.auraDetailUrl;
+      if (url) window.open(url, "_blank", "noopener");
+    },
+    openAuraCaseResult() {
+      const set = this.activeCaseSet;
+      const url = set && set.auraWriteUrl;
+      if (url) window.open(url, "_blank", "noopener");
+    },
+    caseStudyDraftFor(subId) {
+      const bk = this.caseStudyBundleKey;
+      const bucket = (this.caseStudyDrafts && this.caseStudyDrafts[bk]) || {};
+      return bucket[subId] || "";
+    },
+    setCaseStudyDraft(subId, text) {
+      const bk = this.caseStudyBundleKey;
+      if (!bk) return;
+      if (!this.caseStudyDrafts || typeof this.caseStudyDrafts !== "object") {
+        this.caseStudyDrafts = {};
+      }
+      if (!this.caseStudyDrafts[bk] || typeof this.caseStudyDrafts[bk] !== "object") {
+        this.caseStudyDrafts[bk] = {};
+      }
+      this.caseStudyDrafts[bk][subId] = text;
+      this._persistCaseStudyState();
+    },
+    isCaseSubRevealed(subId) {
+      if (this.caseStudyMode === "memorize") return true;
+      const bk = this.caseStudyBundleKey;
+      const rev = (this.caseStudyRevealed && this.caseStudyRevealed[bk]) || {};
+      return !!rev[subId];
+    },
+    revealCaseSub(subId) {
+      const bk = this.caseStudyBundleKey;
+      if (!bk) return;
+      if (!this.caseStudyRevealed || typeof this.caseStudyRevealed !== "object") {
+        this.caseStudyRevealed = {};
+      }
+      if (!this.caseStudyRevealed[bk] || typeof this.caseStudyRevealed[bk] !== "object") {
+        this.caseStudyRevealed[bk] = {};
+      }
+      this.caseStudyRevealed[bk][subId] = true;
+      this._persistCaseStudyState();
+    },
+    unrevealCaseSub(subId) {
+      const bk = this.caseStudyBundleKey;
+      if (!bk || !this.caseStudyRevealed || !this.caseStudyRevealed[bk]) return;
+      const next = { ...this.caseStudyRevealed[bk] };
+      delete next[subId];
+      this.caseStudyRevealed[bk] = next;
+      this._persistCaseStudyState();
+    },
+    revealAllCaseSubs() {
+      const bk = this.caseStudyBundleKey;
+      const set = this.activeCaseSet;
+      if (!bk || !set) return;
+      if (!this.caseStudyRevealed || typeof this.caseStudyRevealed !== "object") {
+        this.caseStudyRevealed = {};
+      }
+      const map = {};
+      (set.questions || []).forEach((q, qi) => {
+        (q.subQuestions || []).forEach((sq) => {
+          map[`${set.id}-q${qi}-s${sq.num}`] = true;
+        });
+      });
+      this.caseStudyRevealed[bk] = map;
+      this._persistCaseStudyState();
+    },
+    hideAllCaseSubs() {
+      if (this.caseStudyMode === "memorize") {
+        this.setCaseStudyMode("selftest");
+      }
+      const bk = this.caseStudyBundleKey;
+      if (!bk || !this.caseStudyRevealed) return;
+      this.caseStudyRevealed[bk] = {};
+      this._persistCaseStudyState();
+    },
+    _loadCaseStudyStateStore() {
+      try {
+        const raw = localStorage.getItem(CASE_STUDY_STATE_KEY);
+        const o = raw ? JSON.parse(raw) : {};
+        return o && typeof o === "object" && !Array.isArray(o) ? o : {};
+      } catch (e) {
+        return {};
+      }
+    },
+    _persistCaseStudyState() {
+      try {
+        const store = this._loadCaseStudyStateStore();
+        const bk = this.caseStudyBundleKey;
+        if (!bk) return;
+        store[bk] = {
+          mode: this.caseStudyMode,
+          questionIndex: this.caseStudyQuestionIndex,
+          scenarioPinned: this.caseStudyScenarioPinned,
+          revealed: (this.caseStudyRevealed && this.caseStudyRevealed[bk]) || {},
+          drafts: (this.caseStudyDrafts && this.caseStudyDrafts[bk]) || {}
+        };
+        localStorage.setItem(CASE_STUDY_STATE_KEY, JSON.stringify(store));
+      } catch (e) {
+        /* ignore */
+      }
+    },
+    _loadCaseStudyStateForBundle() {
+      const bk = this.caseStudyBundleKey;
+      const store = this._loadCaseStudyStateStore();
+      const hit = bk && store[bk] && typeof store[bk] === "object" ? store[bk] : null;
+      if (!hit) {
+        this.caseStudyMode = "selftest";
+        this.caseStudyScenarioPinned = true;
+        if (!this.caseStudyRevealed) this.caseStudyRevealed = {};
+        if (!this.caseStudyDrafts) this.caseStudyDrafts = {};
+        if (bk) {
+          this.caseStudyRevealed[bk] = {};
+          this.caseStudyDrafts[bk] = {};
+        }
+        return;
+      }
+      this.caseStudyMode = hit.mode === "memorize" ? "memorize" : "selftest";
+      this.caseStudyQuestionIndex =
+        Number.isFinite(hit.questionIndex) && hit.questionIndex >= 0 ? hit.questionIndex : 0;
+      this.caseStudyScenarioPinned = hit.scenarioPinned !== false;
+      if (!this.caseStudyRevealed) this.caseStudyRevealed = {};
+      if (!this.caseStudyDrafts) this.caseStudyDrafts = {};
+      this.caseStudyRevealed[bk] =
+        hit.revealed && typeof hit.revealed === "object" ? { ...hit.revealed } : {};
+      this.caseStudyDrafts[bk] = hit.drafts && typeof hit.drafts === "object" ? { ...hit.drafts } : {};
     },
     selectComprehensiveSet(id) {
       this.activeComprehensiveId = id;
