@@ -2172,15 +2172,13 @@ body.mobile-search-screen-open {
   line-height: 1.35;
 }
 
-/* ── 移动端 知识域左右切换箭头 ── */
+/* ── 移动端 知识域/案例套卷左右切换箭头（不依赖 Tailwind md:hidden） ── */
 .domain-nav-arrow {
+  display: none;
   position: fixed;
-  top: 50%;
-  transform: translateY(-50%);
   z-index: 55;
   width: 28px;
   height: 56px;
-  display: flex;
   align-items: center;
   justify-content: center;
   border: none;
@@ -2189,22 +2187,55 @@ body.mobile-search-screen-open {
   transition: opacity 160ms ease, transform 160ms ease;
 }
 
-.domain-nav-arrow--left {
-  left: 0;
-  border-radius: 0 12px 12px 0;
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  box-shadow: 3px 0 12px rgba(12, 55, 72, 0.10);
-}
+@media (max-width: 767px) {
+  .domain-nav-arrow {
+    display: flex;
+    top: 50%;
+    transform: translateY(-50%);
+  }
 
-.domain-nav-arrow--right {
-  right: 0;
-  border-radius: 12px 0 0 12px;
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  box-shadow: -3px 0 12px rgba(12, 55, 72, 0.10);
+  .domain-nav-arrow--left {
+    left: 0;
+    border-radius: 0 12px 12px 0;
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 3px 0 12px rgba(12, 55, 72, 0.10);
+  }
+
+  .domain-nav-arrow--right {
+    right: 0;
+    border-radius: 12px 0 0 12px;
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: -3px 0 12px rgba(12, 55, 72, 0.10);
+  }
+
+  /* 案例题：箭头沉底，避免遮挡正文 */
+  .domain-nav-arrow--case {
+    top: auto;
+    bottom: calc(78px + env(safe-area-inset-bottom));
+    transform: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    box-shadow: 0 4px 16px rgba(12, 55, 72, 0.14);
+  }
+
+  .domain-nav-arrow--case.domain-nav-arrow--left {
+    left: 10px;
+    border-radius: 999px;
+  }
+
+  .domain-nav-arrow--case.domain-nav-arrow--right {
+    right: 10px;
+    border-radius: 999px;
+  }
+
+  .domain-nav-arrow--case:active:not(.domain-nav-arrow--disabled) {
+    transform: scale(0.92);
+  }
 }
 
 .domain-nav-arrow svg {
@@ -2218,8 +2249,10 @@ body.mobile-search-screen-open {
   pointer-events: none;
 }
 
-.domain-nav-arrow:active:not(.domain-nav-arrow--disabled) {
-  transform: translateY(-50%) scale(0.92);
+@media (max-width: 767px) {
+  .domain-nav-arrow:not(.domain-nav-arrow--case):active:not(.domain-nav-arrow--disabled) {
+    transform: translateY(-50%) scale(0.92);
+  }
 }
 
 /* ── 移动端 学科模块切换 浮动按钮 + 弹层 ── */
@@ -4254,6 +4287,17 @@ h4 .practice-fig {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.case-study-qtabs__list {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.case-study-qtabs__list::-webkit-scrollbar {
+  display: none;
 }
 
 .case-study-qtab {

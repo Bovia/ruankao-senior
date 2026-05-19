@@ -345,7 +345,7 @@ function loadPersistedNavState(ctx) {
 
   const comp = practiceSets.comprehensive || [];
   const mock = practiceSets.mock || [];
-  const caseList = window.caseStudySets || [];
+  const caseList = Array.isArray(window.caseStudySets) ? window.caseStudySets : [];
   let activeComprehensiveId = raw.activeComprehensiveId;
   const persistedWrongBook = activeComprehensiveId === COMPREHENSIVE_WRONG_BOOK_ID;
   if (!persistedWrongBook && !comp.some((s) => s.id === activeComprehensiveId)) {
@@ -406,7 +406,7 @@ function loadPersistedNavState(ctx) {
   };
 }
 
-createApp({
+const app = createApp({
   data() {
     const modules = [
       { id: "pm", name: "项目管理", desc: "十大知识域 · 绩效域 · 基础", color: "#16a34a", icon: "📐" },
@@ -810,6 +810,9 @@ createApp({
     },
     showCaseNavArrows() {
       return this.activeView === "quiz" && this.practiceLayer === "case" && this.caseSets.length > 1;
+    },
+    catPetFaceClass() {
+      return this.catFacing < 0 ? "cat-face-left" : "cat-face-right";
     },
     canGoPrevCaseQuestion() {
       return this.caseStudyQuestionIndex > 0;
@@ -4237,4 +4240,19 @@ createApp({
       return Number(value).toFixed(Math.abs(value) >= 100 ? 1 : 2);
     }
   }
-}).mount("#app");
+});
+try {
+  app.mount("#app");
+} catch (err) {
+  const root = document.getElementById("app");
+  if (root) {
+    root.removeAttribute("v-cloak");
+    root.innerHTML =
+      '<div style="padding:1.25rem;line-height:1.7;font-family:system-ui,sans-serif;color:#16313f">' +
+      '<p style="font-weight:700;margin:0 0 .5rem">页面初始化失败</p>' +
+      '<p style="margin:0;font-size:.92rem;color:#475569">' +
+      String(err && err.message ? err.message : err) +
+      "</p></div>";
+  }
+  console.error(err);
+}

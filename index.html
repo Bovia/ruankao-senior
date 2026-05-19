@@ -1633,7 +1633,7 @@
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6" /></svg>
                     </button>
-                    <div class="case-study-qtabs__list flex min-w-0 flex-1 flex-wrap justify-center gap-2">
+                    <div class="case-study-qtabs__list flex min-w-0 flex-1 justify-center gap-2">
                       <button v-for="(q, qIdx) in activeCaseSet.questions" :key="'cqt-'+qIdx" type="button" class="case-study-qtab" :class="{ 'case-study-qtab--active': caseStudyQuestionIndex === qIdx }" @click="selectCaseQuestionIndex(qIdx)">{{ q.label }}</button>
                     </div>
                     <button
@@ -2556,7 +2556,7 @@
       <template v-if="showCaseNavArrows && activeModule !== 'essay'">
         <button
           type="button"
-          class="domain-nav-arrow domain-nav-arrow--left md:hidden"
+          class="domain-nav-arrow domain-nav-arrow--left domain-nav-arrow--case"
           :class="{ 'domain-nav-arrow--disabled': !canGoPrevCaseSet }"
           @click="goCaseSet(-1)"
           :disabled="!canGoPrevCaseSet"
@@ -2575,7 +2575,7 @@
         </button>
         <button
           type="button"
-          class="domain-nav-arrow domain-nav-arrow--right md:hidden"
+          class="domain-nav-arrow domain-nav-arrow--right domain-nav-arrow--case"
           :class="{ 'domain-nav-arrow--disabled': !canGoNextCaseSet }"
           @click="goCaseSet(1)"
           :disabled="!canGoNextCaseSet"
@@ -2861,7 +2861,7 @@
       <div
         v-if="catVisible"
         class="cat-pet"
-        :class="['cat-state-' + catState, { 'cat-pet--roam': !catDocked && !catDragging, 'cat-pet--dragging': catDragging, 'cat-face-left': catFacing < 0, 'cat-face-right': catFacing >= 0 }]"
+        :class="['cat-state-' + catState, catPetFaceClass, { 'cat-pet--roam': !catDocked && !catDragging, 'cat-pet--dragging': catDragging }]"
         :style="{ left: catX + 'px', top: catY + 'px' }"
         @mousedown.prevent="startCatDrag"
         @touchstart.prevent="startCatDrag"
@@ -3499,54 +3499,71 @@
     </div>
   </div>
 
-  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-  <script src="./data/knowledge.js"></script>
-  <script src="./data/integration.js"></script>
-  <script src="./data/scope.js"></script>
-  <script src="./data/schedule.js"></script>
-  <script src="./data/cost.js"></script>
-  <script src="./data/quality.js"></script>
-  <script src="./data/resource.js"></script>
-  <script src="./data/communications.js"></script>
-  <script src="./data/risk.js"></script>
-  <script src="./data/procurement.js"></script>
-  <script src="./data/stakeholder.js"></script>
-  <script src="./data/performanceDomains.js"></script>
-  <script src="./data/pm_overview.js"></script>
-  <script src="./data/it_newtech.js"></script>
-  <script src="./data/it_informatization.js"></script>
-  <script src="./data/law_regulations.js"></script>
-  <script src="./data/essay.js"></script>
-  <script src="./data/my_essay.js"></script>
-  <script src="./data/practice_sets.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js" crossorigin="anonymous"></script>
+  <script>
+    if (typeof Vue === "undefined") {
+      document.write('<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js" crossorigin="anonymous"><\/script>');
+    }
+  </script>
+  <script>
+    setTimeout(function () {
+      var app = document.getElementById("app");
+      if (!app || !app.hasAttribute("v-cloak")) return;
+      if (app.__vue_app__ || app._vnode) return;
+      app.removeAttribute("v-cloak");
+      app.innerHTML =
+        '<div style="padding:1.25rem;line-height:1.7;font-family:system-ui,sans-serif;color:#16313f">' +
+        "<p style=\"font-weight:700;margin:0 0 .5rem\">页面加载较慢或资源被拦截</p>" +
+        "<p style=\"margin:0;font-size:.92rem;color:#475569\">请检查网络后刷新。若用流量/WiFi 仍白屏，可稍等 30 秒再试，或换浏览器打开。</p></div>";
+    }, 28000);
+  </script>
+  <script defer src="./data/knowledge.js"></script>
+  <script defer src="./data/integration.js"></script>
+  <script defer src="./data/scope.js"></script>
+  <script defer src="./data/schedule.js"></script>
+  <script defer src="./data/cost.js"></script>
+  <script defer src="./data/quality.js"></script>
+  <script defer src="./data/resource.js"></script>
+  <script defer src="./data/communications.js"></script>
+  <script defer src="./data/risk.js"></script>
+  <script defer src="./data/procurement.js"></script>
+  <script defer src="./data/stakeholder.js"></script>
+  <script defer src="./data/performanceDomains.js"></script>
+  <script defer src="./data/pm_overview.js"></script>
+  <script defer src="./data/it_newtech.js"></script>
+  <script defer src="./data/it_informatization.js"></script>
+  <script defer src="./data/law_regulations.js"></script>
+  <script defer src="./data/essay.js"></script>
+  <script defer src="./data/my_essay.js"></script>
+  <script defer src="./data/practice_sets.js"></script>
   <!-- 综合题 / 模考 Markdown 数据（命名规则：zonghe_n.js / mock_n.js） -->
-  <script src="./data/practice/zonghe_1.js"></script>
-  <script src="./data/practice/zonghe_2.js"></script>
-  <script src="./data/practice/zonghe_3.js"></script>
-  <script src="./data/practice/zonghe_4.js"></script>
-  <script src="./data/practice/zonghe_5.js"></script>
-  <script src="./data/practice/zonghe_6.js"></script>
-  <script src="./data/practice/zonghe_7.js"></script>
-  <script src="./data/practice/zonghe_8.js"></script>
-  <script src="./data/practice/zonghe_9.js"></script>
-  <script src="./data/practice/zonghe_10.js"></script>
-  <script src="./data/practice/zonghe_11.js"></script>
-  <script src="./data/practice/zonghe_12.js"></script>
-  <script src="./data/practice/moni_1.js"></script>
-  <script src="./data/practice/moni_2.js"></script>
-  <script src="./data/practice/zhishiyu_integration.js"></script>
-  <script src="./data/practice/zhishiyu_scope.js"></script>
-  <script src="./data/practice/zhishiyu_schedule.js"></script>
-  <script src="./data/practice/zhishiyu_cost.js"></script>
-  <script src="./data/practice/zhishiyu_quality.js"></script>
-  <script src="./data/practice/zhishiyu_resource.js"></script>
-  <script src="./data/practice/zhishiyu_communications.js"></script>
-  <script src="./data/practice/zhishiyu_risk.js"></script>
-  <script src="./data/practice/zhishiyu_procurement.js"></script>
-  <script src="./data/practice/zhishiyu_stakeholder.js"></script>
-  <script src="./data/export_my_answers_and_history.js"></script>
-  <script src="./data/case_study_data.js"></script>
-  <script src="./app.js"></script>
+  <script defer src="./data/practice/zonghe_1.js"></script>
+  <script defer src="./data/practice/zonghe_2.js"></script>
+  <script defer src="./data/practice/zonghe_3.js"></script>
+  <script defer src="./data/practice/zonghe_4.js"></script>
+  <script defer src="./data/practice/zonghe_5.js"></script>
+  <script defer src="./data/practice/zonghe_6.js"></script>
+  <script defer src="./data/practice/zonghe_7.js"></script>
+  <script defer src="./data/practice/zonghe_8.js"></script>
+  <script defer src="./data/practice/zonghe_9.js"></script>
+  <script defer src="./data/practice/zonghe_10.js"></script>
+  <script defer src="./data/practice/zonghe_11.js"></script>
+  <script defer src="./data/practice/zonghe_12.js"></script>
+  <script defer src="./data/practice/moni_1.js"></script>
+  <script defer src="./data/practice/moni_2.js"></script>
+  <script defer src="./data/practice/zhishiyu_integration.js"></script>
+  <script defer src="./data/practice/zhishiyu_scope.js"></script>
+  <script defer src="./data/practice/zhishiyu_schedule.js"></script>
+  <script defer src="./data/practice/zhishiyu_cost.js"></script>
+  <script defer src="./data/practice/zhishiyu_quality.js"></script>
+  <script defer src="./data/practice/zhishiyu_resource.js"></script>
+  <script defer src="./data/practice/zhishiyu_communications.js"></script>
+  <script defer src="./data/practice/zhishiyu_risk.js"></script>
+  <script defer src="./data/practice/zhishiyu_procurement.js"></script>
+  <script defer src="./data/practice/zhishiyu_stakeholder.js"></script>
+  <script defer src="./data/export_my_answers_and_history.js"></script>
+  <script defer src="./data/case_study_data.js"></script>
+  <script defer src="./app.js"></script>
 </body>
 
 </html>
