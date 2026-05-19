@@ -595,6 +595,8 @@ const app = createApp({
       snippetFavoritePreviewOpen: false,
       snippetFavoriteDraft: null,
       practiceScoresOverviewOpen: false,
+      practiceDataLoading: false,
+      practiceDataLoadError: "",
       catConfigOpen: false,
       projectConfigMenuOpen: false,
       catVisible: true,
@@ -813,6 +815,23 @@ const app = createApp({
     },
     catPetFaceClass() {
       return this.catFacing < 0 ? "cat-face-left" : "cat-face-right";
+    },
+    isCountdownUrgent() {
+      return this.countdown.days <= 7;
+    },
+    isProcessNavPrevDisabled() {
+      return this.currentProcessIndex <= 0;
+    },
+    isProcessNavNextDisabled() {
+      const n = (this.activeDomain.processes || []).length;
+      return n === 0 || this.currentProcessIndex >= n - 1;
+    },
+    isPracticeQuizPrevDisabled() {
+      return (this.practiceQuizActiveIndex || 0) <= 0;
+    },
+    isPracticeQuizNextDisabled() {
+      const n = (this.practiceQuizCardsForRender || []).length;
+      return !n || (this.practiceQuizActiveIndex || 0) >= n - 1;
     },
     canGoPrevCaseQuestion() {
       return this.caseStudyQuestionIndex > 0;
@@ -1556,6 +1575,8 @@ const app = createApp({
           this._bumpQuizTtsGenAndCancel();
           this._clearQuizTtsUi();
         }
+      } else {
+        this._prefetchActiveQuizData().then(() => this._refreshWrongBookSnapshotIfNeeded());
       }
       if (window.innerWidth < 768) window.scrollTo({ top: 0, behavior: "smooth" });
       this.$nextTick(() => this.updateDomainNavMaxHeight());
@@ -1569,6 +1590,11 @@ const app = createApp({
     practiceLayer() {
       this._syncPracticeQuizScrollListener();
       this.$nextTick(() => this._ensureLatestAttemptReviewForActiveLayer());
+      this._prefetchActiveQuizData().then(() => this._refreshWrongBookSnapshotIfNeeded());
+    },
+    activePracticeSetKey() {
+      if (this.activeView !== "quiz") return;
+      this._prefetchActiveQuizData().then(() => this._refreshWrongBookSnapshotIfNeeded());
     },
     activeModule() {
       this.$nextTick(() => this.updateDomainNavMaxHeight());
@@ -1661,29 +1687,11 @@ const app = createApp({
     this._loadPracticeAttemptLog();
     this._loadPracticeUserAnswers();
     this.$nextTick(() => this._ensureLatestAttemptReviewForActiveLayer());
-    if (
-      this.activeView === "quiz" &&
-      this.practiceLayer === "domain" &&
-      this.activeDomainId === this.domainWrongBookId
-    ) {
-      this.practiceDomainWrongBookSnapshot = this._buildWrongBookCandidatesShuffledByLayer("domain");
-    }
-    if (
-      this.activeView === "quiz" &&
-      this.practiceLayer === "comprehensive" &&
-      this.activeComprehensiveId === this.comprehensiveWrongBookId
-    ) {
-      this.practiceWrongBookSnapshot = this._buildWrongBookCandidatesShuffled();
-    }
-    if (
-      this.activeView === "quiz" &&
-      this.practiceLayer === "mock" &&
-      this.activeMockId === this.mockWrongBookId
-    ) {
-      this.practiceMockWrongBookSnapshot = this._buildMockWrongBookCandidatesShuffled();
-    }
     if (this.activeView === "quiz" && this.practiceLayer === "case") {
       this._loadCaseStudyStateForBundle();
+    }
+    if (this.activeView === "quiz") {
+      this._prefetchActiveQuizData().then(() => this._refreshWrongBookSnapshotIfNeeded());
     }
     this._loadCatSettings();
     this._onCatDragMove = (e) => this.handleCatDragMove(e);
@@ -3008,6 +3016,99 @@ const app = createApp({
       }
       return set.quiz || [];
     },
+    async _ensurePracticeKeyLoaded(key) {
+      const k = String(key || "").trim();
+      if (!k) return true;
+      window.practiceMarkdown = window.practiceMarkdown || {};
+      if (window.practiceMarkdown[k] != null) return true;
+      if (typeof window.loadPracticeMarkdownKey !== "function") return false;
+      this.practiceDataLoading = true;
+      this.practiceDataLoadError = "";
+      try {
+        await window.loadPracticeMarkdownKey(k);
+        this.practiceSetCache = {};
+        return true;
+      } catch (e) {
+        this.practiceDataLoadError = (e && e.message) || "题库加载失败";
+        return false;
+      } finally {
+        this.practiceDataLoading = false;
+      }
+    },
+    async _ensureCaseStudyLoaded() {
+      if (Array.isArray(window.caseStudySets) && window.caseStudySets.length) return true;
+      if (typeof window.loadCaseStudyData !== "function") return false;
+      this.practiceDataLoading = true;
+      this.practiceDataLoadError = "";
+      try {
+        await window.loadCaseStudyData();
+        return true;
+      } catch (e) {
+        this.practiceDataLoadError = (e && e.message) || "案例题加载失败";
+        return false;
+      } finally {
+        this.practiceDataLoading = false;
+      }
+    },
+    async _ensureWrongBookLayerReady(layer) {
+      const sets = layer === "mock" ? this.mockSets : this.comprehensiveSets;
+      const keys = sets.map((s) => s.key).filter(Boolean);
+      if (!keys.length || typeof window.loadPracticeMarkdownKeys !== "function") return true;
+      this.practiceDataLoading = true;
+      this.practiceDataLoadError = "";
+      try {
+        await window.loadPracticeMarkdownKeys(keys);
+        this.practiceSetCache = {};
+        return true;
+      } catch (e) {
+        this.practiceDataLoadError = (e && e.message) || "错题集加载失败";
+        return false;
+      } finally {
+        this.practiceDataLoading = false;
+      }
+    },
+    async _prefetchActiveQuizData() {
+      if (this.activeView !== "quiz") return;
+      if (this.practiceLayer === "case") {
+        await this._ensureCaseStudyLoaded();
+        return;
+      }
+      if (this.practiceLayer === "domain") {
+        if (this.activeDomainId === this.domainWrongBookId) return;
+        return;
+      }
+      if (this.practiceLayer === "comprehensive") {
+        if (this.activeComprehensiveId === this.comprehensiveWrongBookId) {
+          await this._ensureWrongBookLayerReady("comprehensive");
+          return;
+        }
+      }
+      if (this.practiceLayer === "mock") {
+        if (this.activeMockId === this.mockWrongBookId) {
+          await this._ensureWrongBookLayerReady("mock");
+          return;
+        }
+      }
+      const set = this.activePracticeSet;
+      if (set && set.key) await this._ensurePracticeKeyLoaded(set.key);
+    },
+    _refreshWrongBookSnapshotIfNeeded() {
+      if (this.activeView !== "quiz") return;
+      if (this.practiceLayer === "domain" && this.activeDomainId === this.domainWrongBookId) {
+        this.practiceDomainWrongBookSnapshot = this._buildWrongBookCandidatesShuffledByLayer("domain");
+      }
+      if (this.practiceLayer === "comprehensive" && this.activeComprehensiveId === this.comprehensiveWrongBookId) {
+        this.practiceWrongBookSnapshot = this._buildWrongBookCandidatesShuffled();
+      }
+      if (this.practiceLayer === "mock" && this.activeMockId === this.mockWrongBookId) {
+        this.practiceMockWrongBookSnapshot = this._buildMockWrongBookCandidatesShuffled();
+      }
+    },
+    practiceScoreOverviewBarClass(row) {
+      return row && Number(row.percent) >= 60
+        ? "practice-scores-overview-bar-fill--pass"
+        : "practice-scores-overview-bar-fill--fail";
+    },
     _loadPracticeUserAnswers() {
       try {
         const raw = localStorage.getItem(PRACTICE_USER_ANS_STORAGE_KEY);
@@ -3081,7 +3182,7 @@ const app = createApp({
           this.activeComprehensiveId = list[0].id;
         }
         if (this.activeComprehensiveId === this.comprehensiveWrongBookId) {
-          this.practiceWrongBookSnapshot = this._buildWrongBookCandidatesShuffled();
+          this.practiceWrongBookSnapshot = null;
         }
       }
       if (layer === "domain") {

@@ -158,7 +158,7 @@
             </div>
             <div
               class="countdown-card"
-              :class="{ 'countdown-urgent': countdown.days <= 7 }"
+              :class="{ 'countdown-urgent': isCountdownUrgent }"
             >
               <div class="metric-label">距离考试</div>
               <div
@@ -981,7 +981,7 @@
               <div class="process-nav mb-4 flex items-center gap-2">
                 <button
                   class="process-nav-btn"
-                  :disabled="currentProcessIndex <= 0"
+                  :disabled="isProcessNavPrevDisabled"
                   @click="goProcess(-1)"
                 >
                   <svg
@@ -1001,7 +1001,7 @@
                   {{ activeDomain.processes.length }}</div>
                 <button
                   class="process-nav-btn"
-                  :disabled="currentProcessIndex >= activeDomain.processes.length - 1"
+                  :disabled="isProcessNavNextDisabled"
                   @click="goProcess(1)"
                 >
                   <span class="hidden sm:inline">下一个</span>
@@ -1964,13 +1964,13 @@
                         <button
                           type="button"
                           class="practice-card-nav-btn"
-                          :disabled="practiceQuizActiveIndex <= 0"
+                          :disabled="isPracticeQuizPrevDisabled"
                           @click.stop="goPracticeExamCard(-1)"
                         >上一题</button>
                         <button
                           type="button"
                           class="practice-card-nav-btn practice-card-nav-btn--primary"
-                          :disabled="practiceQuizActiveIndex >= practiceQuizCardsForRender.length - 1"
+                          :disabled="isPracticeQuizNextDisabled"
                           @click.stop="goPracticeExamCard(1)"
                         >下一题</button>
                         <button
@@ -3048,7 +3048,7 @@
               <div class="practice-scores-overview-bar-track">
                 <div
                   class="practice-scores-overview-bar-fill"
-                  :class="row.percent >= 60 ? 'practice-scores-overview-bar-fill--pass' : 'practice-scores-overview-bar-fill--fail'"
+                  :class="practiceScoreOverviewBarClass(row)"
                   :style="{ width: Math.min(100, Math.max(0, row.percent)) + '%' }"
                 ></div>
                 <div
