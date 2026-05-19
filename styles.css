@@ -4466,6 +4466,65 @@ h4 .practice-fig {
   text-decoration: underline;
 }
 
+/* 移动端 · 案例题：压缩多层 padding，把宽度留给正文 */
+@media (max-width: 767px) {
+  .app-shell--case-tight {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .app-shell--case-tight .domain-aside-sticky.domain-aside-sticky--quiz {
+    padding-left: 0.35rem !important;
+    padding-right: 0.35rem !important;
+    border-left: none;
+    border-radius: 0;
+    box-shadow: 0 4px 16px rgba(12, 55, 72, 0.1);
+  }
+
+  .app-shell--case-tight .domain-aside-sticky.domain-aside-sticky--quiz > .mb-3 {
+    margin-left: 0.25rem;
+    margin-right: 0.25rem;
+  }
+
+  .app-shell--case-tight section.panel:has(.case-study) {
+    padding: 0.55rem 0.25rem 0.85rem;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
+  }
+
+  .app-shell--case-tight .case-study .panel-subtle {
+    padding: 0.6rem 0.45rem;
+    border-radius: 12px;
+  }
+
+  .app-shell--case-tight .case-study-zhaocha.panel-subtle {
+    padding: 0.5rem 0.25rem;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  .app-shell--case-tight .case-study-zhaocha__card {
+    padding: 0.65rem 0.5rem;
+    border-radius: 12px;
+  }
+
+  .app-shell--case-tight .case-study-sub {
+    padding: 0.7rem 0.55rem 0.8rem;
+    border-radius: 14px;
+  }
+
+  .app-shell--case-tight .case-study-aside.panel-subtle {
+    padding: 0.6rem 0.45rem;
+  }
+
+  .app-shell--case-tight .case-study-answer {
+    padding: 0.55rem 0.45rem;
+  }
+}
+
 .process-nav-btn--active {
   border-color: rgba(109, 40, 217, 0.35);
   background: rgba(109, 40, 217, 0.1);

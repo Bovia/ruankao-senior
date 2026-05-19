@@ -46,7 +46,10 @@
     v-cloak
     class="min-h-screen"
   >
-    <div class="app-shell mx-auto max-w-[1600px] px-3 py-3 pb-20 md:px-6 md:py-4 md:pb-4 lg:px-8 lg:py-6">
+    <div
+      class="app-shell mx-auto max-w-[1600px] px-3 py-3 pb-20 md:px-6 md:py-4 md:pb-4 lg:px-8 lg:py-6"
+      :class="{ 'app-shell--case-tight': activeView === 'quiz' && practiceLayer === 'case' }"
+    >
       <header
         class="hero-panel relative mb-4 overflow-hidden rounded-[28px] p-4 shadow-soft md:mb-6 md:p-7"
         :class="{ 'hidden md:block': activeModule !== 'essay' && activeView !== 'processGroup' }"
