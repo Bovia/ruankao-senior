@@ -65,9 +65,22 @@ window.practiceSets = {
       title: "综合题10",
       summary: "75道单选，含解析。",
       key: "zonghe_10"
+    },
+    {
+      id: "comp-11",
+      title: "综合题11",
+      summary: "72道单选，含解析与「你的作答」记录。",
+      key: "zonghe_11"
+    },
+    {
+      id: "comp-12",
+      title: "综合题12",
+      summary: "74道单选，含解析与「你的作答」记录。",
+      key: "zonghe_12"
     }
   ],
   mock: [
-    { id: "mock-1", title: "模拟题1", summary: "75道单选模拟题，覆盖项目管理、IT技术与法规等综合考点。", key: "moni_1" }
+    { id: "mock-1", title: "模拟题1", summary: "75道单选模拟题，覆盖项目管理、IT技术与法规等综合考点。", key: "moni_1" },
+    { id: "mock-2", title: "模拟题2", summary: "75道单选模考题，含解析与「你的作答」记录。", key: "moni_2" }
   ]
 };
