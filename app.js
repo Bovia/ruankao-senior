@@ -478,6 +478,76 @@ function loadPersistedNavState(ctx) {
   };
 }
 
+function loadUrlNavState(ctx) {
+  if (typeof window === "undefined") return null;
+  const {
+    modules,
+    views,
+    knowledgeData,
+    practiceSets,
+    myEssayData,
+    defaults
+  } = ctx;
+  const sp = new URLSearchParams(window.location.search || "");
+  if (![...sp.keys()].length) return null;
+
+  const out = {};
+  const moduleIds = new Set(modules.map((m) => m.id));
+  const activeModule = sp.get("m");
+  if (activeModule && moduleIds.has(activeModule)) out.activeModule = activeModule;
+
+  if (out.activeModule === "essay") {
+    const tab = sp.get("t");
+    if (tab) out.activeEssayTab = tab;
+    const group = sp.get("eg");
+    const topic = sp.get("et");
+    if (group && (myEssayData.topics || {})[group]) out.myEssayGroupId = group;
+    if (group && topic && ((myEssayData.topics || {})[group] || []).some((x) => x.id === topic)) out.myEssayTopicId = topic;
+    return out;
+  }
+
+  const moduleId = out.activeModule || defaults.activeModule || "pm";
+  const domainList = Object.values(knowledgeData || {}).filter((d) => (d.module || "pm") === moduleId);
+  const domainIds = new Set(domainList.map((d) => d.id));
+  const domainId = sp.get("d");
+  if (domainId && domainIds.has(domainId)) out.activeDomainId = domainId;
+
+  const allowedViews = new Set(visibleViewIdsForModule(moduleId, knowledgeData, views));
+  const activeView = sp.get("v");
+  if (activeView && allowedViews.has(activeView)) out.activeView = activeView;
+
+  const practiceLayer = sp.get("pl");
+  if (practiceLayer && ["domain", "comprehensive", "mock", "case"].includes(practiceLayer)) out.practiceLayer = practiceLayer;
+
+  const procDomainId = out.activeDomainId || defaults.activeDomainId || domainList[0]?.id || "";
+  const domain = knowledgeData[procDomainId] || domainList[0] || { processes: [] };
+  const processId = sp.get("p");
+  if (processId && (domain.processes || []).some((x) => x.id === processId)) out.activeProcessId = processId;
+
+  const compId = sp.get("c");
+  if (compId && (practiceSets.comprehensive || []).some((s) => s.id === compId || compId === COMPREHENSIVE_WRONG_BOOK_ID)) {
+    out.activeComprehensiveId = compId;
+  }
+  const mockId = sp.get("mk");
+  if (mockId && (practiceSets.mock || []).some((s) => s.id === mockId || mockId === MOCK_WRONG_BOOK_ID)) {
+    out.activeMockId = mockId;
+  }
+  const caseList = Array.isArray(window.caseStudySets) ? window.caseStudySets : [];
+  const caseId = sp.get("cs");
+  if (caseId && caseList.some((s) => s.id === caseId)) out.activeCaseId = caseId;
+
+  const caseQ = Number(sp.get("cq"));
+  if (Number.isInteger(caseQ) && caseQ >= 0) out.caseStudyQuestionIndex = caseQ;
+  const caseMode = sp.get("cm");
+  if (caseMode === "memorize" || caseMode === "selftest") out.caseStudyMode = caseMode;
+  const zhaCha = sp.get("cz");
+  if (zhaCha === "1" || zhaCha === "0") out.caseStudyZhaChaOpen = zhaCha === "1";
+  const scenarioPinned = sp.get("cp");
+  if (scenarioPinned === "1" || scenarioPinned === "0") out.caseStudyScenarioPinned = scenarioPinned === "1";
+
+  return out;
+}
+
 const app = createApp({
   data() {
     const modules = [
@@ -533,6 +603,20 @@ const app = createApp({
         activeCaseId: caseFirstId,
         myEssayGroupId: "knowledge",
         myEssayTopicId: defEssayTopicId
+      }
+    });
+    const urlState = loadUrlNavState({
+      modules,
+      views,
+      knowledgeData: knowledgeDataBootstrap,
+      practiceSets: practiceSetsBootstrap,
+      myEssayData: myEssayBootstrap,
+      defaults: {
+        activeModule: "pm",
+        activeDomainId: firstDomain.id || "",
+        activeComprehensiveId: compFirstId,
+        activeMockId: mockFirstId,
+        activeCaseId: caseFirstId
       }
     });
 
@@ -716,6 +800,15 @@ const app = createApp({
           base.learnedProcessIds = persisted.learnedProcessIds;
         }
       }
+    }
+
+    if (urlState) {
+      Object.assign(base, urlState);
+      base._urlCaseStatePending = urlState.activeCaseId || Number.isInteger(urlState.caseStudyQuestionIndex) || urlState.caseStudyMode || typeof urlState.caseStudyZhaChaOpen === "boolean";
+      base._urlCaseQuestionIndex = Number.isInteger(urlState.caseStudyQuestionIndex) ? urlState.caseStudyQuestionIndex : null;
+      base._urlCaseMode = urlState.caseStudyMode || "";
+      base._urlCaseZhaChaOpen = typeof urlState.caseStudyZhaChaOpen === "boolean" ? urlState.caseStudyZhaChaOpen : null;
+      base._urlCaseScenarioPinned = typeof urlState.caseStudyScenarioPinned === "boolean" ? urlState.caseStudyScenarioPinned : null;
     }
 
     return base;
@@ -1396,6 +1489,10 @@ const app = createApp({
         activeComprehensiveId: this.activeComprehensiveId,
         activeMockId: this.activeMockId,
         activeCaseId: this.activeCaseId,
+        caseStudyQuestionIndex: this.caseStudyQuestionIndex,
+        caseStudyMode: this.caseStudyMode,
+        caseStudyZhaChaOpen: this.caseStudyZhaChaOpen,
+        caseStudyScenarioPinned: this.caseStudyScenarioPinned,
         quizSubMode: this.quizSubMode,
         activeEssayTab: this.activeEssayTab,
         myEssayGroupId: this.myEssayGroupId,
@@ -2992,6 +3089,7 @@ const app = createApp({
           activeProcessId: this.activeProcessId,
           activeComprehensiveId: this.activeComprehensiveId,
           activeMockId: this.activeMockId,
+          activeCaseId: this.activeCaseId,
           quizSubMode: this.quizSubMode,
           activeEssayTab: this.activeEssayTab,
           myEssayGroupId: this.myEssayGroupId,
@@ -3003,8 +3101,50 @@ const app = createApp({
           quizTtsRate: this.quizTtsRate
         };
         localStorage.setItem(NAV_STORAGE_KEY, JSON.stringify(payload));
+        this.syncUrlState();
       } catch (e) {
         /* 存储已满或禁用 */
+      }
+    },
+    syncUrlState() {
+      if (typeof window === "undefined" || !window.history || !window.history.replaceState) return;
+      try {
+        const url = new URL(window.location.href);
+        const sp = url.searchParams;
+        const setOrDelete = (key, val) => {
+          if (val === "" || val == null || val === false) sp.delete(key);
+          else sp.set(key, String(val));
+        };
+        setOrDelete("m", this.activeModule);
+        if (this.activeModule === "essay") {
+          setOrDelete("t", this.activeEssayTab);
+          setOrDelete("eg", this.myEssayGroupId);
+          setOrDelete("et", this.myEssayTopicId);
+          ["v", "pl", "d", "p", "c", "mk", "cs", "cq", "cm", "cz", "cp"].forEach((k) => sp.delete(k));
+        } else {
+          setOrDelete("v", this.activeView);
+          setOrDelete("pl", this.practiceLayer);
+          setOrDelete("d", this.activeDomainId);
+          setOrDelete("p", this.activeProcessId);
+          setOrDelete("c", this.activeComprehensiveId);
+          setOrDelete("mk", this.activeMockId);
+          if (this.practiceLayer === "case") {
+            setOrDelete("cs", this.activeCaseId);
+            setOrDelete("cq", this.caseStudyQuestionIndex);
+            setOrDelete("cm", this.caseStudyMode);
+            setOrDelete("cz", this.caseStudyZhaChaOpen ? 1 : 0);
+            setOrDelete("cp", this.caseStudyScenarioPinned ? 1 : 0);
+          } else {
+            ["cs", "cq", "cm", "cz", "cp"].forEach((k) => sp.delete(k));
+          }
+          ["t", "eg", "et"].forEach((k) => sp.delete(k));
+        }
+        const next = `${url.pathname}${sp.toString() ? `?${sp.toString()}` : ""}${url.hash || ""}`;
+        if (next !== `${window.location.pathname}${window.location.search}${window.location.hash}`) {
+          window.history.replaceState(null, "", next);
+        }
+      } catch (e) {
+        /* ignore */
       }
     },
     updateDomainNavMaxHeight() {
@@ -3377,7 +3517,6 @@ const app = createApp({
         if (list.length && !idOk) {
           this.activeCaseId = list[0].id;
         }
-        this.caseStudyQuestionIndex = 0;
         this._loadCaseStudyStateForBundle();
       }
       this.ensureCurrentPracticeDataLoaded();
@@ -3389,6 +3528,8 @@ const app = createApp({
       this.activeCaseId = id;
       this.caseStudyQuestionIndex = 0;
       this._loadCaseStudyStateForBundle();
+      this._persistCaseStudyState();
+      this.syncUrlState();
     },
     selectCaseQuestionIndex(idx) {
       const set = this.activeCaseSet;
@@ -3412,6 +3553,7 @@ const app = createApp({
         this._clearQuizTtsUi();
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
+      this.syncUrlState();
     },
     jumpToCaseZhaCha(row) {
       if (!row) return;
@@ -3420,6 +3562,7 @@ const app = createApp({
       this.activeCaseId = row.setId;
       this.caseStudyQuestionIndex = row.qIdx;
       this._loadCaseStudyStateForBundle();
+      this.syncUrlState();
       this.$nextTick(() => {
         const el = document.querySelector(`[data-case-sub-id="${row.id}"]`);
         if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -3639,6 +3782,7 @@ const app = createApp({
           drafts: (this.caseStudyDrafts && this.caseStudyDrafts[bk]) || {}
         };
         localStorage.setItem(CASE_STUDY_STATE_KEY, JSON.stringify(store));
+        this.syncUrlState();
       } catch (e) {
         /* ignore */
       }
@@ -3656,6 +3800,11 @@ const app = createApp({
           this.caseStudyRevealed[bk] = {};
           this.caseStudyDrafts[bk] = {};
         }
+        if (this._urlCaseStatePending) {
+          this.caseStudyMode = this.caseStudyMode === "memorize" ? "memorize" : "selftest";
+          this.caseStudyQuestionIndex = Number.isFinite(this.caseStudyQuestionIndex) && this.caseStudyQuestionIndex >= 0 ? this.caseStudyQuestionIndex : 0;
+          this._urlCaseStatePending = false;
+        }
         return;
       }
       this.caseStudyMode = hit.mode === "memorize" ? "memorize" : "selftest";
@@ -3667,6 +3816,9 @@ const app = createApp({
       this.caseStudyRevealed[bk] =
         hit.revealed && typeof hit.revealed === "object" ? { ...hit.revealed } : {};
       this.caseStudyDrafts[bk] = hit.drafts && typeof hit.drafts === "object" ? { ...hit.drafts } : {};
+      if (this._urlCaseStatePending) {
+        this._urlCaseStatePending = false;
+      }
     },
     selectComprehensiveSet(id) {
       this.activeComprehensiveId = id;
