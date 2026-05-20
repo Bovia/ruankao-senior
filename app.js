@@ -118,7 +118,22 @@ function resolvePracticeImageUrl(setKey, fileName) {
   if (/^https?:\/\//i.test(name)) return name;
   const root = window.practiceImageManifest;
   const hit = root && root.bySetKey && root.bySetKey[sk] && root.bySetKey[sk][name];
-  return hit || "";
+  if (hit) return hit;
+  if (sk && /^[^/]+\.(png|jpg|jpeg|gif|webp|svg)$/i.test(name)) {
+    return `./data/practice/assets/${sk}/${name}`;
+  }
+  return "";
+}
+
+function resolveSiteRelativeUrl(path) {
+  const p = String(path || "").trim();
+  if (!p) return "";
+  if (/^(https?:)?\/\//i.test(p) || /^data:/i.test(p) || /^blob:/i.test(p)) return p;
+  try {
+    return new URL(p, document.baseURI).href;
+  } catch (_) {
+    return p;
+  }
 }
 
 /** 练习场题干/解析：转义后插入线上题图（光环 CDN） */
@@ -135,8 +150,8 @@ function formatPracticeRichText(text, setKey) {
   let html = esc(raw);
   const imgCls = "practice-fig max-w-full h-auto rounded-lg my-2 border border-ink/10";
   const imgTag = (src, alt) => {
-    const url = resolvePracticeImageUrl(sk, src) || src;
-    if (!/^https?:\/\//i.test(url)) {
+    const url = resolveSiteRelativeUrl(resolvePracticeImageUrl(sk, src) || src);
+    if (!/^(https?:)?\/\//i.test(url) && !/^data:/i.test(url) && !/^blob:/i.test(url)) {
       return `<span class="text-xs text-ink/45">[题图: ${esc(alt || src)}]</span>`;
     }
     return (
@@ -153,7 +168,7 @@ function formatPracticeRichText(text, setKey) {
       const url =
         resolvePracticeImageUrl(asset[1], altName) ||
         resolvePracticeImageUrl(asset[1], asset[2]) ||
-        (/^https?:\/\//i.test(p) ? p : "");
+        p;
       return imgTag(url || p, altName || asset[2]);
     }
     if (/^https?:\/\//i.test(p)) return imgTag(p, altName || p);
@@ -177,6 +192,22 @@ function formatPracticeRichText(text, setKey) {
 function newPracticeAttemptId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
   return "at-" + Date.now() + "-" + Math.random().toString(36).slice(2, 9);
+}
+
+function getInitialPracticeRenderLimit() {
+  if (typeof window === "undefined") return 24;
+  if (window.innerWidth < 640) return 12;
+  if (window.innerWidth < 768) return 16;
+  if (window.innerWidth < 1024) return 24;
+  return 36;
+}
+
+function getPracticeScriptSrc(setKey) {
+  return `./data/practice/${String(setKey || "").trim()}.js`;
+}
+
+function getDomainPracticeScriptSrc(domainId) {
+  return `./data/practice/zhishiyu_${String(domainId || "").trim()}.js`;
 }
 
 /** 与 quizBundleKey 一致：按视图 + 层 + 套卷 id 生成做题记录归档键 */
@@ -577,6 +608,8 @@ const app = createApp({
       quizAnswerPeek: {},
       /** 练习场题库：与滚动/最近点击同步的题号（0-based，用于移动端题数徽标） */
       practiceQuizActiveIndex: 0,
+      /** 浏览态渐进渲染：先只挂载前 N 题，降低手机初次渲染压力 */
+      practiceQuizRenderLimit: getInitialPracticeRenderLimit(),
       /** 移动端：用户正在滚动页面时为 true，显示题数；静止后为 false，浮块变为「回顶部」 */
       practiceQuizFabScrolling: false,
       /** 当前视口下页面是否出现纵向滚动条 */
@@ -613,6 +646,8 @@ const app = createApp({
       /** 当前练习用户（用于初始化入口展示与导入落位） */
       activePracticeUserId: "bovia",
       practiceSetCache: {},    // { [set.id]: quiz[] }，首次访问时同步解析并缓存
+      /** 按需加载综合题/模考脚本的状态：idle / loading / loaded / error */
+      practiceScriptLoadState: {},
       quizTtsPlayingIndex: null, // 当前朗读中的题目索引（题库解析 TTS）
       quizTtsRate: 1, // 解析朗读倍速：1 / 1.25 / 1.5（Web Speech API utter.rate）
       favoritesOpen: false,
@@ -1073,6 +1108,10 @@ const app = createApp({
         if (this.activeDomainId === this.domainWrongBookId) {
           list = Array.isArray(this.practiceDomainWrongBookSnapshot) ? this.practiceDomainWrongBookSnapshot : [];
         } else {
+          const domainLoadState = this.practiceScriptLoadState && this.activeDomainId
+            ? this.practiceScriptLoadState[`domain:${this.activeDomainId}`]
+            : "";
+          void domainLoadState;
           list = this.activeDomain.quiz || [];
         }
       }
@@ -1186,6 +1225,54 @@ const app = createApp({
       if (this.practiceExamRunning) return this.practiceQuizBaseRowsForExam;
       if (this.practiceExamInReview) return this.practiceQuizReviewList;
       return this.practiceQuizList;
+    },
+    practiceQuizCardsForDisplay() {
+      const cards = this.practiceQuizCardsForRender || [];
+      if (this.practiceExamRunning) return cards;
+      const limit = Math.max(1, Number(this.practiceQuizRenderLimit) || getInitialPracticeRenderLimit());
+      return cards.slice(0, limit);
+    },
+    practiceQuizHasMoreToRender() {
+      return !this.practiceExamRunning && this.practiceQuizCardsForDisplay.length < this.practiceQuizCardsForRender.length;
+    },
+    activePracticeDataState() {
+      const empty = { loading: false, error: false, pending: 0, failed: 0 };
+      if (this.practiceLayer !== "domain" && this.practiceLayer !== "comprehensive" && this.practiceLayer !== "mock") return empty;
+      const registry = this.practiceScriptLoadState || {};
+      const summarize = (keys) => {
+        let pending = 0;
+        let failed = 0;
+        for (const key of keys) {
+          const st = registry[key] || "idle";
+          if (st === "loading" || st === "idle") pending += 1;
+          if (st === "error") failed += 1;
+        }
+        return { loading: pending > 0, error: failed > 0, pending, failed };
+      };
+      if (this.practiceLayer === "domain") {
+        if (this.activeDomainId === this.domainWrongBookId) {
+          return summarize((this.visibleDomains || []).map((d) => `domain:${d.id}`).filter(Boolean));
+        }
+        return summarize(this.activeDomainId ? [`domain:${this.activeDomainId}`] : []);
+      }
+      if (this.practiceLayer === "comprehensive") {
+        if (this.activeComprehensiveId === this.comprehensiveWrongBookId) {
+          return summarize((this.comprehensiveSets || []).map((s) => s.key).filter(Boolean));
+        }
+        const set = this.activeComprehensiveSet;
+        return summarize(set && set.key ? [set.key] : []);
+      }
+      if (this.activeMockId === this.mockWrongBookId) {
+        return summarize((this.mockSets || []).map((s) => s.key).filter(Boolean));
+      }
+      const set = this.activeMockSet;
+      return summarize(set && set.key ? [set.key] : []);
+    },
+    practiceActiveDataLoading() {
+      return this.activePracticeDataState.loading;
+    },
+    practiceActiveDataError() {
+      return this.activePracticeDataState.error;
     },
     practiceExamCardStates() {
       const cards = this.practiceQuizCardsForRender || [];
@@ -1602,6 +1689,7 @@ const app = createApp({
       this.$nextTick(() => this.updateDomainNavMaxHeight());
       this._syncPracticeQuizScrollListener();
       this.$nextTick(() => this._ensureLatestAttemptReviewForActiveLayer());
+      this.ensureCurrentPracticeDataLoaded();
     },
     quizSubMode() {
       if (this.quizSubMode !== "quiz" && this.practiceExamActive) this.exitPracticeExam();
@@ -1610,9 +1698,19 @@ const app = createApp({
     practiceLayer() {
       this._syncPracticeQuizScrollListener();
       this.$nextTick(() => this._ensureLatestAttemptReviewForActiveLayer());
+      this.ensureCurrentPracticeDataLoaded();
     },
     activeModule() {
       this.$nextTick(() => this.updateDomainNavMaxHeight());
+    },
+    activeComprehensiveId() {
+      this.ensureCurrentPracticeDataLoaded();
+    },
+    activeMockId() {
+      this.ensureCurrentPracticeDataLoaded();
+    },
+    activeDomainId() {
+      this.ensureCurrentPracticeDataLoaded();
     },
     activeProcessId(newId) {
       setTimeout(() => {
@@ -1642,6 +1740,7 @@ const app = createApp({
     practiceBrowseResultFilter() {
       this.quizAnswerPeek = {};
       this.practiceQuizActiveIndex = 0;
+      this.resetPracticeRenderLimit();
       this.$nextTick(() => {
         this._updatePracticeQuizActiveIndexFromLayout();
         this._updatePracticeQuizFabNeedsScroll();
@@ -1669,6 +1768,7 @@ const app = createApp({
     this._countdownTimer = setInterval(() => { this.nowTimestamp = Date.now(); }, 1000);
     document.addEventListener("click", this.handleGlobalClick);
     this._onResizeForDomainNav = () => {
+      this._syncPracticeRenderLimitForViewport();
       this.updateDomainNavMaxHeight();
       this._updatePracticeQuizActiveIndexFromLayout();
       this._updatePracticeQuizFabNeedsScroll();
@@ -1694,9 +1794,11 @@ const app = createApp({
       this._warmQuizTtsVoices();
     }
     this.$nextTick(() => {
+      this._syncPracticeRenderLimitForViewport();
       this.updateDomainNavMaxHeight();
       this._syncPracticeQuizScrollListener();
     });
+    this.ensureCurrentPracticeDataLoaded();
     this._loadFavorites();
     this._loadPracticeActiveUser();
     this._loadPracticeAttemptLog();
@@ -3028,6 +3130,121 @@ const app = createApp({
       this.desktopSettingsOpen = false;
       this.navigateToProcess(result.domainId, result.id);
     },
+    _markPracticeScriptState(setKey, state) {
+      const key = String(setKey || "").trim();
+      if (!key) return;
+      this.practiceScriptLoadState = { ...this.practiceScriptLoadState, [key]: state };
+    },
+    async ensurePracticeSetLoaded(set) {
+      const key = set && set.key ? String(set.key) : String(set || "");
+      if (!key) return false;
+      if (window.practiceMarkdown && Object.prototype.hasOwnProperty.call(window.practiceMarkdown, key)) {
+        this._markPracticeScriptState(key, "loaded");
+        return true;
+      }
+      this._practiceScriptPromises = this._practiceScriptPromises || {};
+      if (this._practiceScriptPromises[key]) return this._practiceScriptPromises[key];
+      this._markPracticeScriptState(key, "loading");
+      this._practiceScriptPromises[key] = new Promise((resolve) => {
+        const script = document.createElement("script");
+        script.src = getPracticeScriptSrc(key);
+        script.async = true;
+        script.dataset.practiceKey = key;
+        script.onload = () => {
+          const ok = !!(window.practiceMarkdown && Object.prototype.hasOwnProperty.call(window.practiceMarkdown, key));
+          this._markPracticeScriptState(key, ok ? "loaded" : "error");
+          delete this._practiceScriptPromises[key];
+          resolve(ok);
+        };
+        script.onerror = () => {
+          this._markPracticeScriptState(key, "error");
+          delete this._practiceScriptPromises[key];
+          resolve(false);
+        };
+        document.body.appendChild(script);
+      });
+      return this._practiceScriptPromises[key];
+    },
+    async ensureDomainPracticeLoaded(domainId) {
+      const id = String(domainId || "").trim();
+      if (!id) return false;
+      const stateKey = `domain:${id}`;
+      const loaded =
+        !!(this.knowledgeData &&
+        this.knowledgeData[id] &&
+        Array.isArray(this.knowledgeData[id].quiz) &&
+        this.knowledgeData[id].quiz.length);
+      if (loaded) {
+        this._markPracticeScriptState(stateKey, "loaded");
+        return true;
+      }
+      this._practiceScriptPromises = this._practiceScriptPromises || {};
+      if (this._practiceScriptPromises[stateKey]) return this._practiceScriptPromises[stateKey];
+      this._markPracticeScriptState(stateKey, "loading");
+      this._practiceScriptPromises[stateKey] = new Promise((resolve) => {
+        const script = document.createElement("script");
+        script.src = getDomainPracticeScriptSrc(id);
+        script.async = true;
+        script.dataset.practiceKey = stateKey;
+        script.onload = () => {
+          const ok =
+            !!(this.knowledgeData &&
+            this.knowledgeData[id] &&
+            Array.isArray(this.knowledgeData[id].quiz) &&
+            this.knowledgeData[id].quiz.length);
+          this._markPracticeScriptState(stateKey, ok ? "loaded" : "error");
+          delete this._practiceScriptPromises[stateKey];
+          resolve(ok);
+        };
+        script.onerror = () => {
+          this._markPracticeScriptState(stateKey, "error");
+          delete this._practiceScriptPromises[stateKey];
+          resolve(false);
+        };
+        document.body.appendChild(script);
+      });
+      return this._practiceScriptPromises[stateKey];
+    },
+    async ensureCurrentPracticeDataLoaded() {
+      if (this.activeView !== "quiz") return;
+      if (this.practiceLayer === "case") return;
+      if (this.practiceLayer === "domain") {
+        if (this.activeDomainId === this.domainWrongBookId) {
+          const list = (this.visibleDomains || []).filter((d) => d && d.id);
+          await Promise.all(list.map((d) => this.ensureDomainPracticeLoaded(d.id)));
+          this.practiceDomainWrongBookSnapshot = this._buildWrongBookCandidatesShuffledByLayer("domain");
+          return;
+        }
+        if (this.activeDomainId) {
+          await this.ensureDomainPracticeLoaded(this.activeDomainId);
+        }
+        return;
+      }
+      if (this.practiceLayer === "comprehensive") {
+        if (this.activeComprehensiveId === this.comprehensiveWrongBookId) {
+          const list = (this.comprehensiveSets || []).filter((s) => s && s.key);
+          await Promise.all(list.map((s) => this.ensurePracticeSetLoaded(s)));
+          this.practiceWrongBookSnapshot = this._buildWrongBookCandidatesShuffled();
+          return;
+        }
+        if (this.activeComprehensiveSet && this.activeComprehensiveSet.key) {
+          await this.ensurePracticeSetLoaded(this.activeComprehensiveSet);
+        }
+        return;
+      }
+      if (this.activeMockId === this.mockWrongBookId) {
+        const list = (this.mockSets || []).filter((s) => s && s.key);
+        await Promise.all(list.map((s) => this.ensurePracticeSetLoaded(s)));
+        this.practiceMockWrongBookSnapshot = this._buildMockWrongBookCandidatesShuffled();
+        return;
+      }
+      if (this.activeMockSet && this.activeMockSet.key) {
+        await this.ensurePracticeSetLoaded(this.activeMockSet);
+      }
+    },
+    retryCurrentPracticeDataLoad() {
+      this.ensureCurrentPracticeDataLoaded();
+    },
     resetQuizMatcherState() {
       this.quizSubMode = "quiz";
       this.matcherPairs = [];
@@ -3041,6 +3258,8 @@ const app = createApp({
     _resolveSetQuiz(set) {
       if (!set) return [];
       if (this.practiceSetCache[set.id]) return this.practiceSetCache[set.id];
+      const loadState = this.practiceScriptLoadState && set.key ? this.practiceScriptLoadState[set.key] : "";
+      void loadState;
       // 从 window.practiceMarkdown 同步解析
       const raw = set.key && window.practiceMarkdown && window.practiceMarkdown[set.key];
       if (raw) {
@@ -3116,6 +3335,7 @@ const app = createApp({
       this.practiceLayer = layer;
       this.practiceBrowseResultFilter = "all";
       this.resetQuizMatcherState();
+      this.resetPracticeRenderLimit();
       if (layer === "comprehensive") {
         const list = this.comprehensiveSets;
         const idOk =
@@ -3160,6 +3380,7 @@ const app = createApp({
         this.caseStudyQuestionIndex = 0;
         this._loadCaseStudyStateForBundle();
       }
+      this.ensureCurrentPracticeDataLoaded();
     },
     selectCaseSet(id) {
       this._bumpQuizTtsGenAndCancel();
@@ -3451,21 +3672,25 @@ const app = createApp({
       this.activeComprehensiveId = id;
       this.practiceBrowseResultFilter = "all";
       this.resetQuizMatcherState();
+      this.resetPracticeRenderLimit();
       if (id === this.comprehensiveWrongBookId) {
         this.practiceWrongBookSnapshot = this._buildWrongBookCandidatesShuffled();
       } else {
         this.practiceWrongBookSnapshot = null;
       }
+      this.ensureCurrentPracticeDataLoaded();
     },
     selectMockSet(id) {
       this.activeMockId = id;
       this.practiceBrowseResultFilter = "all";
       this.resetQuizMatcherState();
+      this.resetPracticeRenderLimit();
       if (id === this.mockWrongBookId) {
         this.practiceMockWrongBookSnapshot = this._buildMockWrongBookCandidatesShuffled();
       } else {
         this.practiceMockWrongBookSnapshot = null;
       }
+      this.ensureCurrentPracticeDataLoaded();
     },
     setQuizAnswersGlobal(show) {
       this.quizAnswersGlobalShow = show;
@@ -3665,6 +3890,11 @@ const app = createApp({
       return this._buildWrongBookCandidatesShuffledByLayer("mock");
     },
     startPracticeExam(options) {
+      if (!this.practiceQuizBaseRowsForExam.length && (this.practiceLayer === "domain" || this.practiceLayer === "comprehensive" || this.practiceLayer === "mock")) {
+        this.ensureCurrentPracticeDataLoaded();
+        this._showCuteTip(this.practiceActiveDataLoading ? "题库加载中，请稍候再开始做题" : "题库暂未就绪，请稍后重试");
+        return;
+      }
       const opts = options || {};
       if (opts.resumeDraft && opts.draft && typeof opts.draft === "object") {
         const rows0 = this.practiceQuizBaseRowsForExam;
@@ -4025,10 +4255,31 @@ const app = createApp({
       if (this.practiceExamRunning) return;
       this.toggleQuizAnswerPeek(qi);
     },
+    resetPracticeRenderLimit() {
+      this.practiceQuizRenderLimit = getInitialPracticeRenderLimit();
+    },
+    _syncPracticeRenderLimitForViewport() {
+      const base = getInitialPracticeRenderLimit();
+      if (this.practiceExamRunning) {
+        this.practiceQuizRenderLimit = Math.max(base, this.practiceQuizCardsForRender.length || base);
+        return;
+      }
+      if (!this.practiceQuizRenderLimit || this.practiceQuizRenderLimit < base) {
+        this.practiceQuizRenderLimit = base;
+      }
+    },
+    loadMorePracticeQuestions(step) {
+      const inc = Math.max(1, Number(step) || getInitialPracticeRenderLimit());
+      this.practiceQuizRenderLimit = Math.min(
+        this.practiceQuizCardsForRender.length,
+        (Number(this.practiceQuizRenderLimit) || 0) + inc
+      );
+      this.$nextTick(() => this._updatePracticeQuizFabNeedsScroll());
+    },
     _updatePracticeQuizActiveIndexFromLayout() {
       // 做题卡片模式下：题号只由「上一题/下一题/跳转」控制，禁止滚动自动改题号（会抖动/跳号）
       if (this.practiceExamRunning) return;
-      const cards = this.practiceQuizCardsForRender;
+      const cards = this.practiceQuizCardsForDisplay;
       if (this.activeView !== "quiz" || this.quizSubMode !== "quiz" || !cards || !cards.length) {
         return;
       }
@@ -4073,7 +4324,7 @@ const app = createApp({
         this.$nextTick(() => this._updatePracticeQuizFabNeedsScroll());
         return;
       }
-      const cards = this.practiceQuizCardsForRender;
+      const cards = this.practiceQuizCardsForDisplay;
       if (this.activeView !== "quiz" || this.quizSubMode !== "quiz" || !cards || !cards.length) {
         return;
       }
@@ -4218,14 +4469,17 @@ const app = createApp({
     },
     selectDomain(domainId) {
       this.activeDomainId = domainId;
+      this.resetPracticeRenderLimit();
       if (domainId === this.domainWrongBookId) {
         this.practiceBrowseResultFilter = "all";
         this.resetQuizMatcherState();
         this.practiceDomainWrongBookSnapshot = this._buildWrongBookCandidatesShuffledByLayer("domain");
+        this.ensureCurrentPracticeDataLoaded();
         return;
       }
       const nextProcess = this.activeDomain.processes[0];
       this.activeProcessId = nextProcess ? nextProcess.id : "";
+      this.ensureCurrentPracticeDataLoaded();
       if (nextProcess) {
         this.markLearned(nextProcess.id);
       }

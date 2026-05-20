@@ -1833,6 +1833,25 @@
                     </div>
                   </div>
                   <div
+                    v-if="practiceActiveDataLoading && !practiceQuizBaseRows.length"
+                    class="panel-subtle"
+                  >
+                    <p class="eyebrow">题库加载中</p>
+                    <p class="mt-2 text-sm leading-7 text-ink/80">当前套卷脚本正在按需加载，手机端会比以前少拉很多首屏资源，请稍等片刻。</p>
+                  </div>
+                  <div
+                    v-if="practiceActiveDataError && !practiceQuizBaseRows.length"
+                    class="panel-subtle"
+                  >
+                    <p class="eyebrow">题库加载失败</p>
+                    <p class="mt-2 text-sm leading-7 text-ink/80">当前套卷脚本没有成功加载，可能是弱网或资源未上传完整。</p>
+                    <button
+                      type="button"
+                      class="practice-card-nav-btn practice-card-nav-btn--primary mt-3"
+                      @click="retryCurrentPracticeDataLoad"
+                    >重试加载</button>
+                  </div>
+                  <div
                     v-if="practiceExamInReview && !isDomainWrongBook && !isComprehensiveWrongBook && !isMockWrongBook && practiceQuizBaseRows.length && !practiceQuizCardsForRender.length"
                     class="panel-subtle"
                   >
@@ -1840,7 +1859,7 @@
                     <p class="mt-2 text-sm leading-7 text-ink/80">当前筛选下没有题目。可切回「全部」，或换一条做题记录再看。</p>
                   </div>
                   <div
-                    v-if="!practiceQuizBaseRows.length && ((practiceLayer === 'domain' && activeDomainId === domainWrongBookId) || (practiceLayer === 'comprehensive' && activeComprehensiveId === comprehensiveWrongBookId) || (practiceLayer === 'mock' && activeMockId === mockWrongBookId))"
+                    v-if="!practiceActiveDataLoading && !practiceActiveDataError && !practiceQuizBaseRows.length && ((practiceLayer === 'domain' && activeDomainId === domainWrongBookId) || (practiceLayer === 'comprehensive' && activeComprehensiveId === comprehensiveWrongBookId) || (practiceLayer === 'mock' && activeMockId === mockWrongBookId))"
                     class="panel-subtle"
                   >
                     <p class="eyebrow">错题集还是空的</p>
@@ -1848,17 +1867,16 @@
                       请先在各套<strong>{{ practiceLayer === 'mock' ? '模拟题' : (practiceLayer === 'domain' ? '知识域' : '综合题') }}</strong>里做题并<strong>交卷</strong>，错题会按题去重后出现在这里。重新进入本页会重新打乱顺序。</p>
                   </div>
                   <div
-                    v-if="!practiceQuizBaseRows.length && activePracticeSet && !(practiceLayer === 'domain' && activeDomainId === domainWrongBookId) && !(practiceLayer === 'comprehensive' && activeComprehensiveId === comprehensiveWrongBookId) && !(practiceLayer === 'mock' && activeMockId === mockWrongBookId)"
+                    v-if="!practiceActiveDataLoading && !practiceActiveDataError && !practiceQuizBaseRows.length && activePracticeSet && !(practiceLayer === 'domain' && activeDomainId === domainWrongBookId) && !(practiceLayer === 'comprehensive' && activeComprehensiveId === comprehensiveWrongBookId) && !(practiceLayer === 'mock' && activeMockId === mockWrongBookId)"
                     class="panel-subtle"
                   >
                     <p class="eyebrow">暂无题目</p>
                     <p class="mt-2 text-sm leading-7 text-ink/80">
-                      请创建 <code>data/practice/{{ activePracticeSet.key }}.js</code>，
-                      并在 <code>index.html</code> 中以 <code>&lt;script&gt;</code> 引入，内容格式参考 <code>zonghe_1.js</code>。
+                      请确认 <code>data/practice/{{ activePracticeSet.key }}.js</code> 存在且已部署到线上，内容格式参考 <code>zonghe_1.js</code>。
                     </p>
                   </div>
                   <article
-                    v-for="(question, qi) in practiceQuizCardsForRender"
+                    v-for="(question, qi) in practiceQuizCardsForDisplay"
                     :key="'pq-'+(question._originIndex ?? qi)+'-'+(question.question || qi)"
                     :id="'practice-quiz-card-'+qi"
                     class="quiz-card"
@@ -2076,6 +2094,19 @@
                         </div>
                       </div>
                   </article>
+                  <div
+                    v-if="practiceQuizHasMoreToRender"
+                    class="flex justify-center pt-2"
+                  >
+                    <button
+                      type="button"
+                      class="practice-card-nav-btn practice-card-nav-btn--primary"
+                      @click="loadMorePracticeQuestions()"
+                    >
+                      继续加载题目
+                      <span class="ml-1 text-xs opacity-80">已显示 {{ practiceQuizCardsForDisplay.length }}/{{ practiceQuizCardsForRender.length }}</span>
+                    </button>
+                  </div>
                 </div>
                 <aside class="panel-subtle h-fit">
                   <p class="eyebrow">练习提示</p>
@@ -3538,30 +3569,6 @@
   <script defer src="./data/practice/image_manifest.js"></script>
   <script defer src="./data/practice_sets.js"></script>
   <!-- 综合题 / 模考 Markdown 数据（命名规则：zonghe_n.js / mock_n.js） -->
-  <script defer src="./data/practice/zonghe_1.js"></script>
-  <script defer src="./data/practice/zonghe_2.js"></script>
-  <script defer src="./data/practice/zonghe_3.js"></script>
-  <script defer src="./data/practice/zonghe_4.js"></script>
-  <script defer src="./data/practice/zonghe_5.js"></script>
-  <script defer src="./data/practice/zonghe_6.js"></script>
-  <script defer src="./data/practice/zonghe_7.js"></script>
-  <script defer src="./data/practice/zonghe_8.js"></script>
-  <script defer src="./data/practice/zonghe_9.js"></script>
-  <script defer src="./data/practice/zonghe_10.js"></script>
-  <script defer src="./data/practice/zonghe_11.js"></script>
-  <script defer src="./data/practice/zonghe_12.js"></script>
-  <script defer src="./data/practice/moni_1.js"></script>
-  <script defer src="./data/practice/moni_2.js"></script>
-  <script defer src="./data/practice/zhishiyu_integration.js"></script>
-  <script defer src="./data/practice/zhishiyu_scope.js"></script>
-  <script defer src="./data/practice/zhishiyu_schedule.js"></script>
-  <script defer src="./data/practice/zhishiyu_cost.js"></script>
-  <script defer src="./data/practice/zhishiyu_quality.js"></script>
-  <script defer src="./data/practice/zhishiyu_resource.js"></script>
-  <script defer src="./data/practice/zhishiyu_communications.js"></script>
-  <script defer src="./data/practice/zhishiyu_risk.js"></script>
-  <script defer src="./data/practice/zhishiyu_procurement.js"></script>
-  <script defer src="./data/practice/zhishiyu_stakeholder.js"></script>
   <script defer src="./data/export_my_answers_and_history.js"></script>
   <script defer src="./data/case_study_data.js"></script>
   <script defer src="./app.js"></script>
