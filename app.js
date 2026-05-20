@@ -3801,8 +3801,10 @@ const app = createApp({
           this.caseStudyDrafts[bk] = {};
         }
         if (this._urlCaseStatePending) {
-          this.caseStudyMode = this.caseStudyMode === "memorize" ? "memorize" : "selftest";
-          this.caseStudyQuestionIndex = Number.isFinite(this.caseStudyQuestionIndex) && this.caseStudyQuestionIndex >= 0 ? this.caseStudyQuestionIndex : 0;
+          if (this._urlCaseMode === "memorize" || this._urlCaseMode === "selftest") this.caseStudyMode = this._urlCaseMode;
+          if (Number.isInteger(this._urlCaseQuestionIndex) && this._urlCaseQuestionIndex >= 0) this.caseStudyQuestionIndex = this._urlCaseQuestionIndex;
+          if (typeof this._urlCaseScenarioPinned === "boolean") this.caseStudyScenarioPinned = this._urlCaseScenarioPinned;
+          if (typeof this._urlCaseZhaChaOpen === "boolean") this.caseStudyZhaChaOpen = this._urlCaseZhaChaOpen;
           this._urlCaseStatePending = false;
         }
         return;
@@ -3817,6 +3819,10 @@ const app = createApp({
         hit.revealed && typeof hit.revealed === "object" ? { ...hit.revealed } : {};
       this.caseStudyDrafts[bk] = hit.drafts && typeof hit.drafts === "object" ? { ...hit.drafts } : {};
       if (this._urlCaseStatePending) {
+        if (this._urlCaseMode === "memorize" || this._urlCaseMode === "selftest") this.caseStudyMode = this._urlCaseMode;
+        if (Number.isInteger(this._urlCaseQuestionIndex) && this._urlCaseQuestionIndex >= 0) this.caseStudyQuestionIndex = this._urlCaseQuestionIndex;
+        if (typeof this._urlCaseScenarioPinned === "boolean") this.caseStudyScenarioPinned = this._urlCaseScenarioPinned;
+        if (typeof this._urlCaseZhaChaOpen === "boolean") this.caseStudyZhaChaOpen = this._urlCaseZhaChaOpen;
         this._urlCaseStatePending = false;
       }
     },
