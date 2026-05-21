@@ -210,6 +210,8 @@ function getDomainPracticeScriptSrc(domainId) {
   return `./data/practice/zhishiyu_${String(domainId || "").trim()}.js`;
 }
 
+const PRACTICE_SCRIPT_LOAD_TIMEOUT_MS = 12000;
+
 /** 与 quizBundleKey 一致：按视图 + 层 + 套卷 id 生成做题记录归档键 */
 function bundleKeyForPracticeSet(activeView, practiceLayer, setId) {
   const sid = String(setId || "");
@@ -3275,75 +3277,76 @@ const app = createApp({
       if (!key) return;
       this.practiceScriptLoadState = { ...this.practiceScriptLoadState, [key]: state };
     },
-    async ensurePracticeSetLoaded(set) {
-      const key = set && set.key ? String(set.key) : String(set || "");
-      if (!key) return false;
-      if (window.practiceMarkdown && Object.prototype.hasOwnProperty.call(window.practiceMarkdown, key)) {
+    _schedulePracticePrefetch() {
+      if (this._practicePrefetchTimer) {
+        clearTimeout(this._practicePrefetchTimer);
+      }
+      this._practicePrefetchTimer = setTimeout(() => {
+        this._practicePrefetchTimer = null;
+        this.prefetchPracticeLayerData();
+      }, 400);
+    },
+    _loadExternalPracticeScript(stateKey, src, readyCheck) {
+      const key = String(stateKey || "").trim();
+      if (!key || !src || typeof readyCheck !== "function") return Promise.resolve(false);
+      if (readyCheck()) {
         this._markPracticeScriptState(key, "loaded");
-        return true;
+        return Promise.resolve(true);
       }
       this._practiceScriptPromises = this._practiceScriptPromises || {};
       if (this._practiceScriptPromises[key]) return this._practiceScriptPromises[key];
       this._markPracticeScriptState(key, "loading");
       this._practiceScriptPromises[key] = new Promise((resolve) => {
-        const script = document.createElement("script");
-        script.src = getPracticeScriptSrc(key);
-        script.async = true;
-        script.dataset.practiceKey = key;
-        script.onload = () => {
-          const ok = !!(window.practiceMarkdown && Object.prototype.hasOwnProperty.call(window.practiceMarkdown, key));
+        const finalize = (ok) => {
+          if (timer) clearTimeout(timer);
           this._markPracticeScriptState(key, ok ? "loaded" : "error");
           delete this._practiceScriptPromises[key];
           resolve(ok);
         };
-        script.onerror = () => {
-          this._markPracticeScriptState(key, "error");
-          delete this._practiceScriptPromises[key];
-          resolve(false);
+        const prev = document.querySelector(`script[data-practice-key="${key}"]`);
+        if (prev && prev.dataset && prev.dataset.practiceLoaded === "1" && readyCheck()) {
+          finalize(true);
+          return;
+        }
+        if (prev && prev.parentNode) {
+          prev.parentNode.removeChild(prev);
+        }
+        const script = document.createElement("script");
+        let timer = setTimeout(() => finalize(false), PRACTICE_SCRIPT_LOAD_TIMEOUT_MS);
+        script.src = src;
+        script.async = true;
+        script.dataset.practiceKey = key;
+        script.onload = () => {
+          script.dataset.practiceLoaded = "1";
+          finalize(!!readyCheck());
         };
+        script.onerror = () => finalize(false);
         document.body.appendChild(script);
       });
       return this._practiceScriptPromises[key];
+    },
+    async ensurePracticeSetLoaded(set) {
+      const key = set && set.key ? String(set.key) : String(set || "");
+      if (!key) return false;
+      return this._loadExternalPracticeScript(
+        key,
+        getPracticeScriptSrc(key),
+        () => !!(window.practiceMarkdown && Object.prototype.hasOwnProperty.call(window.practiceMarkdown, key))
+      );
     },
     async ensureDomainPracticeLoaded(domainId) {
       const id = String(domainId || "").trim();
       if (!id) return false;
       const stateKey = `domain:${id}`;
-      const loaded =
-        !!(this.knowledgeData &&
-        this.knowledgeData[id] &&
-        Array.isArray(this.knowledgeData[id].quiz) &&
-        this.knowledgeData[id].quiz.length);
-      if (loaded) {
-        this._markPracticeScriptState(stateKey, "loaded");
-        return true;
-      }
-      this._practiceScriptPromises = this._practiceScriptPromises || {};
-      if (this._practiceScriptPromises[stateKey]) return this._practiceScriptPromises[stateKey];
-      this._markPracticeScriptState(stateKey, "loading");
-      this._practiceScriptPromises[stateKey] = new Promise((resolve) => {
-        const script = document.createElement("script");
-        script.src = getDomainPracticeScriptSrc(id);
-        script.async = true;
-        script.dataset.practiceKey = stateKey;
-        script.onload = () => {
-          const ok =
-            !!(this.knowledgeData &&
-            this.knowledgeData[id] &&
-            Array.isArray(this.knowledgeData[id].quiz) &&
-            this.knowledgeData[id].quiz.length);
-          this._markPracticeScriptState(stateKey, ok ? "loaded" : "error");
-          delete this._practiceScriptPromises[stateKey];
-          resolve(ok);
-        };
-        script.onerror = () => {
-          this._markPracticeScriptState(stateKey, "error");
-          delete this._practiceScriptPromises[stateKey];
-          resolve(false);
-        };
-        document.body.appendChild(script);
-      });
-      return this._practiceScriptPromises[stateKey];
+      return this._loadExternalPracticeScript(
+        stateKey,
+        getDomainPracticeScriptSrc(id),
+        () =>
+          !!(this.knowledgeData &&
+          this.knowledgeData[id] &&
+          Array.isArray(this.knowledgeData[id].quiz) &&
+          this.knowledgeData[id].quiz.length)
+      );
     },
     async ensureCurrentPracticeDataLoaded() {
       if (this.activeView !== "quiz") return;
@@ -3357,6 +3360,7 @@ const app = createApp({
         }
         if (this.activeDomainId) {
           await this.ensureDomainPracticeLoaded(this.activeDomainId);
+          this._schedulePracticePrefetch();
         }
         return;
       }
@@ -3369,6 +3373,7 @@ const app = createApp({
         }
         if (this.activeComprehensiveSet && this.activeComprehensiveSet.key) {
           await this.ensurePracticeSetLoaded(this.activeComprehensiveSet);
+          this._schedulePracticePrefetch();
         }
         return;
       }
@@ -3380,9 +3385,40 @@ const app = createApp({
       }
       if (this.activeMockSet && this.activeMockSet.key) {
         await this.ensurePracticeSetLoaded(this.activeMockSet);
+        this._schedulePracticePrefetch();
+      }
+    },
+    prefetchPracticeLayerData() {
+      if (this.activeView !== "quiz") return;
+      if (this.practiceLayer === "case") return;
+      if (this.practiceLayer === "domain") {
+        const current = this.activeDomainId;
+        (this.visibleDomains || [])
+          .filter((d) => d && d.id && d.id !== current)
+          .forEach((d) => { this.ensureDomainPracticeLoaded(d.id); });
+        return;
+      }
+      if (this.practiceLayer === "comprehensive") {
+        const current = this.activePracticeSetKey;
+        (this.comprehensiveSets || [])
+          .filter((s) => s && s.key && s.key !== current)
+          .forEach((s) => { this.ensurePracticeSetLoaded(s); });
+        return;
+      }
+      if (this.practiceLayer === "mock") {
+        const current = this.activePracticeSetKey;
+        (this.mockSets || [])
+          .filter((s) => s && s.key && s.key !== current)
+          .forEach((s) => { this.ensurePracticeSetLoaded(s); });
       }
     },
     retryCurrentPracticeDataLoad() {
+      if (this.practiceLayer === "domain" && this.activeDomainId) {
+        this._markPracticeScriptState(`domain:${this.activeDomainId}`, "idle");
+      }
+      if ((this.practiceLayer === "comprehensive" || this.practiceLayer === "mock") && this.activePracticeSetKey) {
+        this._markPracticeScriptState(this.activePracticeSetKey, "idle");
+      }
       this.ensureCurrentPracticeDataLoaded();
     },
     resetQuizMatcherState() {
