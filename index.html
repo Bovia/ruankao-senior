@@ -1656,6 +1656,15 @@
                 </div>
               </div>
             </div>
+            <teleport to="body">
+              <div
+                v-if="practiceSlashFx === 'correct' && practiceSlashPraiseText"
+                class="practice-slash-cheer-layer"
+                aria-live="polite"
+              >
+                <div class="practice-slash-cheer-badge">{{ practiceSlashPraiseText }}</div>
+              </div>
+            </teleport>
             <div v-if="practiceSlashModeActive" class="practice-slash-shell" :class="{ 'practice-slash-shell--done': practiceSlashFinished }">
               <template v-if="!practiceSlashFinished && practiceSlashCurrentQuestion">
                 <section class="practice-slash-hero">
@@ -2228,124 +2237,125 @@
                           @touchcancel.stop="endSnippetPress"
                         >{{ option }}</span>
                       </li>
-                      <div
-                        v-if="practiceExamRunning"
-                        class="practice-card-nav"
-                      >
-                        <button
-                          type="button"
-                          class="practice-card-nav-btn"
-                          :disabled="practiceQuizActiveIndex <= 0"
-                          @click.stop="goPracticeExamCard(-1)"
-                        >上一题</button>
-                        <button
-                          type="button"
-                          class="practice-card-nav-btn practice-card-nav-btn--primary"
-                          :disabled="practiceQuizActiveIndex >= practiceQuizCardsForRender.length - 1"
-                          @click.stop="goPracticeExamCard(1)"
-                        >下一题</button>
-                        <button
-                          type="button"
-                          class="practice-card-nav-link"
-                          @click.stop="openPracticeExamNav"
-                        >题号</button>
-                      </div>
+                    </ul>
+                    <div
+                      v-if="practiceExamRunning"
+                      class="practice-card-nav"
+                    >
+                      <button
+                        type="button"
+                        class="practice-card-nav-btn"
+                        :disabled="practiceQuizActiveIndex <= 0"
+                        @click.stop="goPracticeExamCard(-1)"
+                      >上一题</button>
+                      <button
+                        type="button"
+                        class="practice-card-nav-btn practice-card-nav-btn--primary"
+                        :disabled="practiceQuizActiveIndex >= practiceQuizCardsForRender.length - 1"
+                        @click.stop="goPracticeExamCard(1)"
+                      >下一题</button>
+                      <button
+                        type="button"
+                        class="practice-card-nav-link"
+                        @click.stop="openPracticeExamNav"
+                      >题号</button>
+                    </div>
 
-                      <p
-                        v-if="!practiceExamActive && !quizAnswersGlobalShow && !isQuizAnswerVisible(question._originIndex ?? qi)"
-                        class="quiz-peek-hint"
+                    <p
+                      v-if="!practiceExamActive && !quizAnswersGlobalShow && !isQuizAnswerVisible(question._originIndex ?? qi)"
+                      class="quiz-peek-hint"
+                    >
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
                       >
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2.2"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle
+                          cx="12"
+                          cy="12"
+                          r="3"
+                        /></svg>
+                      点击查看答案与解析
+                    </p>
+                    <div
+                      v-show="!practiceExamRunning && isQuizAnswerVisible(question._originIndex ?? qi)"
+                      class="mb-1 ml-[-11px] mr-[-11px] mt-4 rounded-2xl bg-sand px-4 py-3 text-sm leading-7 text-ink/80"
+                    >
+                      <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                        <span><strong>答案：</strong>{{ question.answer }}</span>
+                        <span
+                          v-if="practiceExamInReview && practiceExamDisplayAttempt"
+                          class="text-ink/70"
+                        ><strong>本次作答：</strong>{{ (practiceExamDisplayAttempt.choices && practiceExamDisplayAttempt.choices[String(question._originIndex ?? qi)]) || '—' }}</span>
+                      </div>
+                      <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+                        <strong>解析：</strong>
+                        <button
+                          v-if="!practiceExamRunning"
+                          type="button"
+                          class="quiz-tts-btn"
+                          :class="{ 'quiz-tts-btn-active': quizTtsPlayingIndex === (question._originIndex ?? qi) }"
+                          :title="quizTtsPlayingIndex === (question._originIndex ?? qi) ? '停止朗读' : '朗读解析'"
+                          :aria-pressed="quizTtsPlayingIndex === (question._originIndex ?? qi)"
+                          aria-label="朗读解析"
+                          @click.stop="speakQuizAnalysis(question.analysis, question._originIndex ?? qi)"
                         >
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                          <circle
-                            cx="12"
-                            cy="12"
-                            r="3"
-                          /></svg>
-                        点击查看答案与解析
-                      </p>
-                      <div
-                        v-show="!practiceExamRunning && isQuizAnswerVisible(question._originIndex ?? qi)"
-                        class="mb-1 ml-[-11px] mr-[-11px] mt-4 rounded-2xl bg-sand px-4 py-3 text-sm leading-7 text-ink/80"
-                      >
-                        <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                          <span><strong>答案：</strong>{{ question.answer }}</span>
-                          <span
-                            v-if="practiceExamInReview && practiceExamDisplayAttempt"
-                            class="text-ink/70"
-                          ><strong>本次作答：</strong>{{ (practiceExamDisplayAttempt.choices && practiceExamDisplayAttempt.choices[String(question._originIndex ?? qi)]) || '—' }}</span>
-                        </div>
-                        <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-                          <strong>解析：</strong>
-                          <button
-                            v-if="!practiceExamRunning"
-                            type="button"
-                            class="quiz-tts-btn"
-                            :class="{ 'quiz-tts-btn-active': quizTtsPlayingIndex === (question._originIndex ?? qi) }"
-                            :title="quizTtsPlayingIndex === (question._originIndex ?? qi) ? '停止朗读' : '朗读解析'"
-                            :aria-pressed="quizTtsPlayingIndex === (question._originIndex ?? qi)"
-                            aria-label="朗读解析"
-                            @click.stop="speakQuizAnalysis(question.analysis, question._originIndex ?? qi)"
+                          <svg
+                            class="quiz-tts-icon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
                           >
-                            <svg
-                              class="quiz-tts-icon"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="2"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              aria-hidden="true"
-                            >
-                              <path d="m3 11 18-5v12L3 13v-2z" />
-                              <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" /></svg>
-                          </button>
-                          <div class="quiz-ans-bar quiz-ans-bar--inline">
-                            <button
-                              type="button"
-                              class="quiz-ans-btn"
-                              :class="{ 'quiz-ans-btn-active': quizTtsRate === 1 }"
-                              title="正常语速"
-                              @click.stop="setQuizTtsRate(1)"
-                            >1×</button>
-                            <button
-                              type="button"
-                              class="quiz-ans-btn"
-                              :class="{ 'quiz-ans-btn-active': quizTtsRate === 1.25 }"
-                              title="1.25 倍速"
-                              @click.stop="setQuizTtsRate(1.25)"
-                            >1.25×</button>
-                            <button
-                              type="button"
-                              class="quiz-ans-btn"
-                              :class="{ 'quiz-ans-btn-active': quizTtsRate === 1.5 }"
-                              title="1.5 倍速"
-                              @click.stop="setQuizTtsRate(1.5)"
-                            >1.5×</button>
-                          </div>
-                        </div>
-                        <div
-                          class="mt-1 whitespace-pre-wrap practice-rich-text"
-                          @mousedown.stop="startSnippetPress($event, question.analysis, { kind: '解析', qi: question._originIndex ?? qi })"
-                          @mouseup.stop="endSnippetPress"
-                          @mouseleave.stop="endSnippetPress"
-                          @mousemove="moveSnippetPress($event)"
-                          @touchstart.stop="startSnippetPress($event, question.analysis, { kind: '解析', qi: question._originIndex ?? qi })"
-                          @touchmove="moveSnippetPress($event)"
-                          @touchend.stop="endSnippetPress"
-                          @touchcancel.stop="endSnippetPress"
-                          v-html="formatPracticeRichText(question.analysis)"
+                            <path d="m3 11 18-5v12L3 13v-2z" />
+                            <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" /></svg>
+                        </button>
+                        <div class="quiz-ans-bar quiz-ans-bar--inline">
+                          <button
+                            type="button"
+                            class="quiz-ans-btn"
+                            :class="{ 'quiz-ans-btn-active': quizTtsRate === 1 }"
+                            title="正常语速"
+                            @click.stop="setQuizTtsRate(1)"
+                          >1×</button>
+                          <button
+                            type="button"
+                            class="quiz-ans-btn"
+                            :class="{ 'quiz-ans-btn-active': quizTtsRate === 1.25 }"
+                            title="1.25 倍速"
+                            @click.stop="setQuizTtsRate(1.25)"
+                          >1.25×</button>
+                          <button
+                            type="button"
+                            class="quiz-ans-btn"
+                            :class="{ 'quiz-ans-btn-active': quizTtsRate === 1.5 }"
+                            title="1.5 倍速"
+                            @click.stop="setQuizTtsRate(1.5)"
+                          >1.5×</button>
                         </div>
                       </div>
+                      <div
+                        class="mt-1 whitespace-pre-wrap practice-rich-text"
+                        @mousedown.stop="startSnippetPress($event, question.analysis, { kind: '解析', qi: question._originIndex ?? qi })"
+                        @mouseup.stop="endSnippetPress"
+                        @mouseleave.stop="endSnippetPress"
+                        @mousemove="moveSnippetPress($event)"
+                        @touchstart.stop="startSnippetPress($event, question.analysis, { kind: '解析', qi: question._originIndex ?? qi })"
+                        @touchmove="moveSnippetPress($event)"
+                        @touchend.stop="endSnippetPress"
+                        @touchcancel.stop="endSnippetPress"
+                        v-html="formatPracticeRichText(question.analysis)"
+                      </div>
+                    </div>
                   </article>
                   <div
                     v-if="practiceQuizHasMoreToRender"

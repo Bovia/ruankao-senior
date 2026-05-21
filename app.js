@@ -776,6 +776,7 @@ const app = createApp({
       practiceSlashSession: null,
       practiceSlashLatestCache: {},
       practiceSlashFx: "",
+      practiceSlashPraiseText: "",
       catConfigOpen: false,
       projectConfigMenuOpen: false,
       catVisible: true,
@@ -4155,18 +4156,26 @@ const app = createApp({
         wrongQuestions: []
       };
       this.practiceSlashFx = "";
+      this.practiceSlashPraiseText = "";
       this.practiceSlashModeActive = true;
       this.practiceSlashConfigOpen = false;
       this.$nextTick(() => window.scrollTo({ top: 0, behavior: "smooth" }));
     },
     _setPracticeSlashFx(type) {
       this.practiceSlashFx = type || "";
+      if (type === "correct") {
+        const praise = ["答得漂亮", "这题拿下", "很棒，继续斩", "稳稳拿分"];
+        this.practiceSlashPraiseText = praise[Math.floor(Math.random() * praise.length)];
+      } else if (!type) {
+        this.practiceSlashPraiseText = "";
+      }
       if (this._practiceSlashFxTimer) clearTimeout(this._practiceSlashFxTimer);
       if (!type) return;
       this._practiceSlashFxTimer = setTimeout(() => {
         this.practiceSlashFx = "";
+        this.practiceSlashPraiseText = "";
         this._practiceSlashFxTimer = null;
-      }, 260);
+      }, 980);
     },
     answerPracticeSlash(optionLine) {
       const session = this.practiceSlashSession;
@@ -4189,7 +4198,7 @@ const app = createApp({
           if (!this.practiceSlashSession || this.practiceSlashSession.id !== session.id || this.practiceSlashSession.status !== "running") return;
           this.practiceSlashSession.currentIndex += 1;
           this.practiceSlashSession.reveal = false;
-        }, 150);
+        }, 360);
         return;
       }
       session.wrong += 1;
@@ -4242,6 +4251,7 @@ const app = createApp({
       this.practiceSlashSession = JSON.parse(JSON.stringify(latest));
       this.practiceSlashModeActive = true;
       this.practiceSlashFx = "";
+      this.practiceSlashPraiseText = "";
       this.$nextTick(() => window.scrollTo({ top: 0, behavior: "smooth" }));
     },
     hidePracticeSlashMode() {
@@ -4251,6 +4261,7 @@ const app = createApp({
       this.practiceSlashModeActive = false;
       this.practiceSlashConfigOpen = false;
       this.practiceSlashFx = "";
+      this.practiceSlashPraiseText = "";
     },
     practiceSlashOptionClass(optionLine) {
       const record = this.practiceSlashCurrentAnswerRecord;
