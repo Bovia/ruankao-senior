@@ -234,6 +234,8 @@ const PRACTICE_USER_ANS_STORAGE_KEY = "jiyiqi-practice-user-answers-v1";
 const PRACTICE_ACTIVE_USER_STORAGE_KEY = "jiyiqi-practice-active-user-v1";
 /** 案例题：对照进度、自测草稿、当前大题序号 */
 const CASE_STUDY_STATE_KEY = "jiyiqi-case-study-state-v1";
+/** 斩题模式：按当前用户缓存各大类最近一轮结果 */
+const PRACTICE_SLASH_STORAGE_KEY = "jiyiqi-practice-slash-v1";
 const PRACTICE_PROFILES_SEED_URL = "data/export_my_answers_and_history.json";
 const PROJECT_CACHE_KEYS = [NAV_STORAGE_KEY, FAVORITES_STORAGE_KEY, QUIZ_TTS_VOICE_STORAGE_KEY, PRACTICE_ATTEMPTS_STORAGE_KEY, PRACTICE_USER_ANS_STORAGE_KEY, PRACTICE_ACTIVE_USER_STORAGE_KEY];
 /** 综合题侧栏「错题集」虚拟套卷 id（非 practiceSets 配置项） */
@@ -757,6 +759,14 @@ const app = createApp({
       snippetFavoritePreviewOpen: false,
       snippetFavoriteDraft: null,
       practiceScoresOverviewOpen: false,
+      practiceSlashConfigOpen: false,
+      practiceSlashConfigMode: "wrong",
+      practiceSlashConfigCount: 20,
+      practiceSlashConfigStats: { wrong: 0, correct: 0 },
+      practiceSlashModeActive: false,
+      practiceSlashSession: null,
+      practiceSlashLatestCache: {},
+      practiceSlashFx: "",
       catConfigOpen: false,
       projectConfigMenuOpen: false,
       catVisible: true,
@@ -1434,6 +1444,57 @@ const app = createApp({
       if (this.practiceLayer === "domain") return "知识域 · 各套得分";
       return "练习得分总览";
     },
+    practiceSlashEntryVisible() {
+      return this.activeView === "quiz" && this.quizSubMode === "quiz" && this.practiceLayer !== "case";
+    },
+    practiceSlashScopeTitle() {
+      if (this.practiceLayer === "comprehensive") return "全部综合题";
+      if (this.practiceLayer === "mock") return "全部模考";
+      return "全部知识域";
+    },
+    practiceSlashCacheKey() {
+      return `slash|${this.activeModule}|${this.practiceLayer}`;
+    },
+    practiceSlashLatestSession() {
+      const cache = this.practiceSlashLatestCache && typeof this.practiceSlashLatestCache === "object"
+        ? this.practiceSlashLatestCache
+        : {};
+      return cache[this.practiceSlashCacheKey] || null;
+    },
+    practiceSlashCurrentQuestion() {
+      const session = this.practiceSlashSession;
+      if (!session || !Array.isArray(session.items)) return null;
+      return session.items[session.currentIndex] || null;
+    },
+    practiceSlashCurrentAnswerRecord() {
+      const session = this.practiceSlashSession;
+      const q = this.practiceSlashCurrentQuestion;
+      if (!session || !q || !session.answers || typeof session.answers !== "object") return null;
+      return session.answers[q._slashId] || null;
+    },
+    practiceSlashFinished() {
+      return !!(this.practiceSlashSession && this.practiceSlashSession.status === "finished");
+    },
+    practiceSlashElapsedLabel() {
+      const session = this.practiceSlashSession;
+      if (!session || !session.startedAt) return "00:00";
+      const endTs = session.status === "finished" && session.endedAt ? session.endedAt : this.nowTimestamp;
+      const sec = Math.max(0, Math.floor((endTs - session.startedAt) / 1000));
+      const mm = String(Math.floor(sec / 60)).padStart(2, "0");
+      const ss = String(sec % 60).padStart(2, "0");
+      return `${mm}:${ss}`;
+    },
+    practiceSlashProgressPercent() {
+      const session = this.practiceSlashSession;
+      if (!session || !session.total) return 0;
+      return Math.max(0, Math.min(100, Math.round(((session.answeredCount || 0) / session.total) * 100)));
+    },
+    practiceSlashQuickCountOptions() {
+      const stats = this.practiceSlashConfigStats || {};
+      const total = Math.max(0, Number(stats[this.practiceSlashConfigMode]) || 0);
+      const base = [10, 20, 30, 50, total];
+      return [...new Set(base.filter((n) => Number.isInteger(n) && n > 0 && n <= total))];
+    },
     /** 当前大类下全部套卷 + 错题集，附各套非草稿交卷中时间最后一条的得分 */
     practiceScoresOverviewRows() {
       const av = this.activeView;
@@ -1777,6 +1838,9 @@ const app = createApp({
   },
   watch: {
     activeView() {
+      if (this.activeView !== "quiz" && this.practiceSlashModeActive) {
+        this.hidePracticeSlashMode();
+      }
       if (this.activeView !== "quiz") {
         if (this.practiceExamActive) this.exitPracticeExam();
         if (window.speechSynthesis) {
@@ -1795,6 +1859,9 @@ const app = createApp({
       this._syncPracticeQuizScrollListener();
     },
     practiceLayer() {
+      if (this.practiceSlashModeActive) {
+        this.hidePracticeSlashMode();
+      }
       this._syncPracticeQuizScrollListener();
       this.$nextTick(() => this._ensureLatestAttemptReviewForActiveLayer());
       this.ensureCurrentPracticeDataLoaded();
@@ -1902,6 +1969,7 @@ const app = createApp({
     this._loadPracticeActiveUser();
     this._loadPracticeAttemptLog();
     this._loadPracticeUserAnswers();
+    this._loadPracticeSlashSessions();
     this.$nextTick(() => this._ensureLatestAttemptReviewForActiveLayer());
     if (
       this.activeView === "quiz" &&
@@ -3503,6 +3571,7 @@ const app = createApp({
       });
     },
     selectPracticeLayer(layer) {
+      if (this.practiceSlashModeActive) this.hidePracticeSlashMode();
       if (this.practiceLayer === "case" && layer !== "case") {
         this._bumpQuizTtsGenAndCancel();
         this._clearQuizTtsUi();
@@ -3890,6 +3959,292 @@ const app = createApp({
       this.quizAnswersGlobalShow = show;
       this.quizAnswerPeek = {};
     },
+    _loadPracticeSlashSessions() {
+      try {
+        const raw = localStorage.getItem(PRACTICE_SLASH_STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        if (parsed && parsed.__v === 2 && parsed.profiles && typeof parsed.profiles === "object") {
+          const hit = parsed.profiles[this.activePracticeUserId];
+          this.practiceSlashLatestCache = hit && typeof hit === "object" && !Array.isArray(hit) ? hit : {};
+          return;
+        }
+        this.practiceSlashLatestCache = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+      } catch (e) {
+        this.practiceSlashLatestCache = {};
+      }
+    },
+    _persistPracticeSlashSessions() {
+      try {
+        const raw = localStorage.getItem(PRACTICE_SLASH_STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        const profiles = parsed && parsed.__v === 2 && parsed.profiles && typeof parsed.profiles === "object"
+          ? { ...parsed.profiles }
+          : {};
+        profiles[this.activePracticeUserId] =
+          this.practiceSlashLatestCache && typeof this.practiceSlashLatestCache === "object" ? this.practiceSlashLatestCache : {};
+        localStorage.setItem(PRACTICE_SLASH_STORAGE_KEY, JSON.stringify({ __v: 2, profiles }));
+      } catch (e) {
+        /* ignore quota */
+      }
+    },
+    practiceSlashModeLabel(mode) {
+      return mode === "correct" ? "斩对题" : "斩错题";
+    },
+    practiceSlashResultLine(session) {
+      const s = session || this.practiceSlashSession;
+      if (!s) return "";
+      return `${this.practiceSlashModeLabel(s.mode)} · ${s.correct}/${s.total} 正确 · ${s.wrong} 题待回看`;
+    },
+    async ensurePracticeLayerPoolLoaded(layer) {
+      const target = String(layer || this.practiceLayer || "").trim();
+      if (!target || target === "case") return false;
+      if (target === "domain") {
+        const list = (this.visibleDomains || []).filter((d) => d && d.id);
+        await Promise.all(list.map((d) => this.ensureDomainPracticeLoaded(d.id)));
+        return true;
+      }
+      if (target === "comprehensive") {
+        const list = (this.comprehensiveSets || []).filter((s) => s && s.key);
+        await Promise.all(list.map((s) => this.ensurePracticeSetLoaded(s)));
+        return true;
+      }
+      if (target === "mock") {
+        const list = (this.mockSets || []).filter((s) => s && s.key);
+        await Promise.all(list.map((s) => this.ensurePracticeSetLoaded(s)));
+        return true;
+      }
+      return false;
+    },
+    _collectPracticeSlashCandidatesByLayer(layer, mode) {
+      const targetLayer = String(layer || this.practiceLayer || "").trim();
+      const targetMode = mode === "correct" ? "correct" : "wrong";
+      const isDomainLayer = targetLayer === "domain";
+      const isMockLayer = targetLayer === "mock";
+      const sets = isDomainLayer ? this.visibleDomains : (isMockLayer ? this.mockSets : this.comprehensiveSets);
+      const wrongBookId = isDomainLayer ? this.domainWrongBookId : (isMockLayer ? this.mockWrongBookId : this.comprehensiveWrongBookId);
+      const setIdIndex = isDomainLayer ? 2 : (isMockLayer ? 4 : 3);
+      const setById = Object.fromEntries((sets || []).map((s) => [s.id, s]));
+      const latestBySet = {};
+      const log = this.practiceAttemptLog || {};
+      for (const [bundleKey, attempts] of Object.entries(log)) {
+        const parts = bundleKey.split("|");
+        if (parts.length < 5 || parts[0] !== "quiz" || parts[1] !== targetLayer) continue;
+        const setId = parts[setIdIndex];
+        if (setId === wrongBookId || !setById[setId]) continue;
+        if (!Array.isArray(attempts) || !attempts.length) continue;
+        let latest = null;
+        for (const att of attempts) {
+          if (!att || typeof att !== "object" || att.isDraft) continue;
+          if (!latest || (att.ts || 0) > (latest.ts || 0)) latest = att;
+        }
+        if (latest) latestBySet[setId] = latest;
+      }
+      const rows = [];
+      for (const [setId, latest] of Object.entries(latestBySet)) {
+        const set = setById[setId];
+        const quiz = isDomainLayer ? (Array.isArray(set.quiz) ? set.quiz : []) : this._resolveSetQuiz(set);
+        if (!Array.isArray(quiz) || !quiz.length) continue;
+        const answerMap = latest.answerMap && typeof latest.answerMap === "object" ? latest.answerMap : {};
+        const choices = latest.choices && typeof latest.choices === "object" ? latest.choices : {};
+        const setTitle = isDomainLayer ? (set.name || set.title || setId) : (set.title || set.key || setId);
+        for (const [k, ansRaw] of Object.entries(answerMap)) {
+          const oi = Number(k);
+          if (!Number.isInteger(oi)) continue;
+          const q = quiz[oi];
+          if (!q) continue;
+          const ans = normalizeQuizAnswerKey(ansRaw);
+          const user = normalizeQuizAnswerKey(choices[k] || "");
+          if (!ans || !user) continue;
+          const matched = targetMode === "correct" ? user === ans : user !== ans;
+          if (!matched) continue;
+          rows.push({
+            ...q,
+            _originIndex: oi,
+            _slashId: `${setId}|${oi}`,
+            _slashSource: {
+              setId,
+              setTitle,
+              originIndex: oi,
+              userAnswer: user
+            }
+          });
+        }
+      }
+      return rows;
+    },
+    _shufflePracticeSlashRows(rows) {
+      const arr = Array.isArray(rows) ? rows.map((q) => ({ ...q })) : [];
+      for (let i = arr.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    },
+    async openPracticeSlashConfig() {
+      if (!this.practiceSlashEntryVisible) return;
+      await this.ensurePracticeLayerPoolLoaded(this.practiceLayer);
+      const wrong = this._collectPracticeSlashCandidatesByLayer(this.practiceLayer, "wrong").length;
+      const correct = this._collectPracticeSlashCandidatesByLayer(this.practiceLayer, "correct").length;
+      this.practiceSlashConfigStats = { wrong, correct };
+      if (!wrong && !correct) {
+        this._showCuteTip("当前大类还没有可斩题目，请先做题并生成记录");
+        return;
+      }
+      if ((this.practiceSlashConfigMode === "wrong" && !wrong) || (this.practiceSlashConfigMode === "correct" && !correct)) {
+        this.practiceSlashConfigMode = wrong ? "wrong" : "correct";
+      }
+      const total = this.practiceSlashConfigStats[this.practiceSlashConfigMode] || 0;
+      this.practiceSlashConfigCount = Math.max(1, Math.min(total, Number(this.practiceSlashConfigCount) || Math.min(20, total)));
+      this.practiceSlashConfigOpen = true;
+    },
+    closePracticeSlashConfig() {
+      this.practiceSlashConfigOpen = false;
+    },
+    async startPracticeSlashSession() {
+      if (!this.practiceSlashEntryVisible) return;
+      await this.ensurePracticeLayerPoolLoaded(this.practiceLayer);
+      const mode = this.practiceSlashConfigMode === "correct" ? "correct" : "wrong";
+      const candidates = this._collectPracticeSlashCandidatesByLayer(this.practiceLayer, mode);
+      if (!candidates.length) {
+        this._showCuteTip(`当前没有可${this.practiceSlashModeLabel(mode)}的题目`);
+        return;
+      }
+      const total = Math.max(1, Math.min(candidates.length, Number(this.practiceSlashConfigCount) || candidates.length));
+      if (this.practiceExamActive) this.exitPracticeExam();
+      this._bumpQuizTtsGenAndCancel();
+      this._clearQuizTtsUi();
+      this.practiceSlashSession = {
+        id: newPracticeAttemptId(),
+        cacheKey: this.practiceSlashCacheKey,
+        activeModule: this.activeModule,
+        layer: this.practiceLayer,
+        mode,
+        sourceTitle: this.practiceSlashScopeTitle,
+        startedAt: Date.now(),
+        endedAt: null,
+        status: "running",
+        total,
+        currentIndex: 0,
+        answeredCount: 0,
+        correct: 0,
+        wrong: 0,
+        reveal: false,
+        answers: {},
+        items: this._shufflePracticeSlashRows(candidates).slice(0, total),
+        wrongQuestions: []
+      };
+      this.practiceSlashFx = "";
+      this.practiceSlashModeActive = true;
+      this.practiceSlashConfigOpen = false;
+      this.$nextTick(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+    },
+    _setPracticeSlashFx(type) {
+      this.practiceSlashFx = type || "";
+      if (this._practiceSlashFxTimer) clearTimeout(this._practiceSlashFxTimer);
+      if (!type) return;
+      this._practiceSlashFxTimer = setTimeout(() => {
+        this.practiceSlashFx = "";
+        this._practiceSlashFxTimer = null;
+      }, 260);
+    },
+    answerPracticeSlash(optionLine) {
+      const session = this.practiceSlashSession;
+      const q = this.practiceSlashCurrentQuestion;
+      if (!this.practiceSlashModeActive || !session || session.status !== "running" || !q || session.reveal) return;
+      const picked = extractQuizOptionLetter(optionLine);
+      const ans = normalizeQuizAnswerKey(q.answer || "");
+      if (!picked || !ans) return;
+      const hit = picked === ans;
+      session.answers[q._slashId] = { picked, answer: ans, correct: hit };
+      session.answeredCount += 1;
+      if (hit) {
+        session.correct += 1;
+        this._setPracticeSlashFx("correct");
+        if (session.currentIndex >= session.total - 1) {
+          this.finishPracticeSlashSession("done");
+          return;
+        }
+        setTimeout(() => {
+          if (!this.practiceSlashSession || this.practiceSlashSession.id !== session.id || this.practiceSlashSession.status !== "running") return;
+          this.practiceSlashSession.currentIndex += 1;
+          this.practiceSlashSession.reveal = false;
+        }, 150);
+        return;
+      }
+      session.wrong += 1;
+      session.reveal = true;
+      session.wrongQuestions.push({
+        ...q,
+        _slashPicked: picked
+      });
+      this._setPracticeSlashFx("wrong");
+    },
+    goNextPracticeSlashQuestion() {
+      const session = this.practiceSlashSession;
+      if (!session || session.status !== "running") return;
+      if (session.currentIndex >= session.total - 1) {
+        this.finishPracticeSlashSession("done");
+        return;
+      }
+      session.currentIndex += 1;
+      session.reveal = false;
+    },
+    finishPracticeSlashSession(reason) {
+      const session = this.practiceSlashSession;
+      if (!session) return;
+      if (session.status === "finished") {
+        this._cachePracticeSlashSession(session);
+        return;
+      }
+      session.status = "finished";
+      session.endedAt = Date.now();
+      session.finishReason = reason || "done";
+      session.reveal = false;
+      this._cachePracticeSlashSession(session);
+    },
+    _cachePracticeSlashSession(session) {
+      if (!session || !session.cacheKey) return;
+      const cloned = JSON.parse(JSON.stringify(session));
+      this.practiceSlashLatestCache = {
+        ...(this.practiceSlashLatestCache && typeof this.practiceSlashLatestCache === "object" ? this.practiceSlashLatestCache : {}),
+        [session.cacheKey]: cloned
+      };
+      this.practiceSlashSession = cloned;
+      this._persistPracticeSlashSessions();
+    },
+    openLatestPracticeSlashResult() {
+      const latest = this.practiceSlashLatestSession;
+      if (!latest) {
+        this._showCuteTip("当前大类还没有斩题记录");
+        return;
+      }
+      this.practiceSlashSession = JSON.parse(JSON.stringify(latest));
+      this.practiceSlashModeActive = true;
+      this.practiceSlashFx = "";
+      this.$nextTick(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+    },
+    hidePracticeSlashMode() {
+      if (this.practiceSlashSession && this.practiceSlashSession.status === "running") {
+        this.finishPracticeSlashSession("pause");
+      }
+      this.practiceSlashModeActive = false;
+      this.practiceSlashConfigOpen = false;
+      this.practiceSlashFx = "";
+    },
+    practiceSlashOptionClass(optionLine) {
+      const record = this.practiceSlashCurrentAnswerRecord;
+      const q = this.practiceSlashCurrentQuestion;
+      const base = ["practice-slash-option"];
+      const letter = extractQuizOptionLetter(optionLine);
+      const ans = normalizeQuizAnswerKey((q && q.answer) || "");
+      if (!record) return base.join(" ");
+      if (record.picked === letter) base.push("practice-slash-option--picked");
+      if (this.practiceSlashSession && this.practiceSlashSession.reveal) {
+        if (letter === ans) base.push("practice-slash-option--truth");
+        if (record.picked === letter && record.picked !== ans) base.push("practice-slash-option--miss");
+      }
+      return base.join(" ");
+    },
     _loadPracticeAttemptLog() {
       try {
         const raw = localStorage.getItem(PRACTICE_ATTEMPTS_STORAGE_KEY);
@@ -4084,6 +4439,7 @@ const app = createApp({
       return this._buildWrongBookCandidatesShuffledByLayer("mock");
     },
     startPracticeExam(options) {
+      if (this.practiceSlashModeActive) this.hidePracticeSlashMode();
       if (!this.practiceQuizBaseRowsForExam.length && (this.practiceLayer === "domain" || this.practiceLayer === "comprehensive" || this.practiceLayer === "mock")) {
         this.ensureCurrentPracticeDataLoaded();
         this._showCuteTip(this.practiceActiveDataLoading ? "题库加载中，请稍候再开始做题" : "题库暂未就绪，请稍后重试");

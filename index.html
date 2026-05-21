@@ -323,6 +323,14 @@
                   <h2 class="font-display text-base font-semibold md:text-xl">知识域</h2>
                 </div>
                 <button
+                  v-if="activeView === 'quiz' && quizSubMode === 'quiz'"
+                  type="button"
+                  class="practice-slash-icon-btn"
+                  title="打开斩题配置"
+                  aria-label="打开斩题配置"
+                  @click="openPracticeSlashConfig"
+                >斩</button>
+                <button
                   v-if="activeView === 'quiz' && quizSubMode === 'quiz' && practiceScoresOverviewRows.length"
                   type="button"
                   class="practice-scores-overview-icon-btn practice-scores-overview-icon-btn--aside"
@@ -422,6 +430,14 @@
                   <h2 class="font-display text-base font-semibold md:text-xl">综合题</h2>
                 </div>
                 <button
+                  v-if="activeView === 'quiz' && quizSubMode === 'quiz'"
+                  type="button"
+                  class="practice-slash-icon-btn"
+                  title="打开斩题配置"
+                  aria-label="打开斩题配置"
+                  @click="openPracticeSlashConfig"
+                >斩</button>
+                <button
                   v-if="activeView === 'quiz' && quizSubMode === 'quiz' && practiceScoresOverviewRows.length"
                   type="button"
                   class="practice-scores-overview-icon-btn practice-scores-overview-icon-btn--aside"
@@ -508,6 +524,14 @@
                   <p class="hidden text-xs font-semibold uppercase tracking-[0.22em] text-ocean/60 md:block">Mock Exam</p>
                   <h2 class="font-display text-base font-semibold md:text-xl">模考</h2>
                 </div>
+                <button
+                  v-if="activeView === 'quiz' && quizSubMode === 'quiz'"
+                  type="button"
+                  class="practice-slash-icon-btn"
+                  title="打开斩题配置"
+                  aria-label="打开斩题配置"
+                  @click="openPracticeSlashConfig"
+                >斩</button>
                 <button
                   v-if="activeView === 'quiz' && quizSubMode === 'quiz' && practiceScoresOverviewRows.length"
                   type="button"
@@ -1400,6 +1424,71 @@
                 </div>
               </div>
             </teleport>
+            <teleport to="body">
+              <div
+                v-if="practiceSlashConfigOpen"
+                class="practice-restart-modal-backdrop"
+                @click="closePracticeSlashConfig"
+              >
+                <div
+                  class="practice-restart-modal practice-slash-config-modal"
+                  @click.stop
+                >
+                  <p class="practice-restart-modal__title">斩题配置</p>
+                  <p class="text-sm leading-7 text-ink/72">范围：{{ practiceSlashScopeTitle }}。会按你最近一轮做题记录，随机抽取对应的对题或错题。</p>
+                  <div class="quiz-ans-bar quiz-ans-bar--compact">
+                    <button
+                      type="button"
+                      class="quiz-ans-btn"
+                      :class="{ 'quiz-ans-btn-active': practiceSlashConfigMode === 'wrong' }"
+                      :disabled="!practiceSlashConfigStats.wrong"
+                      @click="practiceSlashConfigMode = 'wrong'"
+                    >斩错题（{{ practiceSlashConfigStats.wrong }}）</button>
+                    <button
+                      type="button"
+                      class="quiz-ans-btn"
+                      :class="{ 'quiz-ans-btn-active': practiceSlashConfigMode === 'correct' }"
+                      :disabled="!practiceSlashConfigStats.correct"
+                      @click="practiceSlashConfigMode = 'correct'"
+                    >斩对题（{{ practiceSlashConfigStats.correct }}）</button>
+                  </div>
+                  <div class="practice-history-field">
+                    <span class="practice-history-field__label">抽题数量</span>
+                    <div class="practice-history-field__control">
+                      <input
+                        v-model.number="practiceSlashConfigCount"
+                        type="number"
+                        min="1"
+                        :max="practiceSlashConfigStats[practiceSlashConfigMode] || 1"
+                        class="practice-slash-config-input"
+                      />
+                    </div>
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    <button
+                      v-for="n in practiceSlashQuickCountOptions"
+                      :key="'slash-count-'+n"
+                      type="button"
+                      class="practice-slash-count-chip"
+                      :class="{ 'practice-slash-count-chip--active': Number(practiceSlashConfigCount) === n }"
+                      @click="practiceSlashConfigCount = n"
+                    >{{ n }} 题</button>
+                  </div>
+                  <div class="mt-2 flex justify-end gap-2">
+                    <button
+                      type="button"
+                      class="practice-exam-ghost-btn"
+                      @click="closePracticeSlashConfig"
+                    >取消</button>
+                    <button
+                      type="button"
+                      class="process-nav-btn"
+                      @click="startPracticeSlashSession"
+                    >开斩</button>
+                  </div>
+                </div>
+              </div>
+            </teleport>
 
             <div class="mb-3 flex flex-wrap items-end justify-between gap-3">
               <div>
@@ -1414,6 +1503,18 @@
                   class="practice-exam-bar practice-exam-bar--compact"
                 >
                   <template v-if="!practiceExamActive">
+                    <button
+                      v-if="practiceSlashEntryVisible"
+                      type="button"
+                      class="practice-slash-entry-btn"
+                      @click="openPracticeSlashConfig"
+                    >斩题</button>
+                    <button
+                      v-if="practiceSlashEntryVisible && practiceSlashLatestSession"
+                      type="button"
+                      class="practice-history-trigger"
+                      @click="openLatestPracticeSlashResult"
+                    >上轮结果</button>
                     <button
                       v-if="practiceExamAttemptsForBundle.length"
                       type="button"
@@ -1515,15 +1616,157 @@
                       @click="openPracticeRestartPicker"
                     >再来一次</button>
                     <button
+                      v-if="practiceSlashEntryVisible"
+                      type="button"
+                      class="practice-history-trigger"
+                      @click="openLatestPracticeSlashResult"
+                    >斩题结果</button>
+                    <button
                       type="button"
                       class="practice-exam-ghost-btn"
                       @click="exitPracticeExam"
                     >返回浏览</button>
                   </template>
                 </div>
+                <div
+                  v-else-if="practiceSlashEntryVisible"
+                  class="practice-exam-bar practice-exam-bar--compact"
+                >
+                  <button
+                    type="button"
+                    class="practice-slash-entry-btn"
+                    @click="openPracticeSlashConfig"
+                  >斩题</button>
+                  <button
+                    v-if="practiceSlashLatestSession"
+                    type="button"
+                    class="practice-history-trigger"
+                    @click="openLatestPracticeSlashResult"
+                  >上轮结果</button>
+                </div>
               </div>
             </div>
-            <div v-if="quizSubMode === 'quiz'">
+            <div v-if="practiceSlashModeActive" class="practice-slash-shell" :class="{ 'practice-slash-shell--done': practiceSlashFinished }">
+              <template v-if="!practiceSlashFinished && practiceSlashCurrentQuestion">
+                <section class="practice-slash-hero">
+                  <div class="practice-slash-hero__meta">
+                    <span class="practice-slash-kicker">{{ practiceSlashModeLabel(practiceSlashSession.mode) }}</span>
+                    <span class="practice-slash-source">{{ practiceSlashSession.sourceTitle }}</span>
+                  </div>
+                  <div class="practice-slash-hero__stats">
+                    <div class="practice-slash-stat"><strong>{{ practiceSlashSession.answeredCount }}</strong><span>已斩题数</span></div>
+                    <div class="practice-slash-stat"><strong>{{ practiceSlashElapsedLabel }}</strong><span>已用时</span></div>
+                    <div class="practice-slash-stat practice-slash-stat--ok"><strong>{{ practiceSlashSession.correct }}</strong><span>正确</span></div>
+                    <div class="practice-slash-stat practice-slash-stat--bad"><strong>{{ practiceSlashSession.wrong }}</strong><span>错误</span></div>
+                  </div>
+                  <div class="practice-slash-progress">
+                    <div class="practice-slash-progress__track">
+                      <div class="practice-slash-progress__fill" :style="{ width: practiceSlashProgressPercent + '%' }"></div>
+                    </div>
+                    <p class="practice-slash-progress__label">当前进度：第 {{ practiceSlashSession.currentIndex + 1 }} / {{ practiceSlashSession.total }} 题</p>
+                  </div>
+                </section>
+                <article class="practice-slash-card" :class="{ 'practice-slash-card--correct': practiceSlashFx === 'correct', 'practice-slash-card--wrong': practiceSlashFx === 'wrong' }">
+                  <div class="practice-slash-card__head">
+                    <div>
+                      <p class="eyebrow">{{ practiceSlashCurrentQuestion.type || '选择题' }}</p>
+                      <h4 class="practice-slash-card__title" v-html="formatPracticeRichText(practiceSlashCurrentQuestion.question)"></h4>
+                    </div>
+                    <span class="practice-slash-card__source">{{ practiceSlashCurrentQuestion._slashSource && practiceSlashCurrentQuestion._slashSource.setTitle }}</span>
+                  </div>
+                  <ul class="practice-slash-options">
+                    <li
+                      v-for="option in practiceSlashCurrentQuestion.options"
+                      :key="option"
+                    >
+                      <button
+                        type="button"
+                        :class="practiceSlashOptionClass(option)"
+                        :disabled="!!practiceSlashCurrentAnswerRecord"
+                        @click="answerPracticeSlash(option)"
+                      >{{ option }}</button>
+                    </li>
+                  </ul>
+                  <div
+                    v-if="practiceSlashSession.reveal && practiceSlashCurrentAnswerRecord"
+                    class="practice-slash-answer"
+                  >
+                    <div class="practice-slash-answer__top">
+                      <span class="practice-slash-answer__badge">这题先记一下</span>
+                      <span>你的选择：{{ practiceSlashCurrentAnswerRecord.picked }} / 正确答案：{{ practiceSlashCurrentAnswerRecord.answer }}</span>
+                    </div>
+                    <div class="mt-2 whitespace-pre-wrap practice-rich-text" v-html="formatPracticeRichText(practiceSlashCurrentQuestion.analysis)"></div>
+                    <div class="practice-card-nav mt-4">
+                      <button
+                        type="button"
+                        class="practice-card-nav-btn practice-card-nav-btn--primary"
+                        @click="goNextPracticeSlashQuestion"
+                      >下一题</button>
+                    </div>
+                  </div>
+                </article>
+                <div class="practice-slash-footer">
+                  <p class="practice-slash-footer__hint">答对会自动切到下一题，答错会立刻给你答案和解析，节奏会更快一点。</p>
+                  <button
+                    type="button"
+                    class="practice-exam-ghost-btn"
+                    @click="finishPracticeSlashSession('learn-enough')"
+                  >学到这</button>
+                </div>
+              </template>
+              <template v-else-if="practiceSlashSession">
+                <section class="practice-slash-summary">
+                  <div class="practice-slash-summary__head">
+                    <div>
+                      <p class="practice-slash-kicker">{{ practiceSlashModeLabel(practiceSlashSession.mode) }}</p>
+                      <h4 class="font-display text-2xl font-semibold text-ink">这一轮先斩到这</h4>
+                      <p class="mt-2 text-sm leading-7 text-ink/72">{{ practiceSlashResultLine(practiceSlashSession) }}</p>
+                    </div>
+                    <div class="practice-slash-summary__actions">
+                      <button
+                        type="button"
+                        class="process-nav-btn"
+                        @click="openPracticeSlashConfig"
+                      >再开一轮</button>
+                      <button
+                        type="button"
+                        class="practice-exam-ghost-btn"
+                        @click="hidePracticeSlashMode"
+                      >返回练习场</button>
+                    </div>
+                  </div>
+                  <div class="practice-slash-hero__stats practice-slash-hero__stats--summary">
+                    <div class="practice-slash-stat"><strong>{{ practiceSlashSession.total }}</strong><span>总题数</span></div>
+                    <div class="practice-slash-stat"><strong>{{ practiceSlashElapsedLabel }}</strong><span>总用时</span></div>
+                    <div class="practice-slash-stat practice-slash-stat--ok"><strong>{{ practiceSlashSession.correct }}</strong><span>正确</span></div>
+                    <div class="practice-slash-stat practice-slash-stat--bad"><strong>{{ practiceSlashSession.wrong }}</strong><span>错题</span></div>
+                  </div>
+                  <div v-if="practiceSlashSession.wrongQuestions && practiceSlashSession.wrongQuestions.length" class="practice-slash-review">
+                    <div class="mb-3 flex items-center justify-between gap-2">
+                      <h5 class="font-display text-lg font-semibold text-ink">本轮错题</h5>
+                      <span class="text-xs font-medium text-ocean/66">{{ practiceSlashSession.wrongQuestions.length }} 题</span>
+                    </div>
+                    <article
+                      v-for="(question, qi) in practiceSlashSession.wrongQuestions"
+                      :key="question._slashId || ('slash-wrong-'+qi)"
+                      class="practice-slash-review-card"
+                    >
+                      <div class="practice-slash-review-card__head">
+                        <span class="practice-slash-review-card__badge">{{ (question._slashSource && question._slashSource.setTitle) || practiceSlashScopeTitle }}</span>
+                        <span class="practice-slash-review-card__picked">你选了 {{ question._slashPicked }} / 正确 {{ question.answer }}</span>
+                      </div>
+                      <h6 class="practice-slash-review-card__title" v-html="formatPracticeRichText(question.question)"></h6>
+                      <div class="mt-2 whitespace-pre-wrap practice-rich-text" v-html="formatPracticeRichText(question.analysis)"></div>
+                    </article>
+                  </div>
+                  <div v-else class="panel-subtle">
+                    <p class="eyebrow">零错题</p>
+                    <p class="mt-2 text-sm leading-7 text-ink/75">这一轮没有留下错题，继续开下一轮就行。</p>
+                  </div>
+                </section>
+              </template>
+            </div>
+            <div v-else-if="quizSubMode === 'quiz'">
               <div
                 v-if="practiceLayer === 'case'"
                 class="case-study min-w-0"
