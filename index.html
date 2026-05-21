@@ -3793,13 +3793,24 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js" crossorigin="anonymous" onerror="this.onerror=null;this.src='https://unpkg.com/vue@3/dist/vue.global.prod.js'"></script>
   <script>
-    if (typeof Vue === "undefined") {
-      document.write('<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js" crossorigin="anonymous"><\/script>');
-    }
-  </script>
-  <script>
+    // 检测 Vue 是否加载成功，兼容更多移动浏览器
+    window.addEventListener('DOMContentLoaded', function() {
+      setTimeout(function () {
+        if (typeof Vue === 'undefined') {
+          var app = document.getElementById("app");
+          if (app) {
+            app.removeAttribute("v-cloak");
+            app.innerHTML =
+              '<div style="padding:1.25rem;line-height:1.7;font-family:system-ui,sans-serif;color:#16313f">' +
+              '<p style="font-weight:700;margin:0 0 .5rem">Vue 加载失败</p>' +
+              '<p style="margin:0;font-size:.92rem;color:#475569">请检查网络连接或更换浏览器（推荐 Chrome/Safari）。</p></div>';
+          }
+        }
+      }, 5000);
+    });
+    // 原有的长时间加载检测
     setTimeout(function () {
       var app = document.getElementById("app");
       if (!app || !app.hasAttribute("v-cloak")) return;
