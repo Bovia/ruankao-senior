@@ -247,6 +247,69 @@ const PROJECT_CACHE_KEYS = [
   CASE_STUDY_STATE_KEY,
   PRACTICE_SLASH_STORAGE_KEY
 ];
+
+/**
+ * Some browsers (notably iOS Safari / in-app browsers) may throw when accessing
+ * `window.localStorage` (e.g. file:// pages or privacy restrictions).
+ * Use a safe wrapper with an in-memory fallback so the app can still run.
+ */
+const __memoryStorage = (() => {
+  const map = new Map();
+  return {
+    __kind: "memory",
+    getItem(k) { return map.has(k) ? map.get(k) : null; },
+    setItem(k, v) { map.set(String(k), String(v)); },
+    removeItem(k) { map.delete(String(k)); }
+  };
+})();
+
+let __safeStorageCached = null;
+let __safeStorageKind = "memory";
+
+function safeStorage() {
+  if (__safeStorageCached) return __safeStorageCached;
+  try {
+    const ls = window.localStorage;
+    // Probe writeability; some environments expose it but throw on use.
+    const probeKey = "__jiyiqi_probe__";
+    try {
+      ls.setItem(probeKey, "1");
+      ls.removeItem(probeKey);
+      __safeStorageCached = ls;
+      __safeStorageKind = "localStorage";
+      return ls;
+    } catch (_) {
+      __safeStorageCached = __memoryStorage;
+      __safeStorageKind = "memory";
+      return __memoryStorage;
+    }
+  } catch (_) {
+    __safeStorageCached = __memoryStorage;
+    __safeStorageKind = "memory";
+    return __memoryStorage;
+  }
+}
+
+function safeStorageKind() {
+  safeStorage();
+  return __safeStorageKind;
+}
+
+function safeGetItem(key) {
+  return safeStorage().getItem(key);
+}
+
+function safeSetItem(key, val) {
+  safeStorage().setItem(key, val);
+}
+
+function safeRemoveItem(key) {
+  try {
+    safeStorage().removeItem(key);
+  } catch (_) {
+    /* ignore */
+  }
+}
 /** 综合题侧栏「错题集」虚拟套卷 id（非 practiceSets 配置项） */
 const COMPREHENSIVE_WRONG_BOOK_ID = "__wrongbook__";
 /** 模拟题侧栏「错题集」虚拟套卷 id（非 practiceSets 配置项） */
@@ -377,7 +440,7 @@ function loadPersistedNavState(ctx) {
   } = ctx;
   let raw = null;
   try {
-    raw = JSON.parse(localStorage.getItem(NAV_STORAGE_KEY) || "null");
+    raw = JSON.parse(safeGetItem(NAV_STORAGE_KEY) || "null");
   } catch (e) {
     return null;
   }
@@ -1987,31 +2050,21 @@ const app = createApp({
     this.ensureCurrentPracticeDataLoaded();
     this._loadFavorites();
     this._loadPracticeActiveUser();
-    this._loadPracticeAttemptLog();
-    this._loadPracticeUserAnswers();
-    this._loadPracticeSlashSessions();
-    this.$nextTick(() => this._ensureLatestAttemptReviewForActiveLayer());
-    if (
-      this.activeView === "quiz" &&
-      this.practiceLayer === "domain" &&
-      this.activeDomainId === this.domainWrongBookId
-    ) {
-      this.practiceDomainWrongBookSnapshot = this._buildWrongBookCandidatesShuffledByLayer("domain");
-    }
-    if (
-      this.activeView === "quiz" &&
-      this.practiceLayer === "comprehensive" &&
-      this.activeComprehensiveId === this.comprehensiveWrongBookId
-    ) {
-      this.practiceWrongBookSnapshot = this._buildWrongBookCandidatesShuffled();
-    }
-    if (
-      this.activeView === "quiz" &&
-      this.practiceLayer === "mock" &&
-      this.activeMockId === this.mockWrongBookId
-    ) {
-      this.practiceMockWrongBookSnapshot = this._buildMockWrongBookCandidatesShuffled();
-    }
+
+    // In some in-app browsers / file:// environments, localStorage may be blocked.
+    // We fall back to in-memory storage; pre-warm it with exported seed so history-based
+    // features (e.g. 斩错题/斩对题) still work in this session.
+    Promise.resolve(this._bootstrapSeedIntoMemoryStorageIfNeeded())
+      .then((booted) => {
+        if (booted) this._loadPracticeActiveUser();
+      })
+      .finally(() => {
+        this._loadPracticeAttemptLog();
+        this._loadPracticeUserAnswers();
+        this._loadPracticeSlashSessions();
+        this.$nextTick(() => this._ensureLatestAttemptReviewForActiveLayer());
+        this._maybeBuildWrongBookSnapshotsForActiveRoute();
+      });
     if (this.activeView === "quiz" && this.practiceLayer === "case") {
       this._loadCaseStudyStateForBundle();
     }
@@ -2068,7 +2121,7 @@ const app = createApp({
     },
     _persistFavorites() {
       try {
-        localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify({
+        safeSetItem(FAVORITES_STORAGE_KEY, JSON.stringify({
           v: 1,
           compact: this.favoritesCompact,
           items: this.favorites.slice(-800)
@@ -2079,7 +2132,7 @@ const app = createApp({
     },
     _loadFavorites() {
       try {
-        const raw = JSON.parse(localStorage.getItem(FAVORITES_STORAGE_KEY) || "null");
+        const raw = JSON.parse(safeGetItem(FAVORITES_STORAGE_KEY) || "null");
         if (!raw || raw.v !== 1 || !Array.isArray(raw.items)) return;
         if (typeof raw.compact === "boolean") {
           this.favoritesCompact = raw.compact;
@@ -2093,7 +2146,7 @@ const app = createApp({
     },
     _loadCatSettings() {
       try {
-        const raw = JSON.parse(localStorage.getItem(CAT_STORAGE_KEY) || "null");
+        const raw = JSON.parse(safeGetItem(CAT_STORAGE_KEY) || "null");
         if (!raw || raw.v !== 1) return;
         if (typeof raw.visible === "boolean") this.catVisible = raw.visible;
         if (Number.isInteger(raw.crowdCount)) {
@@ -2105,7 +2158,7 @@ const app = createApp({
     },
     _persistCatSettings() {
       try {
-        localStorage.setItem(CAT_STORAGE_KEY, JSON.stringify({
+        safeSetItem(CAT_STORAGE_KEY, JSON.stringify({
           v: 1,
           visible: this.catVisible,
           crowdCount: this.catCrowdCount
@@ -2338,7 +2391,7 @@ const app = createApp({
     async exportProjectCacheToClipboard() {
       const items = {};
       PROJECT_CACHE_KEYS.forEach((k) => {
-        const val = localStorage.getItem(k);
+        const val = safeGetItem(k);
         if (val !== null) items[k] = val;
       });
       const payload = JSON.stringify({
@@ -2366,7 +2419,7 @@ const app = createApp({
     },
     _loadPracticeActiveUser() {
       try {
-        const raw = localStorage.getItem(PRACTICE_ACTIVE_USER_STORAGE_KEY);
+        const raw = safeGetItem(PRACTICE_ACTIVE_USER_STORAGE_KEY);
         this.activePracticeUserId = this._normalizePracticeUserId(raw || "bovia");
       } catch (e) {
         this.activePracticeUserId = "bovia";
@@ -2385,6 +2438,32 @@ const app = createApp({
         return JSON.parse(seedText);
       } catch (e) {
         throw new Error("export_my_answers_and_history.json 文件内容不是合法 JSON");
+      }
+    },
+    async _bootstrapSeedIntoMemoryStorageIfNeeded() {
+      // Only meaningful when we are running on the in-memory storage fallback.
+      if (safeStorageKind() !== "memory") return false;
+
+      // If we already have something, don't override.
+      const hasAttempts = safeGetItem(PRACTICE_ATTEMPTS_STORAGE_KEY) !== null;
+      const hasAnswers = safeGetItem(PRACTICE_USER_ANS_STORAGE_KEY) !== null;
+      if (hasAttempts || hasAnswers) return false;
+
+      try {
+        const seed = await this._loadPracticeSeedData();
+        const items = seed && seed.items && typeof seed.items === "object" ? seed.items : null;
+        if (!items) return false;
+        let wrote = 0;
+        PROJECT_CACHE_KEYS.forEach((k) => {
+          const val = items[k];
+          if (typeof val !== "string") return;
+          if (safeGetItem(k) !== null) return;
+          safeSetItem(k, val);
+          wrote += 1;
+        });
+        return wrote > 0;
+      } catch (e) {
+        return false;
       }
     },
     async initPracticeUserFromSeed(uidRaw) {
@@ -2446,8 +2525,8 @@ const app = createApp({
           : profileBySet;
         nextAttempts = this._hydrateAttemptsFromAnswerProfiles(nextAttempts, nextAnswers);
 
-        const attemptsRaw = localStorage.getItem(PRACTICE_ATTEMPTS_STORAGE_KEY);
-        const answersRaw = localStorage.getItem(PRACTICE_USER_ANS_STORAGE_KEY);
+        const attemptsRaw = safeGetItem(PRACTICE_ATTEMPTS_STORAGE_KEY);
+        const answersRaw = safeGetItem(PRACTICE_USER_ANS_STORAGE_KEY);
         let parsedAttempts = {};
         let parsedAnswers = {};
         try {
@@ -2470,9 +2549,9 @@ const app = createApp({
         attemptProfiles[uid] = nextAttempts && typeof nextAttempts === "object" && !Array.isArray(nextAttempts) ? nextAttempts : {};
         answerProfiles[uid] = { v: 1, bySetKey: nextAnswers && typeof nextAnswers === "object" ? nextAnswers : {} };
 
-        localStorage.setItem(PRACTICE_ATTEMPTS_STORAGE_KEY, JSON.stringify({ __v: 2, profiles: attemptProfiles }));
-        localStorage.setItem(PRACTICE_USER_ANS_STORAGE_KEY, JSON.stringify({ __v: 2, profiles: answerProfiles }));
-        localStorage.setItem(PRACTICE_ACTIVE_USER_STORAGE_KEY, uid);
+        safeSetItem(PRACTICE_ATTEMPTS_STORAGE_KEY, JSON.stringify({ __v: 2, profiles: attemptProfiles }));
+        safeSetItem(PRACTICE_USER_ANS_STORAGE_KEY, JSON.stringify({ __v: 2, profiles: answerProfiles }));
+        safeSetItem(PRACTICE_ACTIVE_USER_STORAGE_KEY, uid);
 
         this.activePracticeUserId = uid;
         this.practiceSetCache = {};
@@ -2646,7 +2725,7 @@ const app = createApp({
         }
         PROJECT_CACHE_KEYS.forEach((k) => {
           if (Object.prototype.hasOwnProperty.call(parsed.items, k) && typeof parsed.items[k] === "string") {
-            localStorage.setItem(k, parsed.items[k]);
+            safeSetItem(k, parsed.items[k]);
           }
         });
         this._showCuteTip("导入成功，正在刷新…");
@@ -3014,14 +3093,14 @@ const app = createApp({
     _pickQuizTtsVoiceForUtter(synth) {
       let saved = "";
       try {
-        saved = localStorage.getItem(QUIZ_TTS_VOICE_STORAGE_KEY) || "";
+        saved = safeGetItem(QUIZ_TTS_VOICE_STORAGE_KEY) || "";
       } catch (e) {
         /* ignore */
       }
       const v = pickQuizZhVoice(synth, saved);
       if (v) {
         try {
-          localStorage.setItem(QUIZ_TTS_VOICE_STORAGE_KEY, v.voiceURI);
+          safeSetItem(QUIZ_TTS_VOICE_STORAGE_KEY, v.voiceURI);
         } catch (e) {
           /* ignore */
         }
@@ -3192,7 +3271,7 @@ const app = createApp({
           learnedProcessIds: learned,
           quizTtsRate: this.quizTtsRate
         };
-        localStorage.setItem(NAV_STORAGE_KEY, JSON.stringify(payload));
+        safeSetItem(NAV_STORAGE_KEY, JSON.stringify(payload));
         this.syncUrlState();
       } catch (e) {
         /* 存储已满或禁用 */
@@ -3539,7 +3618,7 @@ const app = createApp({
     },
     _loadPracticeUserAnswers() {
       try {
-        const raw = localStorage.getItem(PRACTICE_USER_ANS_STORAGE_KEY);
+        const raw = safeGetItem(PRACTICE_USER_ANS_STORAGE_KEY);
         const parsed = raw ? JSON.parse(raw) : {};
         if (parsed && parsed.__v === 2 && parsed.profiles && typeof parsed.profiles === "object") {
           const profile = parsed.profiles[this.activePracticeUserId] || {};
@@ -3562,7 +3641,7 @@ const app = createApp({
     },
     _persistPracticeUserAnswers() {
       try {
-        const raw = localStorage.getItem(PRACTICE_USER_ANS_STORAGE_KEY);
+        const raw = safeGetItem(PRACTICE_USER_ANS_STORAGE_KEY);
         const parsed = raw ? JSON.parse(raw) : {};
         const profiles = parsed && parsed.__v === 2 && parsed.profiles && typeof parsed.profiles === "object"
           ? { ...parsed.profiles }
@@ -3571,7 +3650,7 @@ const app = createApp({
           v: 1,
           bySetKey: this.practiceUserAnswers && typeof this.practiceUserAnswers === "object" ? this.practiceUserAnswers : {}
         };
-        localStorage.setItem(PRACTICE_USER_ANS_STORAGE_KEY, JSON.stringify({ __v: 2, profiles }));
+        safeSetItem(PRACTICE_USER_ANS_STORAGE_KEY, JSON.stringify({ __v: 2, profiles }));
       } catch (e) {
         /* ignore */
       }
@@ -3889,7 +3968,7 @@ const app = createApp({
     },
     _loadCaseStudyStateStore() {
       try {
-        const raw = localStorage.getItem(CASE_STUDY_STATE_KEY);
+        const raw = safeGetItem(CASE_STUDY_STATE_KEY);
         const o = raw ? JSON.parse(raw) : {};
         return o && typeof o === "object" && !Array.isArray(o) ? o : {};
       } catch (e) {
@@ -3908,7 +3987,7 @@ const app = createApp({
           revealed: (this.caseStudyRevealed && this.caseStudyRevealed[bk]) || {},
           drafts: (this.caseStudyDrafts && this.caseStudyDrafts[bk]) || {}
         };
-        localStorage.setItem(CASE_STUDY_STATE_KEY, JSON.stringify(store));
+        safeSetItem(CASE_STUDY_STATE_KEY, JSON.stringify(store));
         this.syncUrlState();
       } catch (e) {
         /* ignore */
@@ -3981,9 +4060,25 @@ const app = createApp({
       this.quizAnswersGlobalShow = show;
       this.quizAnswerPeek = {};
     },
+    _maybeBuildWrongBookSnapshotsForActiveRoute() {
+      try {
+        if (this.activeView !== "quiz") return;
+        if (this.practiceLayer === "domain" && this.activeDomainId === this.domainWrongBookId) {
+          this.practiceDomainWrongBookSnapshot = this._buildWrongBookCandidatesShuffledByLayer("domain");
+        }
+        if (this.practiceLayer === "comprehensive" && this.activeComprehensiveId === this.comprehensiveWrongBookId) {
+          this.practiceWrongBookSnapshot = this._buildWrongBookCandidatesShuffled();
+        }
+        if (this.practiceLayer === "mock" && this.activeMockId === this.mockWrongBookId) {
+          this.practiceMockWrongBookSnapshot = this._buildMockWrongBookCandidatesShuffled();
+        }
+      } catch (e) {
+        /* ignore */
+      }
+    },
     _loadPracticeSlashSessions() {
       try {
-        const raw = localStorage.getItem(PRACTICE_SLASH_STORAGE_KEY);
+        const raw = safeGetItem(PRACTICE_SLASH_STORAGE_KEY);
         const parsed = raw ? JSON.parse(raw) : {};
         if (parsed && parsed.__v === 2 && parsed.profiles && typeof parsed.profiles === "object") {
           const hit = parsed.profiles[this.activePracticeUserId];
@@ -3997,14 +4092,14 @@ const app = createApp({
     },
     _persistPracticeSlashSessions() {
       try {
-        const raw = localStorage.getItem(PRACTICE_SLASH_STORAGE_KEY);
+        const raw = safeGetItem(PRACTICE_SLASH_STORAGE_KEY);
         const parsed = raw ? JSON.parse(raw) : {};
         const profiles = parsed && parsed.__v === 2 && parsed.profiles && typeof parsed.profiles === "object"
           ? { ...parsed.profiles }
           : {};
         profiles[this.activePracticeUserId] =
           this.practiceSlashLatestCache && typeof this.practiceSlashLatestCache === "object" ? this.practiceSlashLatestCache : {};
-        localStorage.setItem(PRACTICE_SLASH_STORAGE_KEY, JSON.stringify({ __v: 2, profiles }));
+        safeSetItem(PRACTICE_SLASH_STORAGE_KEY, JSON.stringify({ __v: 2, profiles }));
       } catch (e) {
         /* ignore quota */
       }
@@ -4062,7 +4157,9 @@ const app = createApp({
         if (latest) latestBySet[setId] = latest;
       }
       const rows = [];
+      let hasAnyAttempt = false;
       for (const [setId, latest] of Object.entries(latestBySet)) {
+        hasAnyAttempt = true;
         const set = setById[setId];
         const quiz = isDomainLayer ? (Array.isArray(set.quiz) ? set.quiz : []) : this._resolveSetQuiz(set);
         if (!Array.isArray(quiz) || !quiz.length) continue;
@@ -4090,6 +4187,38 @@ const app = createApp({
               userAnswer: user
             }
           });
+        }
+      }
+      // Fallback: when there is no "attempt" log (e.g. storage disabled previously),
+      // allow using imported/annotated userAnswer fields to build the pool.
+      if (!hasAnyAttempt) {
+        for (const set of (sets || [])) {
+          if (!set || !set.id) continue;
+          const setId = set.id;
+          if (setId === wrongBookId) continue;
+          const quiz = isDomainLayer ? (Array.isArray(set.quiz) ? set.quiz : []) : this._resolveSetQuiz(set);
+          if (!Array.isArray(quiz) || !quiz.length) continue;
+          const setTitle = isDomainLayer ? (set.name || set.title || setId) : (set.title || set.key || setId);
+          for (let oi = 0; oi < quiz.length; oi += 1) {
+            const q = quiz[oi];
+            if (!q) continue;
+            const ans = normalizeQuizAnswerKey(q.answer || "");
+            const user = normalizeQuizAnswerKey(q.userAnswer || "");
+            if (!ans || !user) continue;
+            const matched = targetMode === "correct" ? user === ans : user !== ans;
+            if (!matched) continue;
+            rows.push({
+              ...q,
+              _originIndex: oi,
+              _slashId: `${setId}|${oi}`,
+              _slashSource: {
+                setId,
+                setTitle,
+                originIndex: oi,
+                userAnswer: user
+              }
+            });
+          }
         }
       }
       return rows;
@@ -4175,7 +4304,7 @@ const app = createApp({
         this.practiceSlashFx = "";
         this.practiceSlashPraiseText = "";
         this._practiceSlashFxTimer = null;
-      }, 980);
+      }, 1600);
     },
     answerPracticeSlash(optionLine) {
       const session = this.practiceSlashSession;
@@ -4279,7 +4408,7 @@ const app = createApp({
     },
     _loadPracticeAttemptLog() {
       try {
-        const raw = localStorage.getItem(PRACTICE_ATTEMPTS_STORAGE_KEY);
+        const raw = safeGetItem(PRACTICE_ATTEMPTS_STORAGE_KEY);
         const o = raw ? JSON.parse(raw) : {};
         if (o && o.__v === 2 && o.profiles && typeof o.profiles === "object") {
           const hit = o.profiles[this.activePracticeUserId];
@@ -4293,13 +4422,13 @@ const app = createApp({
     },
     _persistPracticeAttemptLog() {
       try {
-        const raw = localStorage.getItem(PRACTICE_ATTEMPTS_STORAGE_KEY);
+        const raw = safeGetItem(PRACTICE_ATTEMPTS_STORAGE_KEY);
         const parsed = raw ? JSON.parse(raw) : {};
         const profiles = parsed && parsed.__v === 2 && parsed.profiles && typeof parsed.profiles === "object"
           ? { ...parsed.profiles }
           : {};
         profiles[this.activePracticeUserId] = this.practiceAttemptLog && typeof this.practiceAttemptLog === "object" ? this.practiceAttemptLog : {};
-        localStorage.setItem(PRACTICE_ATTEMPTS_STORAGE_KEY, JSON.stringify({ __v: 2, profiles }));
+        safeSetItem(PRACTICE_ATTEMPTS_STORAGE_KEY, JSON.stringify({ __v: 2, profiles }));
       } catch (e) {
         /* ignore quota */
       }
@@ -5127,12 +5256,17 @@ try {
   const root = document.getElementById("app");
   if (root) {
     root.removeAttribute("v-cloak");
+    const errMsg = String(err && err.message ? err.message : err);
+    const errStack = err && err.stack ? String(err.stack).substring(0, 300) : "";
     root.innerHTML =
       '<div style="padding:1.25rem;line-height:1.7;font-family:system-ui,sans-serif;color:#16313f">' +
       '<p style="font-weight:700;margin:0 0 .5rem">页面初始化失败</p>' +
-      '<p style="margin:0;font-size:.92rem;color:#475569">' +
-      String(err && err.message ? err.message : err) +
-      "</p></div>";
+      '<p style="margin:0;font-size:.92rem;color:#dc2626">' +
+      errMsg.replace(/</g, "&lt;").replace(/>/g, "&gt;") +
+      (errStack ? '<br><span style="font-size:0.85em;color:#64748b">' + errStack.replace(/</g, "&lt;").replace(/>/g, "&gt;") + '</span>' : '') +
+      '</p>' +
+      '<p style="margin:0.75rem 0 0;font-size:.85rem;color:#64748b">请尝试：1) 刷新页面 2) 清除浏览器缓存 3) 更换浏览器</p>' +
+      '</div>';
   }
   console.error(err);
 }
