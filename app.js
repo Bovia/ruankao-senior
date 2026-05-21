@@ -217,9 +217,8 @@ function bundleKeyForPracticeSet(activeView, practiceLayer, setId) {
   const sid = String(setId || "");
   const domainId = practiceLayer === "domain" ? sid : "";
   const compId = practiceLayer === "comprehensive" ? sid : "";
-  const mockId = practiceLayer === "mock" ? sid : "";
-  const caseId = practiceLayer === "case" ? sid : "";
-  return [activeView, practiceLayer, domainId, compId, mockId, caseId].join("|");
+  const mockId = practiceLayer === "mock" || practiceLayer === "case" ? sid : "";
+  return [activeView, practiceLayer, domainId, compId, mockId].join("|");
 }
 
 const NAV_STORAGE_KEY = "jiyiqi-nav-v1";
@@ -237,7 +236,17 @@ const CASE_STUDY_STATE_KEY = "jiyiqi-case-study-state-v1";
 /** 斩题模式：按当前用户缓存各大类最近一轮结果 */
 const PRACTICE_SLASH_STORAGE_KEY = "jiyiqi-practice-slash-v1";
 const PRACTICE_PROFILES_SEED_URL = "data/export_my_answers_and_history.json";
-const PROJECT_CACHE_KEYS = [NAV_STORAGE_KEY, FAVORITES_STORAGE_KEY, QUIZ_TTS_VOICE_STORAGE_KEY, PRACTICE_ATTEMPTS_STORAGE_KEY, PRACTICE_USER_ANS_STORAGE_KEY, PRACTICE_ACTIVE_USER_STORAGE_KEY];
+const PROJECT_CACHE_KEYS = [
+  NAV_STORAGE_KEY,
+  FAVORITES_STORAGE_KEY,
+  CAT_STORAGE_KEY,
+  QUIZ_TTS_VOICE_STORAGE_KEY,
+  PRACTICE_ATTEMPTS_STORAGE_KEY,
+  PRACTICE_USER_ANS_STORAGE_KEY,
+  PRACTICE_ACTIVE_USER_STORAGE_KEY,
+  CASE_STUDY_STATE_KEY,
+  PRACTICE_SLASH_STORAGE_KEY
+];
 /** 综合题侧栏「错题集」虚拟套卷 id（非 practiceSets 配置项） */
 const COMPREHENSIVE_WRONG_BOOK_ID = "__wrongbook__";
 /** 模拟题侧栏「错题集」虚拟套卷 id（非 practiceSets 配置项） */
@@ -1452,6 +1461,16 @@ const app = createApp({
       if (this.practiceLayer === "mock") return "全部模考";
       return "全部知识域";
     },
+    practiceSlashPanelTitle() {
+      if (this.practiceLayer === "comprehensive") return "综合题";
+      if (this.practiceLayer === "mock") return "模考";
+      return "知识域";
+    },
+    practiceSlashPanelSummary() {
+      if (this.practiceLayer === "comprehensive") return "从全部综合题里随机抽取你最近记录中的对题或错题。";
+      if (this.practiceLayer === "mock") return "从全部模考里随机抽取你最近记录中的对题或错题。";
+      return "从全部知识域里随机抽取你最近记录中的对题或错题。";
+    },
     practiceSlashCacheKey() {
       return `slash|${this.activeModule}|${this.practiceLayer}`;
     },
@@ -2011,6 +2030,7 @@ const app = createApp({
   beforeUnmount() {
     this._detachPracticeQuizScrollListener();
     if (this._persistNavTimer) clearTimeout(this._persistNavTimer);
+    if (this._practiceSlashFxTimer) clearTimeout(this._practiceSlashFxTimer);
     if (this._onBeforeUnloadPersist) {
       window.removeEventListener("beforeunload", this._onBeforeUnloadPersist);
     }
@@ -2459,6 +2479,7 @@ const app = createApp({
         this.exitPracticeExam();
         this._loadPracticeAttemptLog();
         this._loadPracticeUserAnswers();
+        this._loadPracticeSlashSessions();
         this._showCuteTip(`初始化完成，当前用户：${uid}`);
       } catch (e) {
         this._showCuteTip(`初始化失败：${e && e.message ? e.message : "未知异常"}`);

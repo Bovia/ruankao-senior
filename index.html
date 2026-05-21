@@ -356,6 +356,7 @@
                 {{ learnedCount }}/{{ activeDomain.processes.length }} 已点亮</div>
             </div>
             <div
+              v-if="!practiceSlashModeActive"
               class="domain-pills flex gap-2 overflow-x-auto pb-1 lg:hidden"
               ref="domainPillBar"
             >
@@ -377,7 +378,7 @@
                 :data-domain-id="domainWrongBookId"
               >错题集</button>
             </div>
-            <div class="domain-nav domain-nav-scroll hidden gap-4 lg:flex lg:flex-col">
+            <div v-if="!practiceSlashModeActive" class="domain-nav domain-nav-scroll hidden gap-4 lg:flex lg:flex-col">
               <div
                 v-for="group in domainGroups"
                 :key="'grp-'+group.category"
@@ -463,6 +464,7 @@
                 套</div>
             </div>
             <div
+              v-if="!practiceSlashModeActive"
               class="domain-pills flex gap-2 overflow-x-auto pb-1 lg:hidden"
               ref="domainPillBar"
             >
@@ -483,7 +485,7 @@
                 :data-domain-id="comprehensiveWrongBookId"
               >错题集</button>
             </div>
-            <div class="domain-nav domain-nav-scroll hidden gap-4 lg:flex lg:flex-col">
+            <div v-if="!practiceSlashModeActive" class="domain-nav domain-nav-scroll hidden gap-4 lg:flex lg:flex-col">
               <div class="flex flex-col gap-2">
                 <button
                   v-for="set in comprehensiveSets"
@@ -557,6 +559,7 @@
               <div class="rounded-full bg-mist px-3 py-1 text-xs font-medium text-ocean">{{ mockSets.length }} 套</div>
             </div>
             <div
+              v-if="!practiceSlashModeActive"
               class="domain-pills flex gap-2 overflow-x-auto pb-1 lg:hidden"
               ref="domainPillBar"
             >
@@ -577,7 +580,7 @@
                 :data-domain-id="mockWrongBookId"
               >错题集</button>
             </div>
-            <div class="domain-nav domain-nav-scroll hidden gap-4 lg:flex lg:flex-col">
+            <div v-if="!practiceSlashModeActive" class="domain-nav domain-nav-scroll hidden gap-4 lg:flex lg:flex-col">
               <div class="flex flex-col gap-2">
                 <button
                   v-for="set in mockSets"
@@ -725,7 +728,14 @@
             v-else-if="activeView !== 'processGroup'"
             class="domain-brief-mini panel overflow-hidden px-4 py-3 min-w-0 hidden md:block"
           >
-            <template v-if="activeView === 'quiz' && practiceLayer !== 'domain' && activePracticeSet">
+            <template v-if="practiceSlashModeActive">
+              <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Slash Mode</p>
+              <div class="flex items-start gap-3 flex-wrap">
+                <h2 class="font-display text-lg font-semibold shrink-0">{{ practiceSlashScopeTitle }}</h2>
+                <p class="text-sm text-ink/60 leading-6 flex-1 min-w-0">{{ practiceSlashPanelSummary }}</p>
+              </div>
+            </template>
+            <template v-else-if="activeView === 'quiz' && practiceLayer !== 'domain' && activePracticeSet">
               <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Practice Set</p>
               <div class="flex items-start gap-3 flex-wrap">
                 <h2 class="font-display text-lg font-semibold shrink-0">{{ activePracticeSet.title }}</h2>
@@ -1493,7 +1503,7 @@
             <div class="mb-3 flex flex-wrap items-end justify-between gap-3">
               <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.24em] text-ocean/60">Practice Mode</p>
-                <h3 class="font-display text-2xl font-semibold">{{ practicePanelTitle }} · {{ practicePanelLiveLabel }}
+                <h3 class="font-display text-2xl font-semibold">{{ practiceSlashModeActive ? practiceSlashPanelTitle : practicePanelTitle }} · {{ practiceSlashModeActive ? '斩题模式' : practicePanelLiveLabel }}
                 </h3>
               </div>
               <div class="flex flex-wrap items-center justify-end gap-2">
