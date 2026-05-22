@@ -136,6 +136,13 @@ function resolveSiteRelativeUrl(path) {
   }
 }
 
+function addLineBreakBeforeNonInitial(text, pattern) {
+  return String(text || "").replace(pattern, (match, prefix, marker) => {
+    if (!prefix) return marker;
+    return `${prefix}\n${marker}`;
+  });
+}
+
 /** 练习场题干/解析：转义后插入线上题图（光环 CDN） */
 function formatPracticeRichText(text, setKey) {
   const raw = String(text || "");
@@ -180,10 +187,11 @@ function formatPracticeRichText(text, setKey) {
       const n = String(name || "").trim();
       return imgTag(n, n);
     });
-    const bareImg = /(图片\d+\.png|\d+-\d+(?:-\d+)*\.png|(?<!\d-)(?<![\w/])\d{1,3}\.png|image\.gif|企业微信截图_[\w.-]+\.png)/g;
-    html = html.replace(bareImg, (name) => {
+    const bareImg = /(图片\d+\.png|\d+-\d+(?:-\d+)*\.png|(^|[^\w/\d-])(\d{1,3}\.png)|image\.gif|企业微信截图_[\w.-]+\.png)/g;
+    html = html.replace(bareImg, (match, _standalone, prefix, digitName) => {
+      const name = digitName || match;
       if (html.includes(name) && html.includes("practice-fig")) return name;
-      return imgTag(name, name);
+      return `${digitName ? prefix : ""}${imgTag(name, name)}`;
     });
   }
   return html.replace(/\n/g, "<br>");
@@ -202,12 +210,20 @@ function getInitialPracticeRenderLimit() {
   return 36;
 }
 
+const PRACTICE_ASSET_VERSION = "20260523-mobile-practice";
+
+function withPracticeAssetVersion(path) {
+  const p = String(path || "");
+  const joiner = p.includes("?") ? "&" : "?";
+  return `${p}${joiner}v=${encodeURIComponent(PRACTICE_ASSET_VERSION)}`;
+}
+
 function getPracticeScriptSrc(setKey) {
-  return `./data/practice/${String(setKey || "").trim()}.js`;
+  return withPracticeAssetVersion(`./data/practice/${String(setKey || "").trim()}.js`);
 }
 
 function getDomainPracticeScriptSrc(domainId) {
-  return `./data/practice/zhishiyu_${String(domainId || "").trim()}.js`;
+  return withPracticeAssetVersion(`./data/practice/zhishiyu_${String(domainId || "").trim()}.js`);
 }
 
 const PRACTICE_SCRIPT_LOAD_TIMEOUT_MS = 12000;
@@ -2113,6 +2129,12 @@ const app = createApp({
     formatPracticeRichText(text) {
       return formatPracticeRichText(text, this.activePracticeSetKey);
     },
+    practiceOriginIndex(question, fallback) {
+      if (question && question._originIndex !== null && question._originIndex !== undefined) {
+        return question._originIndex;
+      }
+      return fallback;
+    },
     resolveCaseImageUrl(path) {
       return resolveCaseImageUrl(path);
     },
@@ -3815,7 +3837,7 @@ const app = createApp({
       // 「一、……（1）」大节标题与首个序号
       t = t.replace(/([一二三四五六七八九十]+、[^（\n]+?)\s*（\s*(\d+)\s*）/g, "$1\n（$2）");
       t = t.replace(/([\u4e00-\u9fff])(风险管理改进措施：)/g, "$1\n$2");
-      t = t.replace(/(?<!^)(风险应对类型：|解题思路：|关键路径：)/g, "\n$1");
+      t = addLineBreakBeforeNonInitial(t, /(^|[\s\S])(风险应对类型：|解题思路：|关键路径：)/g);
       t = t.replace(/([：:])\s*（\s*(\d+)\s*）/g, "$1\n（$2）");
       t = t.replace(/([\u4e00-\u9fff]{2,})（\s*(\d+)\s*）/g, "$1\n（$2）");
       t = t.replace(/([。；）])\s*（\s*(\d+)\s*）/g, "$1\n（$2）");
@@ -3823,13 +3845,13 @@ const app = createApp({
       // ：。；后的 1. 2. / 1、（案例说明：1.B产品…）
       t = t.replace(/([。；：:])\s*(\d+)[.、．]\s*/g, "$1\n$2.");
       // 步骤一：步骤二：
-      t = t.replace(/(?<!^)(步骤[一二三四五六七八九十]+：)/g, "\n$1");
+      t = addLineBreakBeforeNonInitial(t, /(^|[\s\S])(步骤[一二三四五六七八九十]+：)/g);
       // 句号后新段落（B产品重新测试…）
       t = t.replace(/([。])\s*(B产品|B公司|签订补充)/g, "$1\n$2");
       // 活动历时 A=…天B=…
       t = t.replace(/天([A-F]=)/g, "天\n$1");
-      t = t.replace(/(?<!^)([一二三四五六七八九十]+、)/g, "\n$1");
-      t = t.replace(/(?<!^)([①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮])/g, "\n$1");
+      t = addLineBreakBeforeNonInitial(t, /(^|[\s\S])([一二三四五六七八九十]+、)/g);
+      t = addLineBreakBeforeNonInitial(t, /(^|[\s\S])([①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮])/g);
       t = t.replace(/([√×]\s*）)\s+/g, "$1\n");
       t = t.replace(/([。）])\s*解析[：:]/g, "$1\n解析：");
       return t.replace(/\n{2,}/g, "\n").trim();

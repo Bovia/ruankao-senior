@@ -1419,7 +1419,7 @@
                       }"
                       @click="jumpToPracticeExamCard(st.idx)"
                     >
-                      <span class="practice-nav-cell__num">{{ (st.originIndex ?? st.idx) + 1 }}</span>
+                      <span class="practice-nav-cell__num">{{ practiceOriginIndex(st, st.idx) + 1 }}</span>
                       <span
                         v-if="st.picked"
                         class="practice-nav-cell__pick"
@@ -2139,16 +2139,16 @@
                   </div>
                   <article
                     v-for="(question, qi) in practiceQuizCardsForDisplay"
-                    :key="'pq-'+(question._originIndex ?? qi)+'-'+(question.question || qi)"
+                    :key="'pq-'+practiceOriginIndex(question, qi)+'-'+(question.question || qi)"
                     :id="'practice-quiz-card-'+qi"
                     class="quiz-card"
                     :class="{ 'is-peekable cursor-pointer': !quizAnswersGlobalShow && !practiceExamRunning }"
-                    @click="onPracticeQuizCardShellClick(question._originIndex ?? qi)"
+                    @click="onPracticeQuizCardShellClick(practiceOriginIndex(question, qi))"
                     v-show="!practiceExamRunning || qi === practiceQuizActiveIndex"
                   >
                     <div class="mb-2 flex items-center justify-between gap-3">
                       <div class="flex flex-wrap items-center gap-2">
-                        <div class="text-sm font-semibold text-ocean">第{{ (question._originIndex ?? qi) + 1 }}题</div>
+                        <div class="text-sm font-semibold text-ocean">第{{ practiceOriginIndex(question, qi) + 1 }}题</div>
                         <span
                           v-if="practiceExamInReview"
                           class="text-xs font-semibold"
@@ -2168,9 +2168,9 @@
                           v-if="!practiceExamRunning"
                           type="button"
                           class="fav-star-btn"
-                          :class="{ 'fav-star-btn-anim': favoritingQuestionKey === (quizBundleKey + '|q' + (question._originIndex ?? qi) + '|' + (question.question || '')) }"
+                          :class="{ 'fav-star-btn-anim': favoritingQuestionKey === (quizBundleKey + '|q' + practiceOriginIndex(question, qi) + '|' + (question.question || '')) }"
                           title="收藏该题"
-                          @click.stop="addFavoriteQuestion(question, question._originIndex ?? qi)"
+                          @click.stop="addFavoriteQuestion(question, practiceOriginIndex(question, qi))"
                         >
                           ★
                           <span class="spark s1"></span>
@@ -2182,11 +2182,11 @@
                     </div>
                     <h4 class="text-base font-semibold leading-7 text-ink">
                       <span
-                        @mousedown.stop="startSnippetPress($event, question.question, { kind: '题干', qi: question._originIndex ?? qi })"
+                        @mousedown.stop="startSnippetPress($event, question.question, { kind: '题干', qi: practiceOriginIndex(question, qi) })"
                         @mouseup.stop="endSnippetPress"
                         @mouseleave.stop="endSnippetPress"
                         @mousemove="moveSnippetPress($event)"
-                        @touchstart.stop="startSnippetPress($event, question.question, { kind: '题干', qi: question._originIndex ?? qi })"
+                        @touchstart.stop="startSnippetPress($event, question.question, { kind: '题干', qi: practiceOriginIndex(question, qi) })"
                         @touchmove="moveSnippetPress($event)"
                         @touchend.stop="endSnippetPress"
                         @touchcancel.stop="endSnippetPress"
@@ -2202,36 +2202,36 @@
                           v-if="practiceExamRunning"
                           type="button"
                           :class="practiceExamRunningOptionClass(question, option)"
-                          @mousedown.stop="startSnippetPress($event, option, { kind: '选项', qi: question._originIndex ?? qi })"
+                          @mousedown.stop="startSnippetPress($event, option, { kind: '选项', qi: practiceOriginIndex(question, qi) })"
                           @mouseup.stop="endSnippetPress"
                           @mouseleave.stop="endSnippetPress"
                           @mousemove="moveSnippetPress($event)"
-                          @touchstart.stop="startSnippetPress($event, option, { kind: '选项', qi: question._originIndex ?? qi })"
+                          @touchstart.stop="startSnippetPress($event, option, { kind: '选项', qi: practiceOriginIndex(question, qi) })"
                           @touchmove="moveSnippetPress($event)"
                           @touchend.stop="endSnippetPress"
                           @touchcancel.stop="endSnippetPress"
-                          @click.stop="handlePracticeExamOptionButtonClick(question._originIndex ?? qi, qi, option)"
+                          @click.stop="handlePracticeExamOptionButtonClick(practiceOriginIndex(question, qi), qi, option)"
                         >{{ option }}</button>
                         <span
                           v-else-if="practiceExamInReview"
                           :class="practiceExamReviewOptionClass(question, option)"
                           class="quiz-option-review-line"
-                          @mousedown.stop="startSnippetPress($event, option, { kind: '选项', qi: question._originIndex ?? qi })"
+                          @mousedown.stop="startSnippetPress($event, option, { kind: '选项', qi: practiceOriginIndex(question, qi) })"
                           @mouseup.stop="endSnippetPress"
                           @mouseleave.stop="endSnippetPress"
                           @mousemove="moveSnippetPress($event)"
-                          @touchstart.stop="startSnippetPress($event, option, { kind: '选项', qi: question._originIndex ?? qi })"
+                          @touchstart.stop="startSnippetPress($event, option, { kind: '选项', qi: practiceOriginIndex(question, qi) })"
                           @touchmove="moveSnippetPress($event)"
                           @touchend.stop="endSnippetPress"
                           @touchcancel.stop="endSnippetPress"
                         >{{ option }}</span>
                         <span
                           v-else
-                          @mousedown.stop="startSnippetPress($event, option, { kind: '选项', qi: question._originIndex ?? qi })"
+                          @mousedown.stop="startSnippetPress($event, option, { kind: '选项', qi: practiceOriginIndex(question, qi) })"
                           @mouseup.stop="endSnippetPress"
                           @mouseleave.stop="endSnippetPress"
                           @mousemove="moveSnippetPress($event)"
-                          @touchstart.stop="startSnippetPress($event, option, { kind: '选项', qi: question._originIndex ?? qi })"
+                          @touchstart.stop="startSnippetPress($event, option, { kind: '选项', qi: practiceOriginIndex(question, qi) })"
                           @touchmove="moveSnippetPress($event)"
                           @touchend.stop="endSnippetPress"
                           @touchcancel.stop="endSnippetPress"
@@ -2262,7 +2262,7 @@
                     </div>
 
                     <p
-                      v-if="!practiceExamActive && !quizAnswersGlobalShow && !isQuizAnswerVisible(question._originIndex ?? qi)"
+                      v-if="!practiceExamActive && !quizAnswersGlobalShow && !isQuizAnswerVisible(practiceOriginIndex(question, qi))"
                       class="quiz-peek-hint"
                     >
                       <svg
@@ -2284,7 +2284,7 @@
                       点击查看答案与解析
                     </p>
                     <div
-                      v-show="!practiceExamRunning && isQuizAnswerVisible(question._originIndex ?? qi)"
+                      v-show="!practiceExamRunning && isQuizAnswerVisible(practiceOriginIndex(question, qi))"
                       class="mb-1 ml-[-11px] mr-[-11px] mt-4 rounded-2xl bg-sand px-4 py-3 text-sm leading-7 text-ink/80"
                     >
                       <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
@@ -2292,7 +2292,7 @@
                         <span
                           v-if="practiceExamInReview && practiceExamDisplayAttempt"
                           class="text-ink/70"
-                        ><strong>本次作答：</strong>{{ (practiceExamDisplayAttempt.choices && practiceExamDisplayAttempt.choices[String(question._originIndex ?? qi)]) || '—' }}</span>
+                        ><strong>本次作答：</strong>{{ (practiceExamDisplayAttempt.choices && practiceExamDisplayAttempt.choices[String(practiceOriginIndex(question, qi))]) || '—' }}</span>
                       </div>
                       <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
                         <strong>解析：</strong>
@@ -2300,11 +2300,11 @@
                           v-if="!practiceExamRunning"
                           type="button"
                           class="quiz-tts-btn"
-                          :class="{ 'quiz-tts-btn-active': quizTtsPlayingIndex === (question._originIndex ?? qi) }"
-                          :title="quizTtsPlayingIndex === (question._originIndex ?? qi) ? '停止朗读' : '朗读解析'"
-                          :aria-pressed="quizTtsPlayingIndex === (question._originIndex ?? qi)"
+                          :class="{ 'quiz-tts-btn-active': quizTtsPlayingIndex === practiceOriginIndex(question, qi) }"
+                          :title="quizTtsPlayingIndex === practiceOriginIndex(question, qi) ? '停止朗读' : '朗读解析'"
+                          :aria-pressed="quizTtsPlayingIndex === practiceOriginIndex(question, qi)"
                           aria-label="朗读解析"
-                          @click.stop="speakQuizAnalysis(question.analysis, question._originIndex ?? qi)"
+                          @click.stop="speakQuizAnalysis(question.analysis, practiceOriginIndex(question, qi))"
                         >
                           <svg
                             class="quiz-tts-icon"
@@ -2345,11 +2345,11 @@
                       </div>
                       <div
                         class="mt-1 whitespace-pre-wrap practice-rich-text"
-                        @mousedown.stop="startSnippetPress($event, question.analysis, { kind: '解析', qi: question._originIndex ?? qi })"
+                        @mousedown.stop="startSnippetPress($event, question.analysis, { kind: '解析', qi: practiceOriginIndex(question, qi) })"
                         @mouseup.stop="endSnippetPress"
                         @mouseleave.stop="endSnippetPress"
                         @mousemove="moveSnippetPress($event)"
-                        @touchstart.stop="startSnippetPress($event, question.analysis, { kind: '解析', qi: question._originIndex ?? qi })"
+                        @touchstart.stop="startSnippetPress($event, question.analysis, { kind: '解析', qi: practiceOriginIndex(question, qi) })"
                         @touchmove="moveSnippetPress($event)"
                         @touchend.stop="endSnippetPress"
                         @touchcancel.stop="endSnippetPress"
