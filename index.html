@@ -1735,7 +1735,7 @@
                   <div class="practice-slash-card__head">
                     <div>
                       <p class="eyebrow">{{ practiceSlashCurrentQuestion.type || '选择题' }}</p>
-                      <h4 class="practice-slash-card__title" v-html="formatPracticeRichText(practiceSlashCurrentQuestion.question)"></h4>
+                      <h4 class="practice-slash-card__title whitespace-pre-wrap">{{ formatPracticePlainText(practiceSlashCurrentQuestion.question) }}</h4>
                     </div>
                     <span class="practice-slash-card__source">{{ practiceSlashCurrentQuestion._slashSource && practiceSlashCurrentQuestion._slashSource.setTitle }}</span>
                   </div>
@@ -1760,7 +1760,7 @@
                       <span class="practice-slash-answer__badge">这题先记一下</span>
                       <span>你的选择：{{ practiceSlashCurrentAnswerRecord.picked }} / 正确答案：{{ practiceSlashCurrentAnswerRecord.answer }}</span>
                     </div>
-                    <div class="mt-2 whitespace-pre-wrap practice-rich-text" v-html="formatPracticeRichText(practiceSlashCurrentQuestion.analysis)"></div>
+                    <div class="mt-2 whitespace-pre-wrap practice-rich-text">{{ formatPracticePlainText(practiceSlashCurrentQuestion.analysis) }}</div>
                     <div class="practice-card-nav mt-4">
                       <button
                         type="button"
@@ -1820,8 +1820,8 @@
                         <span class="practice-slash-review-card__badge">{{ (question._slashSource && question._slashSource.setTitle) || practiceSlashScopeTitle }}</span>
                         <span class="practice-slash-review-card__picked">你选了 {{ question._slashPicked }} / 正确 {{ question.answer }}</span>
                       </div>
-                      <h6 class="practice-slash-review-card__title" v-html="formatPracticeRichText(question.question)"></h6>
-                      <div class="mt-2 whitespace-pre-wrap practice-rich-text" v-html="formatPracticeRichText(question.analysis)"></div>
+                      <h6 class="practice-slash-review-card__title whitespace-pre-wrap">{{ formatPracticePlainText(question.question) }}</h6>
+                      <div class="mt-2 whitespace-pre-wrap practice-rich-text">{{ formatPracticePlainText(question.analysis) }}</div>
                     </article>
                   </div>
                   <div v-else class="panel-subtle">
@@ -2236,8 +2236,7 @@
                         @touchmove="moveSnippetPress($event)"
                         @touchend.stop="endSnippetPress"
                         @touchcancel.stop="endSnippetPress"
-                        v-html="formatPracticeRichText(question.question)"
-                      ></span>
+                      >{{ formatPracticePlainText(question.question) }}</span>
                     </h4>
                     <ul class="mt-3 space-y-2 text-sm leading-6 text-ink/80">
                       <li
@@ -2399,8 +2398,7 @@
                         @touchmove="moveSnippetPress($event)"
                         @touchend.stop="endSnippetPress"
                         @touchcancel.stop="endSnippetPress"
-                        v-html="formatPracticeRichText(question.analysis)"
-                      </div>
+                      >{{ formatPracticePlainText(question.analysis) }}</div>
                     </div>
                   </article>
                   <div
@@ -3915,7 +3913,7 @@
   <script defer src="./data/practice/moni_2.js"></script>
   <script defer src="./data/export_my_answers_and_history.js"></script>
   <script defer src="./data/case_study_data.js"></script>
-  <script defer src="./app.js"></script>
+  <script defer src="./app.js?v=20260523-mobile-init-fix"></script>
 </body>
 
 </html>

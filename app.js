@@ -2167,6 +2167,12 @@ const app = createApp({
     formatPracticeRichText(text) {
       return formatPracticeRichText(text, this.activePracticeSetKey);
     },
+    formatPracticePlainText(text) {
+      return String(text || "")
+        .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, path) => alt || path || "")
+        .replace(/【题图：([^】]+)】/g, "题图：$1")
+        .trim();
+    },
     practiceOriginIndex(question, fallback) {
       if (question && question._originIndex !== null && question._originIndex !== undefined) {
         return question._originIndex;
