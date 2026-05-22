@@ -214,6 +214,9 @@ const PRACTICE_ASSET_VERSION = "20260523-mobile-practice";
 
 function withPracticeAssetVersion(path) {
   const p = String(path || "");
+  if (typeof window !== "undefined" && window.location && window.location.protocol === "file:") {
+    return p;
+  }
   const joiner = p.includes("?") ? "&" : "?";
   return `${p}${joiner}v=${encodeURIComponent(PRACTICE_ASSET_VERSION)}`;
 }
@@ -801,6 +804,8 @@ const app = createApp({
       practiceMockWrongBookSnapshot: null,
       /** 再做一次·只做错题：交卷用的题单子集（为 null 表示整套） */
       practiceExamSubsetRows: null,
+      /** 开始练习：选择全部 / 错题 / 对题 */
+      practiceStartPickerOpen: false,
       /** 再做方式选择弹窗 */
       practiceRestartPickerOpen: false,
       /** 历史记录选择弹窗 */
@@ -1433,10 +1438,13 @@ const app = createApp({
       const empty = { loading: false, error: false, pending: 0, failed: 0 };
       if (this.practiceLayer !== "domain" && this.practiceLayer !== "comprehensive" && this.practiceLayer !== "mock") return empty;
       const registry = this.practiceScriptLoadState || {};
-      const summarize = (keys) => {
+      const summarize = (items, isReady) => {
         let pending = 0;
         let failed = 0;
-        for (const key of keys) {
+        for (const item of items) {
+          const key = String(item && item.stateKey ? item.stateKey : item || "").trim();
+          if (!key) continue;
+          if (typeof isReady === "function" && isReady(item)) continue;
           const st = registry[key] || "idle";
           if (st === "loading" || st === "idle") pending += 1;
           if (st === "error") failed += 1;
@@ -1445,22 +1453,40 @@ const app = createApp({
       };
       if (this.practiceLayer === "domain") {
         if (this.activeDomainId === this.domainWrongBookId) {
-          return summarize((this.visibleDomains || []).map((d) => `domain:${d.id}`).filter(Boolean));
+          return summarize(
+            (this.visibleDomains || []).filter((d) => d && d.id).map((d) => ({ id: d.id, stateKey: `domain:${d.id}` })),
+            (item) => this._isDomainPracticeScriptReady(item.id)
+          );
         }
-        return summarize(this.activeDomainId ? [`domain:${this.activeDomainId}`] : []);
+        return summarize(
+          this.activeDomainId ? [{ id: this.activeDomainId, stateKey: `domain:${this.activeDomainId}` }] : [],
+          (item) => this._isDomainPracticeScriptReady(item.id)
+        );
       }
       if (this.practiceLayer === "comprehensive") {
         if (this.activeComprehensiveId === this.comprehensiveWrongBookId) {
-          return summarize((this.comprehensiveSets || []).map((s) => s.key).filter(Boolean));
+          return summarize(
+            (this.comprehensiveSets || []).filter((s) => s && s.key).map((s) => ({ key: s.key, stateKey: s.key })),
+            (item) => this._isPracticeSetScriptReady(item.key)
+          );
         }
         const set = this.activeComprehensiveSet;
-        return summarize(set && set.key ? [set.key] : []);
+        return summarize(
+          set && set.key ? [{ key: set.key, stateKey: set.key }] : [],
+          (item) => this._isPracticeSetScriptReady(item.key)
+        );
       }
       if (this.activeMockId === this.mockWrongBookId) {
-        return summarize((this.mockSets || []).map((s) => s.key).filter(Boolean));
+        return summarize(
+          (this.mockSets || []).filter((s) => s && s.key).map((s) => ({ key: s.key, stateKey: s.key })),
+          (item) => this._isPracticeSetScriptReady(item.key)
+        );
       }
       const set = this.activeMockSet;
-      return summarize(set && set.key ? [set.key] : []);
+      return summarize(
+        set && set.key ? [{ key: set.key, stateKey: set.key }] : [],
+        (item) => this._isPracticeSetScriptReady(item.key)
+      );
     },
     practiceActiveDataLoading() {
       return this.activePracticeDataState.loading;
@@ -1497,6 +1523,18 @@ const app = createApp({
       const id = this.practiceExamResolvedAttemptId;
       if (!id) return null;
       return list.find((a) => a.id === id) || null;
+    },
+    practiceLatestFinishedAttemptForBundle() {
+      const list = this.practiceExamAttemptsForBundle || [];
+      return list.find((a) => a && !a.isDraft) || null;
+    },
+    practiceStartPickerStats() {
+      const attempt = this.practiceLatestFinishedAttemptForBundle;
+      if (!attempt) return { wrong: 0, correct: 0 };
+      return {
+        wrong: this._extractAnsweredResultIndicesFromAttempt(attempt, "wrong").length,
+        correct: this._extractAnsweredResultIndicesFromAttempt(attempt, "correct").length
+      };
     },
     practicePanelLiveLabel() {
       if (this.practiceLayer === "case" && this.caseStudyZhaChaOpen) {
@@ -3468,6 +3506,15 @@ const app = createApp({
       if (!key) return;
       this.practiceScriptLoadState = { ...this.practiceScriptLoadState, [key]: state };
     },
+    _isPracticeSetScriptReady(setOrKey) {
+      const key = setOrKey && setOrKey.key ? String(setOrKey.key) : String(setOrKey || "");
+      return !!(key && window.practiceMarkdown && Object.prototype.hasOwnProperty.call(window.practiceMarkdown, key));
+    },
+    _isDomainPracticeScriptReady(domainId) {
+      const id = String(domainId || "").trim();
+      const domain = id && this.knowledgeData ? this.knowledgeData[id] : null;
+      return !!(domain && Array.isArray(domain.quiz) && domain.quiz.length);
+    },
     _schedulePracticePrefetch() {
       if (this._practicePrefetchTimer) {
         clearTimeout(this._practicePrefetchTimer);
@@ -3522,7 +3569,7 @@ const app = createApp({
       return this._loadExternalPracticeScript(
         key,
         getPracticeScriptSrc(key),
-        () => !!(window.practiceMarkdown && Object.prototype.hasOwnProperty.call(window.practiceMarkdown, key))
+        () => this._isPracticeSetScriptReady(key)
       );
     },
     async ensureDomainPracticeLoaded(domainId) {
@@ -3532,11 +3579,7 @@ const app = createApp({
       return this._loadExternalPracticeScript(
         stateKey,
         getDomainPracticeScriptSrc(id),
-        () =>
-          !!(this.knowledgeData &&
-          this.knowledgeData[id] &&
-          Array.isArray(this.knowledgeData[id].quiz) &&
-          this.knowledgeData[id].quiz.length)
+        () => this._isDomainPracticeScriptReady(id)
       );
     },
     async ensureCurrentPracticeDataLoaded() {
@@ -4530,7 +4573,11 @@ const app = createApp({
       this._upsertPracticeAttemptInCurrentBundle(draft);
     },
     _extractAnsweredWrongIndicesFromAttempt(attempt) {
+      return this._extractAnsweredResultIndicesFromAttempt(attempt, "wrong");
+    },
+    _extractAnsweredResultIndicesFromAttempt(attempt, resultType) {
       if (!attempt || typeof attempt !== "object") return [];
+      const wantCorrect = resultType === "correct";
       const answerMap = attempt.answerMap && typeof attempt.answerMap === "object" ? attempt.answerMap : {};
       const choices = attempt.choices && typeof attempt.choices === "object" ? attempt.choices : {};
       const out = [];
@@ -4538,12 +4585,13 @@ const app = createApp({
         const ans = normalizeQuizAnswerKey(ansRaw);
         const user = normalizeQuizAnswerKey(choices[k] || "");
         if (!ans || !user) continue;
-        if (user !== ans) {
+        if ((wantCorrect && user === ans) || (!wantCorrect && user !== ans)) {
           const oi = Number(k);
           if (Number.isInteger(oi)) out.push(oi);
         }
       }
       if (out.length) return [...new Set(out)];
+      if (wantCorrect) return [];
       if (Array.isArray(attempt.wrongOriginIndices)) {
         return [...new Set(attempt.wrongOriginIndices.filter((x) => Number.isInteger(x)))];
       }
@@ -4621,12 +4669,15 @@ const app = createApp({
     _buildMockWrongBookCandidatesShuffled() {
       return this._buildWrongBookCandidatesShuffledByLayer("mock");
     },
-    startPracticeExam(options) {
+    async startPracticeExam(options) {
       if (this.practiceSlashModeActive) this.hidePracticeSlashMode();
       if (!this.practiceQuizBaseRowsForExam.length && (this.practiceLayer === "domain" || this.practiceLayer === "comprehensive" || this.practiceLayer === "mock")) {
-        this.ensureCurrentPracticeDataLoaded();
-        this._showCuteTip(this.practiceActiveDataLoading ? "题库加载中，请稍候再开始做题" : "题库暂未就绪，请稍后重试");
-        return;
+        this._showCuteTip("题库加载中，加载好会自动开始");
+        await this.ensureCurrentPracticeDataLoaded();
+        if (!this.practiceQuizBaseRowsForExam.length) {
+          this._showCuteTip(this.practiceActiveDataError ? "题库加载失败，请刷新后重试" : "题库暂未就绪，请稍后重试");
+          return;
+        }
       }
       const opts = options || {};
       if (opts.resumeDraft && opts.draft && typeof opts.draft === "object") {
@@ -4650,17 +4701,18 @@ const app = createApp({
         this._persistCurrentPracticeDraft();
         return;
       }
-      if (opts.onlyWrongFromAttempt === true) {
+      if (opts.onlyWrongFromAttempt === true || opts.onlyResultFromAttempt === "wrong" || opts.onlyResultFromAttempt === "correct") {
         const attempt = opts.attempt || this.practiceExamDisplayAttempt;
-        const wrongOnly = this._extractAnsweredWrongIndicesFromAttempt(attempt);
-        if (!wrongOnly.length) {
-          this._showCuteTip("该次记录中没有可重做错题");
+        const resultType = opts.onlyResultFromAttempt === "correct" ? "correct" : "wrong";
+        const pickedOnly = this._extractAnsweredResultIndicesFromAttempt(attempt, resultType);
+        if (!pickedOnly.length) {
+          this._showCuteTip(resultType === "correct" ? "该次记录中没有可重做对题" : "该次记录中没有可重做错题");
           return;
         }
-        const allow = new Set(wrongOnly);
+        const allow = new Set(pickedOnly);
         const filtered = this.practiceQuizBaseRows.filter((q) => allow.has(q._originIndex));
         if (!filtered.length) {
-          this._showCuteTip("无法在现题库中匹配该次错题，请返回浏览后重试。");
+          this._showCuteTip(resultType === "correct" ? "无法在现题库中匹配该次对题，请返回浏览后重试。" : "无法在现题库中匹配该次错题，请返回浏览后重试。");
           return;
         }
         this.practiceExamSubsetRows = filtered;
@@ -4696,6 +4748,7 @@ const app = createApp({
       this.practiceQuizActiveIndex = 0;
       this.practiceExamNavOpen = false;
       this.practiceExamSubsetRows = null;
+      this.practiceStartPickerOpen = false;
       this.practiceRestartPickerOpen = false;
       this.practiceQuizActiveIndex = 0;
       this.practiceHistoryPickerOpen = false;
@@ -4713,10 +4766,17 @@ const app = createApp({
         this._updatePracticeQuizFabNeedsScroll();
       });
     },
+    openPracticeStartPicker() {
+      this.practiceStartPickerOpen = true;
+    },
+    closePracticeStartPicker() {
+      this.practiceStartPickerOpen = false;
+    },
     openPracticeRestartPicker() {
       this.practiceRestartPickerOpen = true;
     },
     closePracticeRestartPicker() {
+      this.practiceStartPickerOpen = false;
       this.practiceRestartPickerOpen = false;
       this.practiceHistoryPickerOpen = false;
       this.practiceExamNavOpen = false;
@@ -4814,6 +4874,22 @@ const app = createApp({
       this.practiceExamNavOpen = false;
       if (type === "wrong") {
         this.startPracticeExam({ onlyWrongFromAttempt: true, attempt: this.practiceExamDisplayAttempt });
+        return;
+      }
+      this.startPracticeExam({});
+    },
+    startPracticeExamWithScope(scope) {
+      this.practiceStartPickerOpen = false;
+      this.practiceHistoryPickerOpen = false;
+      this.practiceExamNavOpen = false;
+      if (scope === "wrong" || scope === "correct") {
+        const attempt = this.practiceLatestFinishedAttemptForBundle;
+        if (!attempt) {
+          this._showCuteTip("这套题还没有交卷记录，先从全部题目开始");
+          this.startPracticeExam({});
+          return;
+        }
+        this.startPracticeExam({ onlyResultFromAttempt: scope, attempt });
         return;
       }
       this.startPracticeExam({});

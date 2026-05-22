@@ -1332,6 +1332,52 @@
           >
             <teleport to="body">
               <div
+                v-if="practiceStartPickerOpen"
+                class="practice-restart-modal-backdrop"
+                @click="closePracticeStartPicker"
+              >
+                <div
+                  class="practice-restart-modal practice-start-modal"
+                  @click.stop
+                >
+                  <p class="practice-restart-modal__title">选择练习范围</p>
+                  <button
+                    type="button"
+                    class="process-nav-btn w-full justify-center"
+                    @click="startPracticeExamWithScope('all')"
+                  >全部题目</button>
+                  <button
+                    type="button"
+                    class="process-nav-btn process-nav-btn--soft w-full justify-between"
+                    :disabled="!practiceStartPickerStats.wrong"
+                    @click="startPracticeExamWithScope('wrong')"
+                  >
+                    <span>只做错题</span>
+                    <span class="practice-start-modal__count">{{ practiceStartPickerStats.wrong }}</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="process-nav-btn process-nav-btn--soft w-full justify-between"
+                    :disabled="!practiceStartPickerStats.correct"
+                    @click="startPracticeExamWithScope('correct')"
+                  >
+                    <span>只做对题</span>
+                    <span class="practice-start-modal__count">{{ practiceStartPickerStats.correct }}</span>
+                  </button>
+                  <p
+                    v-if="!practiceLatestFinishedAttemptForBundle"
+                    class="practice-start-modal__hint"
+                  >暂无交卷记录，错题和对题会在交卷后可选。</p>
+                  <button
+                    type="button"
+                    class="practice-exam-ghost-btn"
+                    @click="closePracticeStartPicker"
+                  >取消</button>
+                </div>
+              </div>
+            </teleport>
+            <teleport to="body">
+              <div
                 v-if="practiceRestartPickerOpen"
                 class="practice-restart-modal-backdrop"
                 @click="closePracticeRestartPicker"
@@ -1534,7 +1580,7 @@
                     <button
                       type="button"
                       class="process-nav-btn"
-                      @click="startPracticeExam({})"
+                      @click="openPracticeStartPicker"
                     >开始练习</button>
                   </template>
                   <template v-else-if="practiceExamRunning">

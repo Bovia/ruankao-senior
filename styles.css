@@ -1310,6 +1310,33 @@ code {
   color: #16313f;
 }
 
+.practice-start-modal {
+  width: min(92vw, 340px);
+}
+
+.practice-start-modal .process-nav-btn:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.practice-start-modal__count {
+  min-width: 2rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(15, 76, 92, 0.08);
+  color: rgba(15, 76, 92, 0.72);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.practice-start-modal__hint {
+  margin: 0;
+  color: rgba(15, 76, 92, 0.58);
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
 @media (max-width: 767px) {
   .practice-exam-bar--compact {
     justify-content: flex-end;
