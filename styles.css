@@ -4866,7 +4866,7 @@ h4 .practice-fig {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 12px;
+  height: 28px;
   cursor: ns-resize;
   background: linear-gradient(to bottom, transparent, rgba(12, 55, 72, 0.06));
   border-radius: 0 0 12px 12px;
@@ -4874,13 +4874,14 @@ h4 .practice-fig {
   align-items: center;
   justify-content: center;
   touch-action: none;
+  -webkit-tap-highlight-color: transparent;
 }
 .case-scenario-resize-handle::after {
   content: "";
-  width: 32px;
-  height: 3px;
+  width: 40px;
+  height: 4px;
   border-radius: 2px;
-  background: rgba(12, 55, 72, 0.2);
+  background: rgba(12, 55, 72, 0.25);
 }
 
 .case-study-images {
