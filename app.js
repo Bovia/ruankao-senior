@@ -727,6 +727,9 @@ const app = createApp({
       myEssayGroupId: "knowledge",
       myEssayTopicId: defEssayTopicId,
       myEssayCopied: "",
+      appLocked: false,
+      appPasswordInput: "",
+      appLockError: "",
       views,
       activeDomainId: firstDomain.id || "",
       activeProcessId: firstProcess.id || "",
@@ -2165,6 +2168,9 @@ const app = createApp({
     this.ensureCurrentPracticeDataLoaded();
     this._loadFavorites();
     this._loadPracticeActiveUser();
+    if (!safeGetItem(PRACTICE_ACTIVE_USER_STORAGE_KEY)) {
+      this.appLocked = true;
+    }
 
     // In some in-app browsers / file:// environments, localStorage may be blocked.
     // We fall back to in-memory storage; pre-warm it with exported seed so history-based
@@ -3522,6 +3528,18 @@ const app = createApp({
         this._clearQuizTtsUi();
       }
       this.activeEssayTab = tabId;
+    },
+    async unlockApp() {
+      const pwd = (this.appPasswordInput || "").trim().toLowerCase();
+      if (pwd !== "bovia" && pwd !== "mtt") {
+        this.appLockError = "密码不对，请重试";
+        this.appPasswordInput = "";
+        return;
+      }
+      this.appLockError = "";
+      this.appLocked = false;
+      this.appPasswordInput = "";
+      await this.initPracticeUserFromSeed(pwd);
     },
     speakEssayTab() {
       const text = this.essayTabReadText;

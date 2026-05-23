@@ -46,7 +46,30 @@
     v-cloak
     class="min-h-screen"
   >
+    <!-- 全局锁屏：本地无缓存时要求输入密码初始化 -->
+    <div v-if="appLocked" class="app-lock-mask">
+      <div class="app-lock-card">
+        <div class="app-lock-icon">🔐</div>
+        <h2 class="app-lock-title">高项学习器</h2>
+        <p class="app-lock-hint">首次使用，请输入密码初始化答题记录</p>
+        <form class="app-lock-form" @submit.prevent="unlockApp()">
+          <input
+            v-model="appPasswordInput"
+            type="password"
+            class="app-lock-input"
+            placeholder="请输入密码"
+            autocomplete="off"
+            autofocus
+            @input="appLockError = ''"
+          />
+          <button type="submit" class="app-lock-btn">进入</button>
+        </form>
+        <p v-if="appLockError" class="app-lock-error">{{ appLockError }}</p>
+      </div>
+    </div>
+
     <div
+      v-show="!appLocked"
       class="app-shell mx-auto max-w-[1600px] px-3 py-3 pb-20 md:px-6 md:py-4 md:pb-4 lg:px-8 lg:py-6"
       :class="{ 'app-shell--case-tight': activeView === 'quiz' && practiceLayer === 'case' }"
     >

@@ -3951,6 +3951,82 @@ body.mobile-search-screen-open {
   white-space: nowrap;
 }
 
+/* ── 全局锁屏 ── */
+.app-lock-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e8f5e9 50%, #faf5ff 100%);
+}
+.app-lock-card {
+  text-align: center;
+  max-width: 380px;
+  width: 90%;
+  padding: 3rem 2.5rem;
+  border-radius: 24px;
+  background: #fff;
+  border: 1.5px solid rgba(28, 124, 125, 0.15);
+  box-shadow: 0 12px 48px rgba(12, 55, 72, 0.1);
+}
+.app-lock-icon {
+  font-size: 3rem;
+  margin-bottom: 0.8rem;
+}
+.app-lock-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #16313f;
+  margin: 0 0 0.4rem;
+}
+.app-lock-hint {
+  font-size: 0.85rem;
+  color: rgba(22, 49, 63, 0.55);
+  margin: 0 0 1.5rem;
+}
+.app-lock-form {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+}
+.app-lock-input {
+  padding: 0.6rem 1rem;
+  border-radius: 12px;
+  border: 1.5px solid rgba(28, 124, 125, 0.3);
+  font-size: 0.95rem;
+  width: 170px;
+  outline: none;
+  transition: border-color 0.2s;
+  background: #fff;
+}
+.app-lock-input:focus {
+  border-color: #1c7c7d;
+  box-shadow: 0 0 0 3px rgba(28, 124, 125, 0.12);
+}
+.app-lock-btn {
+  padding: 0.6rem 1.4rem;
+  border-radius: 12px;
+  background: #1c7c7d;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.app-lock-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(28, 124, 125, 0.3);
+}
+.app-lock-error {
+  margin: 0.8rem 0 0;
+  font-size: 0.82rem;
+  color: #dc2626;
+  font-weight: 500;
+}
+
 /* ── 我的论文 My Essay ── */
 .my-essay {
   display: flex;
