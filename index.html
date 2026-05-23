@@ -1513,7 +1513,10 @@
                   class="practice-restart-modal practice-slash-config-modal"
                   @click.stop
                 >
-                  <p class="practice-restart-modal__title">斩题配置</p>
+                  <div class="flex items-center justify-between gap-2">
+                    <p class="practice-restart-modal__title">斩题配置</p>
+                    <span class="text-xs font-medium text-ocean/60">当前用户：{{ activePracticeUserId }}</span>
+                  </div>
                   <p class="text-sm leading-7 text-ink/72">范围：{{ practiceSlashScopeTitle }}。会按你最近一轮做题记录，随机抽取对应的对题或错题。</p>
                   <div class="quiz-ans-bar quiz-ans-bar--compact">
                     <button
@@ -1985,7 +1988,11 @@
                   </div>
                   <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px] min-w-0">
                     <div class="space-y-4 min-w-0">
-                      <section class="case-study-scenario panel-subtle" :class="{ 'case-study-scenario--pinned': caseStudyScenarioPinned }">
+                      <section
+                        class="case-study-scenario panel-subtle"
+                        :class="{ 'case-study-scenario--pinned': caseStudyScenarioPinned }"
+                        :style="caseStudyScenarioPinned && caseScenarioUserHeight ? { maxHeight: caseScenarioUserHeight + 'px' } : {}"
+                      >
                         <div class="mb-2 flex items-center justify-between gap-2">
                           <p class="eyebrow">{{ activeCaseQuestion.label }} · 案例说明</p>
                           <span class="text-xs font-medium text-ocean/70">{{ (activeCaseQuestion.subQuestions || []).length }} 道小题</span>
@@ -1998,6 +2005,12 @@
                         <div v-if="activeCaseQuestion.images && activeCaseQuestion.images.length" class="case-study-images mt-4">
                           <img v-for="(imgSrc, ii) in activeCaseQuestion.images" :key="'cimg-'+ii" class="case-study-images__img" :src="resolveCaseImageUrl(imgSrc)" :alt="activeCaseQuestion.label + ' 题图 ' + (ii + 1)" loading="lazy" referrerpolicy="no-referrer" />
                         </div>
+                        <div
+                          v-if="caseStudyScenarioPinned"
+                          class="case-scenario-resize-handle"
+                          @mousedown.prevent="startCaseScenarioResize"
+                          @touchstart.prevent="startCaseScenarioResize"
+                        ></div>
                       </section>
                       <p
                         v-if="!caseStudySubRows.length"

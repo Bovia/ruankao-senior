@@ -779,6 +779,7 @@ const app = createApp({
       caseStudyMode: "selftest",
       caseStudyQuestionIndex: 0,
       caseStudyScenarioPinned: true,
+      caseScenarioUserHeight: 0,
       /** 背题速记：8 套找茬题汇总视图 */
       caseStudyZhaChaOpen: false,
       /** { [bundleKey]: { [subId]: true } } */
@@ -3974,7 +3975,30 @@ const app = createApp({
     },
     toggleCaseStudyScenarioPinned() {
       this.caseStudyScenarioPinned = !this.caseStudyScenarioPinned;
+      if (!this.caseStudyScenarioPinned) this.caseScenarioUserHeight = 0;
       this._persistCaseStudyState();
+    },
+    startCaseScenarioResize(e) {
+      const el = e.target.closest(".case-study-scenario");
+      if (!el) return;
+      const startY = e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
+      const startH = el.offsetHeight;
+      const minH = 80;
+      const maxH = window.innerHeight * 0.7;
+      const onMove = (ev) => {
+        const y = ev.type === "touchmove" ? ev.touches[0].clientY : ev.clientY;
+        this.caseScenarioUserHeight = Math.max(minH, Math.min(maxH, startH + (y - startY)));
+      };
+      const onEnd = () => {
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onEnd);
+        document.removeEventListener("touchmove", onMove);
+        document.removeEventListener("touchend", onEnd);
+      };
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onEnd);
+      document.addEventListener("touchmove", onMove, { passive: false });
+      document.addEventListener("touchend", onEnd);
     },
     stripCasePromptPrefix(text, prompt) {
       const p = String(prompt || "").trim();

@@ -4861,6 +4861,27 @@ h4 .practice-fig {
   overflow: auto;
   box-shadow: 0 8px 24px rgba(12, 55, 72, 0.1);
 }
+.case-scenario-resize-handle {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 12px;
+  cursor: ns-resize;
+  background: linear-gradient(to bottom, transparent, rgba(12, 55, 72, 0.06));
+  border-radius: 0 0 12px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+}
+.case-scenario-resize-handle::after {
+  content: "";
+  width: 32px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(12, 55, 72, 0.2);
+}
 
 .case-study-images {
   display: flex;
