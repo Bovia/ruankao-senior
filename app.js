@@ -860,6 +860,7 @@ const app = createApp({
       practiceSlashConfigMode: "wrong",
       practiceSlashConfigCount: 20,
       practiceSlashConfigStats: { wrong: 0, correct: 0 },
+      practiceSlashConfigScope: "all",
       practiceSlashModeActive: false,
       practiceSlashSession: null,
       practiceSlashLatestCache: {},
@@ -1579,6 +1580,12 @@ const app = createApp({
       return this.activeView === "quiz" && this.quizSubMode === "quiz" && this.practiceLayer !== "case";
     },
     practiceSlashScopeTitle() {
+      if (this.practiceSlashConfigScope === "current") {
+        const set = this.activePracticeSet;
+        if (set) return set.title || set.name || set.key || "当前套";
+        if (this.practiceLayer === "domain") return this.activeDomain?.name || "当前知识域";
+        return "当前套";
+      }
       if (this.practiceLayer === "comprehensive") return "全部综合题";
       if (this.practiceLayer === "mock") return "全部模考";
       return "全部知识域";
@@ -4385,6 +4392,58 @@ const app = createApp({
       }
       return rows;
     },
+    _collectPracticeSlashCandidatesForCurrentSet(mode) {
+      const targetMode = mode === "correct" ? "correct" : "wrong";
+      const layer = this.practiceLayer;
+      if (layer === "case") return [];
+      const isDomainLayer = layer === "domain";
+      const set = isDomainLayer ? this.activeDomain : this.activePracticeSet;
+      if (!set || !set.id) return [];
+      const setId = set.id;
+      const setIdIndex = isDomainLayer ? 2 : (layer === "mock" ? 4 : 3);
+      const log = this.practiceAttemptLog || {};
+      let latest = null;
+      for (const [bundleKey, attempts] of Object.entries(log)) {
+        const parts = bundleKey.split("|");
+        if (parts.length < 5 || parts[0] !== "quiz" || parts[1] !== layer) continue;
+        if (parts[setIdIndex] !== setId) continue;
+        if (!Array.isArray(attempts) || !attempts.length) continue;
+        for (const att of attempts) {
+          if (!att || typeof att !== "object" || att.isDraft) continue;
+          if (!latest || (att.ts || 0) > (latest.ts || 0)) latest = att;
+        }
+      }
+      const quiz = isDomainLayer ? (Array.isArray(set.quiz) ? set.quiz : []) : this._resolveSetQuiz(set);
+      if (!Array.isArray(quiz) || !quiz.length) return [];
+      const setTitle = isDomainLayer ? (set.name || set.title || setId) : (set.title || set.key || setId);
+      const rows = [];
+      if (latest) {
+        const answerMap = latest.answerMap && typeof latest.answerMap === "object" ? latest.answerMap : {};
+        const choices = latest.choices && typeof latest.choices === "object" ? latest.choices : {};
+        for (const [k, ansRaw] of Object.entries(answerMap)) {
+          const oi = Number(k);
+          if (!Number.isInteger(oi)) continue;
+          const q = quiz[oi];
+          if (!q) continue;
+          const ans = normalizeQuizAnswerKey(ansRaw);
+          const user = normalizeQuizAnswerKey(choices[k] || "");
+          if (!ans || !user) continue;
+          if ((targetMode === "correct") !== (user === ans)) continue;
+          rows.push({ ...q, _originIndex: oi, _slashId: `${setId}|${oi}`, _slashSource: { setId, setTitle, originIndex: oi, userAnswer: user } });
+        }
+      } else {
+        for (let oi = 0; oi < quiz.length; oi += 1) {
+          const q = quiz[oi];
+          if (!q) continue;
+          const ans = normalizeQuizAnswerKey(q.answer || "");
+          const user = normalizeQuizAnswerKey(q.userAnswer || "");
+          if (!ans || !user) continue;
+          if ((targetMode === "correct") !== (user === ans)) continue;
+          rows.push({ ...q, _originIndex: oi, _slashId: `${setId}|${oi}`, _slashSource: { setId, setTitle, originIndex: oi, userAnswer: user } });
+        }
+      }
+      return rows;
+    },
     _shufflePracticeSlashRows(rows) {
       const arr = Array.isArray(rows) ? rows.map((q) => ({ ...q })) : [];
       for (let i = arr.length - 1; i > 0; i -= 1) {
@@ -4393,14 +4452,21 @@ const app = createApp({
       }
       return arr;
     },
-    async openPracticeSlashConfig() {
+    async openPracticeSlashConfig(scope) {
       if (!this.practiceSlashEntryVisible) return;
-      await this.ensurePracticeLayerPoolLoaded(this.practiceLayer);
-      const wrong = this._collectPracticeSlashCandidatesByLayer(this.practiceLayer, "wrong").length;
-      const correct = this._collectPracticeSlashCandidatesByLayer(this.practiceLayer, "correct").length;
+      const useScope = scope === "current" ? "current" : "all";
+      this.practiceSlashConfigScope = useScope;
+      if (useScope === "all") {
+        await this.ensurePracticeLayerPoolLoaded(this.practiceLayer);
+      }
+      const collect = useScope === "current"
+        ? (m) => this._collectPracticeSlashCandidatesForCurrentSet(m)
+        : (m) => this._collectPracticeSlashCandidatesByLayer(this.practiceLayer, m);
+      const wrong = collect("wrong").length;
+      const correct = collect("correct").length;
       this.practiceSlashConfigStats = { wrong, correct };
       if (!wrong && !correct) {
-        this._showCuteTip("当前大类还没有可斩题目，请先做题并生成记录");
+        this._showCuteTip(useScope === "current" ? "当前套还没有可斩题目，请先做题并生成记录" : "当前大类还没有可斩题目，请先做题并生成记录");
         return;
       }
       if ((this.practiceSlashConfigMode === "wrong" && !wrong) || (this.practiceSlashConfigMode === "correct" && !correct)) {
@@ -4415,9 +4481,13 @@ const app = createApp({
     },
     async startPracticeSlashSession() {
       if (!this.practiceSlashEntryVisible) return;
-      await this.ensurePracticeLayerPoolLoaded(this.practiceLayer);
+      if (this.practiceSlashConfigScope !== "current") {
+        await this.ensurePracticeLayerPoolLoaded(this.practiceLayer);
+      }
       const mode = this.practiceSlashConfigMode === "correct" ? "correct" : "wrong";
-      const candidates = this._collectPracticeSlashCandidatesByLayer(this.practiceLayer, mode);
+      const candidates = this.practiceSlashConfigScope === "current"
+        ? this._collectPracticeSlashCandidatesForCurrentSet(mode)
+        : this._collectPracticeSlashCandidatesByLayer(this.practiceLayer, mode);
       if (!candidates.length) {
         this._showCuteTip(`当前没有可${this.practiceSlashModeLabel(mode)}的题目`);
         return;

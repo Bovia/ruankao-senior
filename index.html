@@ -1586,8 +1586,8 @@
                       v-if="practiceSlashEntryVisible"
                       type="button"
                       class="practice-slash-entry-btn"
-                      @click="openPracticeSlashConfig"
-                    >斩题</button>
+                      @click="openPracticeSlashConfig('current')"
+                    >斩当前</button>
                     <button
                       v-if="practiceSlashEntryVisible && practiceSlashLatestSession"
                       type="button"
