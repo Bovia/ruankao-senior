@@ -4098,6 +4098,12 @@ body.mobile-search-screen-open {
   border-color: rgba(147, 51, 234, 0.28);
   background: repeating-linear-gradient(-45deg, #fff, #fff 8px, #faf5ff 8px, #faf5ff 16px);
 }
+.my-essay-section-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
 .my-essay-section-head {
   display: flex;
   align-items: flex-start;

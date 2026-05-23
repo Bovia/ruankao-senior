@@ -1862,6 +1862,10 @@ const app = createApp({
     activeMyEssayGroup() {
       return (this.myEssayData.groups || []).find((g) => g.id === this.myEssayGroupId) || (this.myEssayData.groups || [])[0] || { name: "", color: "#1c7c7d" };
     },
+    myEssaySubProcessesText() {
+      const procs = this.activeMyEssayTopic?.subProcesses || [];
+      return procs.map((p) => p.name + "：" + p.practice).join("\n");
+    },
     essayTabReadText() {
       const tab = this.activeEssayTab;
       const d = this.essayData || {};
@@ -3552,6 +3556,10 @@ const app = createApp({
       const text = this.essayTabReadText;
       if (!text) return;
       this.speakQuizAnalysis(text, this.essayTtsKey);
+    },
+    speakMyEssaySection(text, key) {
+      if (!text) return;
+      this.speakQuizAnalysis(text, "my-essay-" + key);
     },
     copyMyEssayText(text, tag) {
       if (!text) return;

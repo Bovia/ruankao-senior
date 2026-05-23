@@ -2534,11 +2534,14 @@
                 @click="speakEssayTab()"
               >
                 <svg class="quiz-tts-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-                </svg>
+                  <path d="m3 11 18-5v12L3 13v-2z" />
+                  <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" /></svg>
               </button>
+              <div class="quiz-ans-bar quiz-ans-bar--inline">
+                <button type="button" class="quiz-ans-btn" :class="{ 'quiz-ans-btn-active': quizTtsRate === 1 }" @click="setQuizTtsRate(1)">1×</button>
+                <button type="button" class="quiz-ans-btn" :class="{ 'quiz-ans-btn-active': quizTtsRate === 1.25 }" @click="setQuizTtsRate(1.25)">1.25×</button>
+                <button type="button" class="quiz-ans-btn" :class="{ 'quiz-ans-btn-active': quizTtsRate === 1.5 }" @click="setQuizTtsRate(1.5)">1.5×</button>
+              </div>
             </div>
           </div>
 
@@ -2821,10 +2824,28 @@
                   <h3 class="my-essay-section-title">{{ myEssayData.projectOverview.title }}</h3>
                   <p class="my-essay-section-meta">{{ myEssayData.projectOverview.wordCount }}</p>
                 </div>
-                <button
-                  class="my-essay-copy-btn"
-                  @click="copyMyEssayText(myEssayData.projectOverview.content, 'overview')"
-                >{{ myEssayCopied === 'overview' ? '已复制' : '复制项目概述' }}</button>
+                <div class="my-essay-section-tools">
+                  <button
+                    type="button"
+                    class="quiz-tts-btn"
+                    :class="{ 'quiz-tts-btn-active': quizTtsPlayingIndex === 'my-essay-overview' }"
+                    :title="quizTtsPlayingIndex === 'my-essay-overview' ? '停止朗读' : '朗读项目概述'"
+                    @click="speakMyEssaySection(myEssayData.projectOverview.content, 'overview')"
+                  >
+                    <svg class="quiz-tts-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="m3 11 18-5v12L3 13v-2z" />
+                      <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" /></svg>
+                  </button>
+                  <div class="quiz-ans-bar quiz-ans-bar--inline">
+                    <button type="button" class="quiz-ans-btn" :class="{ 'quiz-ans-btn-active': quizTtsRate === 1 }" @click="setQuizTtsRate(1)">1×</button>
+                    <button type="button" class="quiz-ans-btn" :class="{ 'quiz-ans-btn-active': quizTtsRate === 1.25 }" @click="setQuizTtsRate(1.25)">1.25×</button>
+                    <button type="button" class="quiz-ans-btn" :class="{ 'quiz-ans-btn-active': quizTtsRate === 1.5 }" @click="setQuizTtsRate(1.5)">1.5×</button>
+                  </div>
+                  <button
+                    class="my-essay-copy-btn"
+                    @click="copyMyEssayText(myEssayData.projectOverview.content, 'overview')"
+                  >{{ myEssayCopied === 'overview' ? '已复制' : '复制项目概述' }}</button>
+                </div>
               </header>
               <div class="my-essay-overview-text">{{ myEssayData.projectOverview.content }}</div>
             </section>
@@ -2866,10 +2887,28 @@
                   <span class="my-essay-section-eyebrow">承上启下 · 250 字左右</span>
                   <h3 class="my-essay-section-title">二、过渡段（{{ activeMyEssayTopic.name }}）</h3>
                 </div>
-                <button
-                  class="my-essay-copy-btn"
-                  @click="copyMyEssayText(activeMyEssayTopic.transition, 'transition')"
-                >{{ myEssayCopied === 'transition' ? '已复制' : '复制过渡段' }}</button>
+                <div class="my-essay-section-tools">
+                  <button
+                    type="button"
+                    class="quiz-tts-btn"
+                    :class="{ 'quiz-tts-btn-active': quizTtsPlayingIndex === 'my-essay-transition' }"
+                    :title="quizTtsPlayingIndex === 'my-essay-transition' ? '停止朗读' : '朗读过渡段'"
+                    @click="speakMyEssaySection(activeMyEssayTopic.transition, 'transition')"
+                  >
+                    <svg class="quiz-tts-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="m3 11 18-5v12L3 13v-2z" />
+                      <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" /></svg>
+                  </button>
+                  <div class="quiz-ans-bar quiz-ans-bar--inline">
+                    <button type="button" class="quiz-ans-btn" :class="{ 'quiz-ans-btn-active': quizTtsRate === 1 }" @click="setQuizTtsRate(1)">1×</button>
+                    <button type="button" class="quiz-ans-btn" :class="{ 'quiz-ans-btn-active': quizTtsRate === 1.25 }" @click="setQuizTtsRate(1.25)">1.25×</button>
+                    <button type="button" class="quiz-ans-btn" :class="{ 'quiz-ans-btn-active': quizTtsRate === 1.5 }" @click="setQuizTtsRate(1.5)">1.5×</button>
+                  </div>
+                  <button
+                    class="my-essay-copy-btn"
+                    @click="copyMyEssayText(activeMyEssayTopic.transition, 'transition')"
+                  >{{ myEssayCopied === 'transition' ? '已复制' : '复制过渡段' }}</button>
+                </div>
               </header>
               <p class="my-essay-transition-text">{{ activeMyEssayTopic.transition }}</p>
             </section>
@@ -2881,6 +2920,24 @@
                   <span class="my-essay-section-eyebrow">核心论述 · 1500-2000 字</span>
                   <h3 class="my-essay-section-title">三、正文 · 子过程与项目实践</h3>
                   <p class="my-essay-section-meta">每段首句为中心句；理论 + 工具 + 项目实践交替出现</p>
+                </div>
+                <div v-if="myEssaySubProcessesText" class="my-essay-section-tools">
+                  <button
+                    type="button"
+                    class="quiz-tts-btn"
+                    :class="{ 'quiz-tts-btn-active': quizTtsPlayingIndex === 'my-essay-processes' }"
+                    :title="quizTtsPlayingIndex === 'my-essay-processes' ? '停止朗读' : '朗读全部子过程'"
+                    @click="speakMyEssaySection(myEssaySubProcessesText, 'processes')"
+                  >
+                    <svg class="quiz-tts-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="m3 11 18-5v12L3 13v-2z" />
+                      <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" /></svg>
+                  </button>
+                  <div class="quiz-ans-bar quiz-ans-bar--inline">
+                    <button type="button" class="quiz-ans-btn" :class="{ 'quiz-ans-btn-active': quizTtsRate === 1 }" @click="setQuizTtsRate(1)">1×</button>
+                    <button type="button" class="quiz-ans-btn" :class="{ 'quiz-ans-btn-active': quizTtsRate === 1.25 }" @click="setQuizTtsRate(1.25)">1.25×</button>
+                    <button type="button" class="quiz-ans-btn" :class="{ 'quiz-ans-btn-active': quizTtsRate === 1.5 }" @click="setQuizTtsRate(1.5)">1.5×</button>
+                  </div>
                 </div>
               </header>
               <div class="my-essay-process-list">
