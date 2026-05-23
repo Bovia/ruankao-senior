@@ -1697,6 +1697,12 @@
                     <button
                       v-if="practiceSlashEntryVisible"
                       type="button"
+                      class="practice-slash-entry-btn"
+                      @click="openPracticeSlashConfig('current')"
+                    >斩当前</button>
+                    <button
+                      v-if="practiceSlashEntryVisible && practiceSlashLatestSession"
+                      type="button"
                       class="practice-history-trigger"
                       @click="openLatestPracticeSlashResult"
                     >斩题结果</button>
