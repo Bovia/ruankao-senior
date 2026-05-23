@@ -2494,14 +2494,28 @@
                 @click="openMobileSearchPage"
               >搜索过程</button>
             </div>
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap items-center gap-2">
               <button
                 v-for="tab in essayTabs"
                 :key="'esy-'+tab.id"
-                @click="activeEssayTab = tab.id"
+                @click="switchEssayTab(tab.id)"
                 class="density-toggle"
                 :class="{ 'density-toggle-active': activeEssayTab === tab.id }"
               >{{ tab.label }}</button>
+              <button
+                v-if="essayTabReadText"
+                type="button"
+                class="quiz-tts-btn"
+                :class="{ 'quiz-tts-btn-active': quizTtsPlayingIndex === essayTtsKey }"
+                :title="quizTtsPlayingIndex === essayTtsKey ? '停止朗读' : '朗读本页内容'"
+                @click="speakEssayTab()"
+              >
+                <svg class="quiz-tts-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                </svg>
+              </button>
             </div>
           </div>
 

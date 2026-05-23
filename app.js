@@ -1852,6 +1852,66 @@ const app = createApp({
     activeMyEssayGroup() {
       return (this.myEssayData.groups || []).find((g) => g.id === this.myEssayGroupId) || (this.myEssayData.groups || [])[0] || { name: "", color: "#1c7c7d" };
     },
+    essayTabReadText() {
+      const tab = this.activeEssayTab;
+      const d = this.essayData || {};
+      const lines = [];
+      if (tab === "basics") {
+        const labelMap = { wordCount: "字数", duration: "时长", topicCount: "选题数", passLine: "及格线", scoring: "分值分布", strategy: "选题策略" };
+        for (const [k, v] of Object.entries(d.examBasics || {})) {
+          lines.push((labelMap[k] || k) + "：" + v);
+        }
+      } else if (tab === "structure") {
+        if (d.structure?.overview) lines.push(d.structure.overview);
+        for (const sec of d.structure?.sections || []) {
+          lines.push(sec.name + "，" + sec.role);
+          if (sec.mustHave?.length) lines.push("必须包含：" + sec.mustHave.join("；"));
+          if (sec.template) lines.push("模板示例：" + sec.template);
+          if (sec.pitfalls?.length) lines.push("易踩坑：" + sec.pitfalls.join("；"));
+        }
+      } else if (tab === "scoring") {
+        for (const crit of d.scoringCriteria || []) {
+          lines.push(crit.range + "：" + (crit.features || []).join("；"));
+        }
+        lines.push("高频扣分点：");
+        for (const mis of d.commonMistakes || []) {
+          lines.push("易错：" + mis.mistake + "。修正：" + mis.fix);
+        }
+      } else if (tab === "domainPoints") {
+        for (const dp of d.domainPoints || []) {
+          lines.push(dp.domain + "。核心过程：" + (dp.corePhases || []).join("、") + "。常见难题：" + (dp.typicalProblems || []).join("；") + "。专业解法：" + (dp.typicalSolutions || []).join("；") + "。" + (dp.essayHook || ""));
+        }
+      } else if (tab === "projects") {
+        for (const proj of d.projectTemplates || []) {
+          lines.push(proj.name + "，" + proj.industry + "，" + proj.scale + "。" + proj.background + " 关键挑战：" + (proj.keyChallenges || []).join("；") + "。适配论文主题：" + (proj.suitableDomains || []).join("、"));
+        }
+      } else if (tab === "phrases") {
+        const labelMap = { opening: "开篇句", transition: "过渡句", concluding: "收尾句", quantifyLines: "量化效果句" };
+        for (const [k, group] of Object.entries(d.phrases || {})) {
+          lines.push((labelMap[k] || k) + "：" + (group || []).join("；"));
+        }
+      } else if (tab === "pastTopics") {
+        for (const t of d.pastTopics || []) {
+          lines.push(t.year + "，" + t.topic + "，" + t.domain);
+        }
+        lines.push("考场写作技巧：");
+        for (const tp of d.writingTips || []) {
+          lines.push(tp.tip + "：" + tp.detail);
+        }
+      } else if (tab === "myEssay") {
+        const my = this.myEssayData || {};
+        if (my.projectOverview?.content) lines.push("项目概述：" + my.projectOverview.content);
+        const topic = this.activeMyEssayTopic;
+        if (topic.transition) lines.push("过渡段：" + topic.transition);
+        for (const proc of topic.subProcesses || []) {
+          lines.push(proc.name + "：" + proc.practice);
+        }
+      }
+      return lines.join("\n");
+    },
+    essayTtsKey() {
+      return "essay-" + this.activeEssayTab;
+    },
     calculatorValues() {
       const parse = (value) => {
         if (value === "" || value === null || value === undefined) {
@@ -3455,6 +3515,18 @@ const app = createApp({
     selectMyEssayTopic(topicId) {
       this.myEssayTopicId = topicId;
       this.myEssayCopied = "";
+    },
+    switchEssayTab(tabId) {
+      if (this.quizTtsPlayingIndex && String(this.quizTtsPlayingIndex).startsWith("essay-")) {
+        this._bumpQuizTtsGenAndCancel();
+        this._clearQuizTtsUi();
+      }
+      this.activeEssayTab = tabId;
+    },
+    speakEssayTab() {
+      const text = this.essayTabReadText;
+      if (!text) return;
+      this.speakQuizAnalysis(text, this.essayTtsKey);
     },
     copyMyEssayText(text, tag) {
       if (!text) return;
