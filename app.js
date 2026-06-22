@@ -3101,6 +3101,17 @@ const app = createApp({
     closeDesktopSettings() {
       this.desktopSettingsOpen = false;
     },
+    async logoutCloud() {
+      const ok = await this._askCuteConfirm("确认退出登录？下次打开需重新解锁，数据已保存在云端。", "退出登录", "退出", "取消");
+      if (!ok) return;
+      if (typeof ApiClient !== "undefined") ApiClient.logout();
+      // 清除本地缓存，回到锁屏
+      safeSetItem(PRACTICE_ACTIVE_USER_STORAGE_KEY, "");
+      this.appLocked = true;
+      this.appPasswordInput = "";
+      this.appLockError = "";
+      this._showCuteTip("已退出登录");
+    },
     openMobileSearchPage() {
       this.mobileSearchPageOpen = true;
       this.moduleSheetOpen = false;

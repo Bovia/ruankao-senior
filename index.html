@@ -121,18 +121,13 @@
               <button
                 type="button"
                 class="header-settings-item"
-                @click="closeDesktopSettings(); initPracticeUserFromSeed('bovia')"
-              >初始化题目缓存（bovia，覆盖）</button>
-              <button
-                type="button"
-                class="header-settings-item"
-                @click="closeDesktopSettings(); initPracticeUserFromSeed('mtt')"
-              >初始化题目缓存（mtt，覆盖）</button>
-              <button
-                type="button"
-                class="header-settings-item"
                 @click="closeDesktopSettings(); exportProjectCacheToClipboard()"
               >导出项目缓存</button>
+              <button
+                type="button"
+                class="header-settings-item"
+                @click="closeDesktopSettings(); logoutCloud()"
+              >退出登录</button>
               <button
                 type="button"
                 class="header-settings-item"
@@ -3146,18 +3141,13 @@
                     <button
                       type="button"
                       class="module-config-item"
-                      @click="initPracticeUserFromSeed('bovia')"
-                    >初始化题目缓存（bovia，覆盖）</button>
-                    <button
-                      type="button"
-                      class="module-config-item"
-                      @click="initPracticeUserFromSeed('mtt')"
-                    >初始化题目缓存（mtt，覆盖）</button>
-                    <button
-                      type="button"
-                      class="module-config-item"
                       @click="exportProjectCacheToClipboard"
                     >导出项目缓存</button>
+                    <button
+                      type="button"
+                      class="module-config-item"
+                      @click="logoutCloud()"
+                    >退出登录</button>
                     <button
                       type="button"
                       class="module-config-item"
