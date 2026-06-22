@@ -2197,6 +2197,15 @@ const app = createApp({
         this._loadPracticeSlashSessions();
         this.$nextTick(() => this._ensureLatestAttemptReviewForActiveLayer());
         this._maybeBuildWrongBookSnapshotsForActiveRoute();
+
+        // 页面刷新时：若已有 token，后台静默拉云端最新数据同步到本地
+        if (typeof ApiClient !== "undefined" && ApiClient.restore() && !this.appLocked && navigator.onLine) {
+          ApiClient.getAllUserData().then((syncRes) => {
+            if (!syncRes.offline && !syncRes.error && syncRes.hasData) {
+              this._initPracticeUserFromCloud(this.activePracticeUserId, syncRes);
+            }
+          }).catch(() => {});
+        }
       });
     if (this.activeView === "quiz" && this.practiceLayer === "case") {
       this._loadCaseStudyStateForBundle();
@@ -2266,11 +2275,16 @@ const app = createApp({
     },
     _persistFavorites() {
       try {
+        const items = this.favorites.slice(-800);
         safeSetItem(FAVORITES_STORAGE_KEY, JSON.stringify({
           v: 1,
           compact: this.favoritesCompact,
-          items: this.favorites.slice(-800)
+          items
         }));
+        // 收藏变更后实时同步到云端
+        if (typeof ApiClient !== "undefined" && ApiClient.isLoggedIn()) {
+          ApiClient.syncFavorites(items).catch(() => {});
+        }
       } catch (e) {
         /* ignore */
       }
@@ -2710,6 +2724,93 @@ const app = createApp({
         this._showCuteTip(`初始化失败：${e && e.message ? e.message : "未知异常"}`);
       }
     },
+    /**
+     * 用云端拉回的数据初始化本地 localStorage + 内存状态，不弹 confirm 对话框
+     */
+    async _initPracticeUserFromCloud(uidRaw, syncRes) {
+      const uid = this._normalizePracticeUserId(uidRaw);
+      this.projectConfigMenuOpen = false;
+
+      // 写 localStorage
+      safeSetItem(PRACTICE_ACTIVE_USER_STORAGE_KEY, uid);
+      safeSetItem(PRACTICE_ATTEMPTS_STORAGE_KEY, JSON.stringify({
+        __v: 2,
+        profiles: { [uid]: syncRes.attempts || {} }
+      }));
+      safeSetItem(PRACTICE_USER_ANS_STORAGE_KEY, JSON.stringify({
+        __v: 2,
+        profiles: { [uid]: { v: 1, bySetKey: syncRes.answers || {} } }
+      }));
+      if (syncRes.caseDrafts && Object.keys(syncRes.caseDrafts).length > 0) {
+        safeSetItem(CASE_STUDY_STATE_KEY, JSON.stringify(syncRes.caseDrafts));
+      }
+      if (syncRes.slashRecords && syncRes.slashRecords["all"]) {
+        safeSetItem(PRACTICE_SLASH_STORAGE_KEY, JSON.stringify({
+          __v: 2,
+          profiles: { [uid]: syncRes.slashRecords["all"] }
+        }));
+      }
+      if (Array.isArray(syncRes.favorites) && syncRes.favorites.length > 0) {
+        const items = syncRes.favorites.map((f) => ({
+          id: f.id,
+          type: f.type || "note",
+          title: f.title || "",
+          content: f.content || "",
+          sourceKey: f.source_key || "",
+          sourceTag: f.source_tag || "",
+          createdAt: f.created_at || Date.now()
+        }));
+        safeSetItem(FAVORITES_STORAGE_KEY, JSON.stringify({ v: 1, compact: this.favoritesCompact, items }));
+        this.favorites = items;
+      }
+      if (syncRes.myEssay && typeof syncRes.myEssay === "object") {
+        this.myEssayData = syncRes.myEssay;
+      }
+
+      // 重载内存状态
+      this.activePracticeUserId = uid;
+      this.practiceSetCache = {};
+      this.practiceWrongBookSnapshot = null;
+      if (this.practiceExamActive) this.exitPracticeExam();
+      this._loadPracticeAttemptLog();
+      this._loadPracticeUserAnswers();
+      this._loadPracticeSlashSessions();
+    },
+
+    /**
+     * 把当前本地数据全量上传到云端（首次云端迁移）
+     */
+    async _uploadLocalDataToCloud() {
+      const attemptsLog = this.practiceAttemptLog && typeof this.practiceAttemptLog === "object" ? this.practiceAttemptLog : {};
+      const answers = this.practiceUserAnswers && typeof this.practiceUserAnswers === "object" ? this.practiceUserAnswers : {};
+      const favorites = (Array.isArray(this.favorites) ? this.favorites : []).map((f) => ({
+        id: f.id,
+        type: f.type || "note",
+        title: f.title || "",
+        content: f.content || "",
+        sourceKey: f.sourceKey || f.source_key || "",
+        sourceTag: f.sourceTag || f.source_tag || "",
+        createdAt: f.createdAt || f.created_at || Date.now()
+      }));
+      let caseDrafts = {};
+      try {
+        const raw = safeGetItem(CASE_STUDY_STATE_KEY);
+        if (raw) caseDrafts = JSON.parse(raw);
+      } catch (e) { /* ignore */ }
+      const slashCache = this.practiceSlashLatestCache && typeof this.practiceSlashLatestCache === "object"
+        ? this.practiceSlashLatestCache : {};
+      const myEssay = this.myEssayData || null;
+
+      return ApiClient.uploadAllUserData({
+        attempts: attemptsLog,
+        answers,
+        favorites,
+        caseDrafts,
+        slashRecords: { all: slashCache },
+        myEssay
+      });
+    },
+
     _buildAttemptFromMappedAnswers(layer, set, mapped, tsSeed) {
       const raw = set && set.key && window.practiceMarkdown && window.practiceMarkdown[set.key];
       const quiz = raw ? parsePracticeMarkdown(raw) : (set && Array.isArray(set.quiz) ? set.quiz : []);
@@ -3549,8 +3650,42 @@ const app = createApp({
         return;
       }
       this.appLockError = "";
-      this.appLocked = false;
       this.appPasswordInput = "";
+
+      // 尝试从云端初始化（云端优先）
+      if (typeof ApiClient !== "undefined" && navigator.onLine) {
+        this.appLockError = "正在连接云端…";
+        try {
+          const loginRes = await ApiClient.loginOrRegister(pwd);
+          if (!loginRes.offline && !loginRes.error) {
+            const syncRes = await ApiClient.getAllUserData();
+            if (!syncRes.offline && !syncRes.error && syncRes.hasData) {
+              // 云端有数据 → 直接用云端数据，无需询问
+              this.appLocked = false;
+              this.appLockError = "";
+              await this._initPracticeUserFromCloud(pwd, syncRes);
+              this._showCuteTip(`云端同步成功，当前用户：${pwd}`);
+              return;
+            }
+            if (!syncRes.offline && !syncRes.error && !syncRes.hasData) {
+              // 云端账号存在但没数据 → 先本地初始化，再上传
+              this.appLockError = "";
+              this.appLocked = false;
+              await this.initPracticeUserFromSeed(pwd);
+              this._showCuteTip("正在将本地数据上传到云端…");
+              await this._uploadLocalDataToCloud();
+              this._showCuteTip("本地数据已上传到云端");
+              return;
+            }
+          }
+        } catch (e) {
+          /* 云端异常，降级到本地 */
+        }
+      }
+
+      // 降级：本地种子初始化（离线或云端连接失败）
+      this.appLockError = "";
+      this.appLocked = false;
       await this.initPracticeUserFromSeed(pwd);
     },
     speakEssayTab() {
@@ -3824,11 +3959,16 @@ const app = createApp({
         const profiles = parsed && parsed.__v === 2 && parsed.profiles && typeof parsed.profiles === "object"
           ? { ...parsed.profiles }
           : {};
-        profiles[this.activePracticeUserId] = {
-          v: 1,
-          bySetKey: this.practiceUserAnswers && typeof this.practiceUserAnswers === "object" ? this.practiceUserAnswers : {}
-        };
+        const bySetKey = this.practiceUserAnswers && typeof this.practiceUserAnswers === "object" ? this.practiceUserAnswers : {};
+        profiles[this.activePracticeUserId] = { v: 1, bySetKey };
         safeSetItem(PRACTICE_USER_ANS_STORAGE_KEY, JSON.stringify({ __v: 2, profiles }));
+        // 异步同步当前套卷答案到云端
+        if (typeof ApiClient !== "undefined" && ApiClient.isLoggedIn()) {
+          const sk = this.quizBundleKey || this.activeComprehensiveId || this.activeMockId || this.activeDomainId;
+          if (sk && bySetKey[sk]) {
+            ApiClient.saveAnswers(sk, bySetKey[sk]).catch(() => {});
+          }
+        }
       } catch (e) {
         /* ignore */
       }
@@ -4181,15 +4321,20 @@ const app = createApp({
         const store = this._loadCaseStudyStateStore();
         const bk = this.caseStudyBundleKey;
         if (!bk) return;
-        store[bk] = {
+        const state = {
           mode: this.caseStudyMode,
           questionIndex: this.caseStudyQuestionIndex,
           scenarioPinned: this.caseStudyScenarioPinned,
           revealed: (this.caseStudyRevealed && this.caseStudyRevealed[bk]) || {},
           drafts: (this.caseStudyDrafts && this.caseStudyDrafts[bk]) || {}
         };
+        store[bk] = state;
         safeSetItem(CASE_STUDY_STATE_KEY, JSON.stringify(store));
         this.syncUrlState();
+        // 异步同步到云端
+        if (typeof ApiClient !== "undefined" && ApiClient.isLoggedIn()) {
+          ApiClient.saveCaseDraft(bk, state).catch(() => {});
+        }
       } catch (e) {
         /* ignore */
       }
@@ -4298,9 +4443,13 @@ const app = createApp({
         const profiles = parsed && parsed.__v === 2 && parsed.profiles && typeof parsed.profiles === "object"
           ? { ...parsed.profiles }
           : {};
-        profiles[this.activePracticeUserId] =
-          this.practiceSlashLatestCache && typeof this.practiceSlashLatestCache === "object" ? this.practiceSlashLatestCache : {};
+        const slashCache = this.practiceSlashLatestCache && typeof this.practiceSlashLatestCache === "object" ? this.practiceSlashLatestCache : {};
+        profiles[this.activePracticeUserId] = slashCache;
         safeSetItem(PRACTICE_SLASH_STORAGE_KEY, JSON.stringify({ __v: 2, profiles }));
+        // 异步同步到云端
+        if (typeof ApiClient !== "undefined" && ApiClient.isLoggedIn()) {
+          ApiClient.saveSlashRecord("all", slashCache).catch(() => {});
+        }
       } catch (e) {
         /* ignore quota */
       }
@@ -4691,8 +4840,18 @@ const app = createApp({
         const profiles = parsed && parsed.__v === 2 && parsed.profiles && typeof parsed.profiles === "object"
           ? { ...parsed.profiles }
           : {};
-        profiles[this.activePracticeUserId] = this.practiceAttemptLog && typeof this.practiceAttemptLog === "object" ? this.practiceAttemptLog : {};
+        const logSnapshot = this.practiceAttemptLog && typeof this.practiceAttemptLog === "object" ? this.practiceAttemptLog : {};
+        profiles[this.activePracticeUserId] = logSnapshot;
         safeSetItem(PRACTICE_ATTEMPTS_STORAGE_KEY, JSON.stringify({ __v: 2, profiles }));
+        // 异步同步最新一条记录到云端
+        if (typeof ApiClient !== "undefined" && ApiClient.isLoggedIn()) {
+          const bk = this.quizBundleKey;
+          const entries = bk && Array.isArray(logSnapshot[bk]) ? logSnapshot[bk] : [];
+          const latest = entries[entries.length - 1];
+          if (latest && latest.ts && !latest.isDraft) {
+            ApiClient.addAttempt(bk, latest, latest.ts).catch(() => {});
+          }
+        }
       } catch (e) {
         /* ignore quota */
       }
