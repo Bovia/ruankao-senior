@@ -51,18 +51,19 @@
       <div class="app-lock-card">
         <div class="app-lock-icon">🔐</div>
         <h2 class="app-lock-title">高项学习器</h2>
-        <p class="app-lock-hint">首次使用，请输入密码初始化答题记录</p>
+        <p class="app-lock-hint">输入用户名进入，新用户自动注册</p>
         <form class="app-lock-form" @submit.prevent="unlockApp()">
           <input
             v-model="appPasswordInput"
-            type="password"
+            type="text"
             class="app-lock-input"
-            placeholder="请输入密码"
+            placeholder="输入用户名"
             autocomplete="off"
+            autocapitalize="none"
             autofocus
             @input="appLockError = ''"
           />
-          <button type="submit" class="app-lock-btn">进入</button>
+          <button type="submit" class="app-lock-btn" :disabled="!appPasswordInput.trim()">进入</button>
         </form>
         <p v-if="appLockError" class="app-lock-error">{{ appLockError }}</p>
       </div>
