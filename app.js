@@ -2625,15 +2625,17 @@ const app = createApp({
         return false;
       }
     },
-    async initPracticeUserFromSeed(uidRaw) {
+    async initPracticeUserFromSeed(uidRaw, { silent = false } = {}) {
       this.projectConfigMenuOpen = false;
       const uid = this._normalizePracticeUserId(uidRaw);
       if (uid !== "bovia" && uid !== "mtt") {
         this._showCuteTip("仅支持 bovia / mtt");
         return;
       }
-      const ok = await this._askCuteConfirm(`将覆盖 ${uid} 的题目历史与答案缓存，是否继续？`);
-      if (!ok) return;
+      if (!silent) {
+        const ok = await this._askCuteConfirm(`将覆盖 ${uid} 的题目历史与答案缓存，是否继续？`);
+        if (!ok) return;
+      }
       try {
         const seed = await this._loadPracticeSeedData();
         const items = seed && seed.items && typeof seed.items === "object" ? seed.items : {};
@@ -2724,6 +2726,23 @@ const app = createApp({
         this._showCuteTip(`初始化失败：${e && e.message ? e.message : "未知异常"}`);
       }
     },
+    /**
+     * 全新用户：空白初始化，不从种子文件读取任何历史
+     */
+    async _initFreshUser(uidRaw) {
+      const uid = this._normalizePracticeUserId(uidRaw);
+      safeSetItem(PRACTICE_ACTIVE_USER_STORAGE_KEY, uid);
+      safeSetItem(PRACTICE_ATTEMPTS_STORAGE_KEY, JSON.stringify({ __v: 2, profiles: { [uid]: {} } }));
+      safeSetItem(PRACTICE_USER_ANS_STORAGE_KEY, JSON.stringify({ __v: 2, profiles: { [uid]: { v: 1, bySetKey: {} } } }));
+      this.activePracticeUserId = uid;
+      this.practiceSetCache = {};
+      this.practiceWrongBookSnapshot = null;
+      this.favorites = [];
+      this.practiceAttemptLog = {};
+      this.practiceUserAnswers = {};
+      if (this.practiceExamActive) this.exitPracticeExam();
+    },
+
     /**
      * 用云端拉回的数据初始化本地 localStorage + 内存状态，不弹 confirm 对话框
      */
@@ -3654,50 +3673,62 @@ const app = createApp({
       this.activeEssayTab = tabId;
     },
     async unlockApp() {
-      const pwd = (this.appPasswordInput || "").trim().toLowerCase();
-      if (pwd !== "bovia" && pwd !== "mtt") {
-        this.appLockError = "密码不对，请重试";
-        this.appPasswordInput = "";
+      const uid = this._normalizePracticeUserId((this.appPasswordInput || "").trim());
+      if (!uid) {
+        this.appLockError = "用户名不能为空";
         return;
       }
-      this.appLockError = "";
       this.appPasswordInput = "";
+      this.appLockError = "";
 
       // 尝试从云端初始化（云端优先）
       if (typeof ApiClient !== "undefined" && navigator.onLine) {
         this.appLockError = "正在连接云端…";
         try {
-          const loginRes = await ApiClient.loginOrRegister(pwd);
+          const loginRes = await ApiClient.loginOrRegister(uid);
           if (!loginRes.offline && !loginRes.error) {
             const syncRes = await ApiClient.getAllUserData();
             if (!syncRes.offline && !syncRes.error && syncRes.hasData) {
-              // 云端有数据 → 直接用云端数据，无需询问
+              // 云端有数据 → 直接用云端数据
               this.appLocked = false;
               this.appLockError = "";
-              await this._initPracticeUserFromCloud(pwd, syncRes);
-              this._showCuteTip(`云端同步成功，当前用户：${pwd}`);
+              await this._initPracticeUserFromCloud(uid, syncRes);
+              this._showCuteTip(`欢迎回来，${uid}`);
               return;
             }
             if (!syncRes.offline && !syncRes.error && !syncRes.hasData) {
-              // 云端账号存在但没数据 → 先本地初始化，再上传
+              // 新用户（或云端无数据） → 本地种子或全新状态，再上传
               this.appLockError = "";
               this.appLocked = false;
-              await this.initPracticeUserFromSeed(pwd);
-              this._showCuteTip("正在将本地数据上传到云端…");
-              await this._uploadLocalDataToCloud();
-              this._showCuteTip("本地数据已上传到云端");
+              const isKnownSeedUser = uid === "bovia" || uid === "mtt";
+              if (isKnownSeedUser) {
+                await this.initPracticeUserFromSeed(uid, { silent: true });
+                this._showCuteTip("正在将本地数据上传到云端…");
+                await this._uploadLocalDataToCloud();
+                this._showCuteTip(`本地数据已上传到云端，当前用户：${uid}`);
+              } else {
+                await this._initFreshUser(uid);
+                this._showCuteTip(`新用户 ${uid} 注册成功，开始学习吧！`);
+              }
               return;
             }
           }
+          this.appLockError = "";
         } catch (e) {
           /* 云端异常，降级到本地 */
+          this.appLockError = "";
         }
       }
 
-      // 降级：本地种子初始化（离线或云端连接失败）
+      // 降级：离线或云端失败，本地直接进入
       this.appLockError = "";
       this.appLocked = false;
-      await this.initPracticeUserFromSeed(pwd);
+      const isKnownSeedUser = uid === "bovia" || uid === "mtt";
+      if (isKnownSeedUser) {
+        await this.initPracticeUserFromSeed(uid, { silent: true });
+      } else {
+        await this._initFreshUser(uid);
+      }
     },
     speakEssayTab() {
       const text = this.essayTabReadText;
