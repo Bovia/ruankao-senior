@@ -10,7 +10,10 @@ tags:
 demoUrl: https://jiyiqi.vercel.app/
 githubUrl: https://github.com/Bovia/ruankao-senior
 date: 2026-06
-responsive: "true"
+devices:
+  - desktop
+  - mobile
+  - tablet
 ---
 
 ## 为什么做这个
