@@ -1,10 +1,16 @@
 ---
-title: "高项学习器"
-description: "软考高项备考工具：过程域可视化 + 题库练习 + 论文专区，数据云端同步"
-tags: ["Vue 3", "Vercel", "Neon", "PostgreSQL", "Serverless"]
-demoUrl: "https://jiyiqi.vercel.app/"
-githubUrl: "https://github.com/Bovia/ruankao-senior"
-date: "2026-06"
+title: 高项学习器
+description: 软考高项备考工具：过程域可视化 + 题库练习 + 论文专区，数据云端同步
+tags:
+  - Vue 3
+  - Vercel
+  - Neon
+  - PostgreSQL
+  - Serverless
+demoUrl: https://jiyiqi.vercel.app/
+githubUrl: https://github.com/Bovia/ruankao-senior
+date: 2026-06
+responsive: "true"
 ---
 
 ## 为什么做这个
