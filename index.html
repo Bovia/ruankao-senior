@@ -49,9 +49,10 @@
     <!-- 全局锁屏：本地无缓存时要求输入密码初始化 -->
     <div v-if="appLocked" class="app-lock-mask">
       <div class="app-lock-card">
-        <div class="app-lock-icon">🔐</div>
+        <div class="app-lock-icon">{{ cloudLoginPrompt ? '☁️' : '🔐' }}</div>
         <h2 class="app-lock-title">高项学习器</h2>
-        <p class="app-lock-hint">输入用户名进入，新用户自动注册</p>
+        <p v-if="cloudLoginPrompt" class="app-lock-hint">输入用户名登录，进度可云端同步、多设备继续</p>
+        <p v-else class="app-lock-hint">输入用户名进入，新用户自动注册</p>
         <form class="app-lock-form" @submit.prevent="unlockApp()">
           <input
             v-model="appPasswordInput"
@@ -63,10 +64,26 @@
             autofocus
             @input="appLockError = ''"
           />
-          <button type="submit" class="app-lock-btn" :disabled="!appPasswordInput.trim()">进入</button>
+          <button type="submit" class="app-lock-btn" :disabled="!appPasswordInput.trim()">
+            {{ cloudLoginPrompt ? '登录并同步' : '进入' }}
+          </button>
         </form>
+        <button
+          v-if="cloudLoginPrompt"
+          type="button"
+          class="app-lock-cancel"
+          @click="cancelCloudLogin()"
+        >继续本地体验</button>
         <p v-if="appLockError" class="app-lock-error">{{ appLockError }}</p>
       </div>
+    </div>
+
+    <div
+      v-if="portfolioEmbedMode && !cloudLoggedIn && !appLocked"
+      class="embed-demo-banner"
+    >
+      <span>演示模式 · 数据仅保存在本浏览器</span>
+      <button type="button" class="embed-demo-banner__btn" @click="openCloudLogin()">登录云同步</button>
     </div>
 
     <div
@@ -125,6 +142,13 @@
                 @click="closeDesktopSettings(); exportProjectCacheToClipboard()"
               >导出项目缓存</button>
               <button
+                v-if="portfolioEmbedMode && !cloudLoggedIn"
+                type="button"
+                class="header-settings-item"
+                @click="closeDesktopSettings(); openCloudLogin()"
+              >登录 / 云同步</button>
+              <button
+                v-else-if="cloudLoggedIn || !portfolioEmbedMode"
                 type="button"
                 class="header-settings-item"
                 @click="closeDesktopSettings(); logoutCloud()"
@@ -3145,6 +3169,13 @@
                       @click="exportProjectCacheToClipboard"
                     >导出项目缓存</button>
                     <button
+                      v-if="portfolioEmbedMode && !cloudLoggedIn"
+                      type="button"
+                      class="module-config-item"
+                      @click="openCloudLogin()"
+                    >登录 / 云同步</button>
+                    <button
+                      v-else-if="cloudLoggedIn || !portfolioEmbedMode"
                       type="button"
                       class="module-config-item"
                       @click="logoutCloud()"

@@ -250,6 +250,14 @@ const PRACTICE_ATTEMPTS_STORAGE_KEY = "jiyiqi-practice-attempts-v1";
 /** 练习场：外部导入的“我的答案”配置（不写进题库 Markdown，避免影响解析阅读） */
 const PRACTICE_USER_ANS_STORAGE_KEY = "jiyiqi-practice-user-answers-v1";
 const PRACTICE_ACTIVE_USER_STORAGE_KEY = "jiyiqi-practice-active-user-v1";
+/** Portfolio Hub iframe 嵌入：?embed=1 时跳过登录，本地 guest 体验 */
+function isPortfolioEmbed() {
+  try {
+    return new URLSearchParams(window.location.search).get("embed") === "1";
+  } catch (e) {
+    return false;
+  }
+}
 /** 案例题：对照进度、自测草稿、当前大题序号 */
 const CASE_STUDY_STATE_KEY = "jiyiqi-case-study-state-v1";
 /** 斩题模式：按当前用户缓存各大类最近一轮结果 */
@@ -730,6 +738,11 @@ const app = createApp({
       appLocked: false,
       appPasswordInput: "",
       appLockError: "",
+      /** Portfolio 嵌入演示：跳过首屏登录，数据仅存本地 */
+      portfolioEmbedMode: false,
+      /** 设置里主动打开的云同步登录（可取消回到本地） */
+      cloudLoginPrompt: false,
+      cloudLoggedIn: false,
       views,
       activeDomainId: firstDomain.id || "",
       activeProcessId: firstProcess.id || "",
@@ -2179,10 +2192,18 @@ const app = createApp({
     });
     this.ensureCurrentPracticeDataLoaded();
     this._loadFavorites();
-    this._loadPracticeActiveUser();
-    if (!safeGetItem(PRACTICE_ACTIVE_USER_STORAGE_KEY)) {
-      this.appLocked = true;
+    this.portfolioEmbedMode = isPortfolioEmbed();
+    if (typeof ApiClient !== "undefined") {
+      this.cloudLoggedIn = ApiClient.restore();
     }
+    if (!safeGetItem(PRACTICE_ACTIVE_USER_STORAGE_KEY)) {
+      if (this.portfolioEmbedMode) {
+        this._initFreshUser("guest");
+      } else {
+        this.appLocked = true;
+      }
+    }
+    this._loadPracticeActiveUser();
 
     // In some in-app browsers / file:// environments, localStorage may be blocked.
     // We fall back to in-memory storage; pre-warm it with exported seed so history-based
@@ -3121,15 +3142,45 @@ const app = createApp({
       this.desktopSettingsOpen = false;
     },
     async logoutCloud() {
-      const ok = await this._askCuteConfirm("确认退出登录？下次打开需重新解锁，数据已保存在云端。", "退出登录", "退出", "取消");
+      const ok = await this._askCuteConfirm(
+        this.portfolioEmbedMode
+          ? "确认退出云同步？将继续本地体验，数据仅保存在本浏览器。"
+          : "确认退出登录？下次打开需重新解锁，数据已保存在云端。",
+        "退出登录",
+        "退出",
+        "取消"
+      );
       if (!ok) return;
       if (typeof ApiClient !== "undefined") ApiClient.logout();
+      this.cloudLoggedIn = false;
+      if (this.portfolioEmbedMode) {
+        await this._initFreshUser("guest");
+        this._loadPracticeAttemptLog();
+        this._loadPracticeUserAnswers();
+        this._loadPracticeSlashSessions();
+        this._showCuteTip("已退出云同步，继续本地体验");
+        return;
+      }
       // 清除本地缓存，回到锁屏
       safeSetItem(PRACTICE_ACTIVE_USER_STORAGE_KEY, "");
       this.appLocked = true;
       this.appPasswordInput = "";
       this.appLockError = "";
       this._showCuteTip("已退出登录");
+    },
+    openCloudLogin() {
+      this.cloudLoginPrompt = true;
+      this.appLocked = true;
+      this.appPasswordInput = "";
+      this.appLockError = "";
+      this.projectConfigMenuOpen = false;
+      this.desktopSettingsOpen = false;
+    },
+    cancelCloudLogin() {
+      this.cloudLoginPrompt = false;
+      this.appLocked = false;
+      this.appPasswordInput = "";
+      this.appLockError = "";
     },
     openMobileSearchPage() {
       this.mobileSearchPageOpen = true;
@@ -3681,6 +3732,12 @@ const app = createApp({
       this.appPasswordInput = "";
       this.appLockError = "";
 
+      const finishUnlock = (cloudActive = false) => {
+        this.appLocked = false;
+        this.cloudLoginPrompt = false;
+        this.cloudLoggedIn = cloudActive;
+      };
+
       // 尝试从云端初始化（云端优先）
       if (typeof ApiClient !== "undefined" && navigator.onLine) {
         this.appLockError = "正在连接云端…";
@@ -3690,7 +3747,7 @@ const app = createApp({
             const syncRes = await ApiClient.getAllUserData();
             if (!syncRes.offline && !syncRes.error && syncRes.hasData) {
               // 云端有数据 → 直接用云端数据
-              this.appLocked = false;
+              finishUnlock(true);
               this.appLockError = "";
               await this._initPracticeUserFromCloud(uid, syncRes);
               this._showCuteTip(`欢迎回来，${uid}`);
@@ -3698,8 +3755,8 @@ const app = createApp({
             }
             if (!syncRes.offline && !syncRes.error && !syncRes.hasData) {
               // 新用户（或云端无数据） → 本地种子或全新状态，再上传
+              finishUnlock(true);
               this.appLockError = "";
-              this.appLocked = false;
               const isKnownSeedUser = uid === "bovia" || uid === "mtt";
               if (isKnownSeedUser) {
                 await this.initPracticeUserFromSeed(uid, { silent: true });
@@ -3721,8 +3778,8 @@ const app = createApp({
       }
 
       // 降级：离线或云端失败，本地直接进入
+      finishUnlock(false);
       this.appLockError = "";
-      this.appLocked = false;
       const isKnownSeedUser = uid === "bovia" || uid === "mtt";
       if (isKnownSeedUser) {
         await this.initPracticeUserFromSeed(uid, { silent: true });

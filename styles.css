@@ -4026,6 +4026,49 @@ body.mobile-search-screen-open {
   color: #dc2626;
   font-weight: 500;
 }
+.app-lock-cancel {
+  margin-top: 0.85rem;
+  font-size: 0.88rem;
+  color: #64748b;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.app-lock-cancel:hover {
+  color: #1c7c7d;
+}
+
+/* Portfolio 嵌入演示提示条 */
+.embed-demo-banner {
+  position: sticky;
+  top: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.78rem;
+  color: #475569;
+  background: linear-gradient(90deg, #f8fafc 0%, #eef7f6 50%, #f8fafc 100%);
+  border-bottom: 1px solid rgba(28, 124, 125, 0.12);
+}
+.embed-demo-banner__btn {
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1c7c7d;
+  background: #fff;
+  border: 1px solid rgba(28, 124, 125, 0.25);
+  cursor: pointer;
+}
+.embed-demo-banner__btn:hover {
+  background: #eef7f6;
+}
 
 /* ── 我的论文 My Essay ── */
 .my-essay {
