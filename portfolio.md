@@ -19,16 +19,6 @@ date: "2026-06"
 
 最初所有数据都存在 `localStorage`，多设备同步是个死结。后来引入 Neon Serverless Postgres + Vercel Functions 做了一层 REST API，但不想强迫用户注册账号——于是把"锁屏"改成了用户名输入框：输入已有用户名直接登录，输入新名字自动注册，JWT 静默颁发，整个过程对用户完全透明。
 
-```js
-// 登录即注册，对前端只暴露一个方法
-async loginOrRegister(username) {
-  const res = await this._post('/api/auth/login', { username });
-  if (res.ok) return res;
-  // 401 → 说明是新用户，自动注册
-  return this._post('/api/auth/register', { username });
-}
-```
-
 ## 结果
 
 自用为主，但把链接分享给了几个一起备考的朋友后，收到的第一条反馈是"题目解析比培训班的课件清楚"。备考期间每天打开率比任何笔记 App 都高，这大概就是把工具做给自己用的好处。
