@@ -1,6 +1,7 @@
 ---
 title: 高项学习器
 description: 软考高项备考工具：过程域可视化 + 题库练习 + 论文专区，数据云端同步
+published: true
 tags:
   - Vue 3
   - Vercel
